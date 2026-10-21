@@ -43,14 +43,14 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo }: { events: 
     {mode === "3d"
       ? <Resizable id="race-stage" defaultHeight={400} min={220} max={1200} label={t("la course", "the race")}>
           <div className="race-stage"><Suspense fallback={<div className="race-loading">{t("Chargement du stade…", "Loading the stadium…")}</div>}>
-            <SprintTrack3D reducedMotion={reducedMotion} lanes={lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse }) => ({ id: provider.id, name: provider.name, color: provider.color, status: state.status, progress: state.progress, cue, cueKey: isLiveEvent && state.latest ? state.latest.event_id : null, bubble, mood: pulse?.status ?? "never", onSelect: pulse?.session && onGoTo ? () => onGoTo(pulse) : undefined }))} />
+            <SprintTrack3D reducedMotion={reducedMotion} lanes={lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse }) => ({ id: provider.id, name: provider.name, model: pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? null, color: provider.color, status: state.status, progress: state.progress, cue, cueKey: isLiveEvent && state.latest ? state.latest.event_id : null, bubble, mood: pulse?.status ?? "never", onSelect: pulse?.session && onGoTo ? () => onGoTo(pulse) : undefined }))} />
           </Suspense></div>
         </Resizable>
       : <div className="race-lanes">
-          {lanes.map(({ provider, state, isLiveEvent, cue, bubble, label }) => {
+          {lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse, label }) => {
             const moving = state.status === "running" || state.status === "recent";
             return <div className={`race-lane ${moving ? "moving" : ""}`} key={provider.id} style={{ "--agent-color": provider.color, "--progress": `${state.progress}%` } as CSSProperties}>
-              <div className="race-lane-name"><ProviderMark provider={provider} small /><span>{provider.name}</span><small>{label}</small></div>
+              <div className="race-lane-name"><ProviderMark provider={provider} small /><span>{provider.name}<small>{pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? t("modèle non fourni", "model not reported")}</small></span><small>{label}</small></div>
               <div className="race-lane-track">
                 <span className="race-finish" aria-hidden="true" />
                 {state.latest && <div className={`runner ${cue} ${isLiveEvent ? "new-event" : ""} ${moving ? "moving" : ""}`} key={state.latest.event_id}>

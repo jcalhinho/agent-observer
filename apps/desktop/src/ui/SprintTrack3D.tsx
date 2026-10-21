@@ -9,6 +9,7 @@ import type { RaceStatus } from "./race";
 export type RaceLane = {
   id: string;
   name: string;
+  model: string | null;
   color: string;
   status: RaceStatus;
   progress: number;
@@ -499,7 +500,7 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
         onPointerOver={() => { if (lane.onSelect) document.body.style.cursor = "pointer"; }}
         onPointerOut={() => { document.body.style.cursor = ""; }}
       >
-        <NameTag name={lane.name} color={lane.color} icon={MOOD_ICONS[lane.mood]} renderOrder={renderOrder} />
+        <NameTag name={lane.name} model={lane.model} color={lane.color} icon={MOOD_ICONS[lane.mood]} renderOrder={renderOrder} />
         {lane.bubble && <SpeechBubble narration={lane.bubble} color={lane.color} row={bubbleRow} flipped={bubbleFlipped(lane.progress)} renderOrder={renderOrder} />}
         {[-1, 1].map((side) => (
           <group key={side} ref={side < 0 ? leftLeg : rightLeg} position={[0, HIP_HEIGHT, side * 0.09]}>
@@ -565,20 +566,21 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
 }
 
 /** The agent's name above its head, with its status symbol when it needs you. */
-function NameTag({ name, color, icon, renderOrder }: { name: string; color: string; icon?: { symbol: string; color: string }; renderOrder: number }) {
+function NameTag({ name, model, color, icon, renderOrder }: { name: string; model: string | null; color: string; icon?: { symbol: string; color: string }; renderOrder: number }) {
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 512;
-    canvas.height = 128;
+    canvas.height = 160;
     const context = canvas.getContext("2d");
     if (context) {
-      context.font = "700 52px system-ui, sans-serif";
+      context.font = "700 46px system-ui, sans-serif";
       const label = icon ? `${icon.symbol}  ${name}` : name;
-      const width = Math.min(500, context.measureText(label).width + 48);
+      const modelLabel = model ?? "modèle non fourni";
+      const width = Math.min(512, Math.max(context.measureText(label).width, context.measureText(modelLabel).width) + 48);
       const left = (512 - width) / 2;
       context.fillStyle = "rgba(15, 19, 26, 0.82)";
       context.beginPath();
-      context.roundRect(left, 22, width, 84, 42);
+      context.roundRect(left, 12, width, 136, 34);
       context.fill();
       context.lineWidth = 6;
       context.strokeStyle = icon?.color ?? color;
@@ -587,20 +589,23 @@ function NameTag({ name, color, icon, renderOrder }: { name: string; color: stri
       context.textBaseline = "middle";
       if (icon) {
         context.fillStyle = icon.color;
-        context.fillText(label.split("  ")[0], left + 44, 66);
+        context.fillText(label.split("  ")[0], left + 40, 52);
         context.fillStyle = "#f2f4f8";
-        context.fillText(name, 256 + 22, 66);
+        context.fillText(name, 256 + 22, 52);
       } else {
         context.fillStyle = "#f2f4f8";
-        context.fillText(name, 256, 66);
+        context.fillText(name, 256, 52);
       }
+      context.fillStyle = "#b8c0d4";
+      context.font = "500 30px ui-monospace, SFMono-Regular, Menlo, monospace";
+      context.fillText(modelLabel, 256, 106);
     }
     const result = new THREE.CanvasTexture(canvas);
     result.colorSpace = THREE.SRGBColorSpace;
     return result;
-  }, [name, color, icon]);
+  }, [name, model, color, icon]);
   useEffect(() => () => texture.dispose(), [texture]);
-  return <sprite position={[0, 1.32, 0]} scale={[1.5, 0.375, 1]} renderOrder={5 + renderOrder}>
+  return <sprite position={[0, 1.36, 0]} scale={[1.5, 0.47, 1]} renderOrder={5 + renderOrder}>
     <spriteMaterial map={texture} transparent depthTest={false} />
   </sprite>;
 }

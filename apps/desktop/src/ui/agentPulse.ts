@@ -38,6 +38,8 @@ export type AgentPulse = {
     /** Estimated USD cost, only when every priced model is known; null otherwise. */
     cost: number | null;
     model: string | null;
+    /** Every model reported in this session, in first-seen order. */
+    models?: string[];
   } | null;
   /** Where the latest event happened, to name its repository. */
   project: { project_path: string | null; file_path: string | null; project_hash: string | null } | null;
@@ -129,7 +131,8 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
       outputTokens: summary.tokens?.output ?? null,
       filesChanged: new Set(sessionEvents.filter((event) => event.file_path && (event.kind === "file_changed" || (event.kind === "tool_started" && WRITE_TOOL.test(event.tool_name || "")))).map((event) => event.file_path)).size,
       cost: summary.cost && summary.cost.unpricedEvents === 0 ? summary.cost.value : null,
-      model: summary.models[0]?.name ?? null
+      model: summary.models[0]?.name ?? null,
+      models: summary.models.map((model) => model.name)
     },
     project: { project_path: latest.project_path, file_path: latest.file_path, project_hash: latest.project_hash ?? null },
     spark

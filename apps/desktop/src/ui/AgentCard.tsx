@@ -100,6 +100,6 @@ export function AgentCard({ pulse, now, repository, compact = false, onGoTo }: {
     </div>
 
     {pulse.recent.length > 1 && <ol className="agent-log" aria-label={t("Actions précédentes", "Previous actions")}>{pulse.recent.slice(1, compact ? 3 : 4).map((action) => <li key={action.id} className={`tone-${action.tone}`}><span>{action.text}</span><time>{since(action.at, now)}</time></li>)}</ol>}
-    {!compact && session?.model && <footer className="agent-card-footer">{t("Modèle", "Model")} : {session.model}</footer>}
+    {session && ((session.models?.length ?? 0) > 0 || session.model) && <footer className="agent-card-footer">{t("Modèle utilisé", "Model used")} : {(session.models?.length ? session.models : [session.model]).filter(Boolean).join(" · ")}</footer>}
   </article>;
 }
