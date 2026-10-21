@@ -107,7 +107,7 @@ export function App() {
 
   return <div className="app">
     <header className="app-header">
-      <div className="brand"><span className="brand-mark"><Activity size={17} strokeWidth={2.4} /></span><span><b>Agent Observer</b><small>{t("par RepoWatcher", "by RepoWatcher")}</small></span></div>
+      <div className="brand"><span className="brand-mark"><Activity size={17} strokeWidth={2.4} /></span><span><b>Agent Observer</b></span></div>
       <WorkspaceSwitcher model={workspace} />
       <div className="header-actions">
         <CollectorStatus state={observer.collectorState} />
