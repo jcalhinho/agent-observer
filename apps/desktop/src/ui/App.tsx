@@ -110,22 +110,21 @@ export function App() {
     <header className="app-header">
       <div className="brand"><span className="brand-mark"><Activity size={17} strokeWidth={2.4} /></span><span><b>Agent Observer</b></span></div>
       <WorkspaceSwitcher model={workspace} />
+      <nav className="tabs" aria-label="Sections">
+        {tabs().map(([id, label]) => <button key={id} className="tab" aria-current={tab === id ? "page" : undefined} onClick={() => setTab(id)}>
+          {label}
+          {id === "sessions" && sessionCount > 0 && <small>{sessionCount}</small>}
+          {id === "reports" && <small>24 h</small>}
+          {id === "repositories" && workspace.repositories.length > 0 && <small>{workspace.repositories.length}</small>}
+          {id === "connectors" && !setup.claudeHooks && <i className="tab-dot" title={t("Une action est conseillée", "An action is recommended")} />}
+        </button>)}
+      </nav>
       <div className="header-actions">
         <CollectorStatus state={observer.collectorState} />
         <button className="button" onClick={goMini} title={t("Réduire l’app à une colonne dans un coin de l’écran", "Shrink the app to a column in a corner of the screen")}><Minimize2 size={15} /> {t("Mode mini", "Mini mode")}</button>
         <button className="button" onClick={() => setHelpOpen(true)}><CircleHelp size={15} /> {t("Aide", "Help")}</button>
       </div>
     </header>
-
-    <nav className="tabs" aria-label="Sections">
-      {tabs().map(([id, label]) => <button key={id} className="tab" aria-current={tab === id ? "page" : undefined} onClick={() => setTab(id)}>
-        {label}
-        {id === "sessions" && sessionCount > 0 && <small>{sessionCount}</small>}
-        {id === "reports" && <small>24 h</small>}
-        {id === "repositories" && workspace.repositories.length > 0 && <small>{workspace.repositories.length}</small>}
-        {id === "connectors" && !setup.claudeHooks && <i className="tab-dot" title={t("Une action est conseillée", "An action is recommended")} />}
-      </button>)}
-    </nav>
 
     <main className="app-main">
       {watcher}
