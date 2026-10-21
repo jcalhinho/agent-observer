@@ -10,6 +10,7 @@ import { HelpPanel } from "./HelpPanel";
 import { MiniView } from "./MiniView";
 import { enterMiniWindow, leaveMiniWindow, setMiniPinned } from "./miniWindow";
 import { OverviewPage } from "./OverviewPage";
+import { DailyReportPage } from "./DailyReportPage";
 import { isBoolean, isString, oneOf, usePreference } from "./preferences";
 import { RepositoriesPage } from "./RepositoriesPage";
 import { SessionsPage } from "./SessionsPage";
@@ -28,9 +29,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { filterByRepository, pathKey, type RepositoryFilter } from "./workspace";
 import { RepositoryFilterBar, WorkspaceSwitcher, useRepositoryActivity } from "./WorkspaceViews";
 
-type Tab = "overview" | "sessions" | "repositories" | "connectors" | "settings";
-const tabs = (): Array<[Tab, string]> => [["overview", t("Vue d’ensemble", "Overview")], ["sessions", "Sessions"], ["repositories", t("Dépôts", "Repositories")], ["connectors", t("Connecteurs", "Connectors")], ["settings", t("Réglages", "Settings")]];
-const isTab = oneOf("overview", "sessions", "repositories", "connectors", "settings");
+type Tab = "overview" | "reports" | "sessions" | "repositories" | "connectors" | "settings";
+const tabs = (): Array<[Tab, string]> => [["overview", t("Vue d’ensemble", "Overview")], ["reports", t("Rapport 24 h", "24 h report")], ["sessions", "Sessions"], ["repositories", t("Dépôts", "Repositories")], ["connectors", t("Connecteurs", "Connectors")], ["settings", t("Réglages", "Settings")]];
+const isTab = oneOf("overview", "reports", "sessions", "repositories", "connectors", "settings");
 const isRange = oneOf("15m", "1h", "24h", "all");
 
 export function App() {
@@ -120,6 +121,7 @@ export function App() {
       {tabs().map(([id, label]) => <button key={id} className="tab" aria-current={tab === id ? "page" : undefined} onClick={() => setTab(id)}>
         {label}
         {id === "sessions" && sessionCount > 0 && <small>{sessionCount}</small>}
+        {id === "reports" && <small>24 h</small>}
         {id === "repositories" && workspace.repositories.length > 0 && <small>{workspace.repositories.length}</small>}
         {id === "connectors" && !setup.claudeHooks && <i className="tab-dot" title={t("Une action est conseillée", "An action is recommended")} />}
       </button>)}
@@ -144,6 +146,7 @@ export function App() {
           onOpen={setTab}
         />
       </>}
+      {tab === "reports" && <DailyReportPage events={agentWindow.events} hasMore={observer.hasMore} />}
       {tab === "sessions" && <SessionsTab observer={observer} repositoryOf={workspace.repositoryOf} />}
       {tab === "repositories" && <RepositoriesPage model={workspace} activity={repositoryActivity} events={chartWindow.events} onFilter={filterOn} />}
       {tab === "connectors" && <ConnectorsTab events={agentWindow.events} onConfigure={setConnectorSetup} />}

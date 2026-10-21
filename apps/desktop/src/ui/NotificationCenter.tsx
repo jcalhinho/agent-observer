@@ -5,7 +5,8 @@ import { isPermissionGranted, onAction, requestPermission, sendNotification } fr
 import { AlertTriangle, ArrowUpRight } from "lucide-react";
 import { agentPulse, type AgentPulse } from "./agentPulse";
 import { isAlertStatus, notices, type Notice, type NoticeKind } from "./notificationRules";
-import { readPreference } from "./preferences";
+import { isBoolean, readPreference, writePreference } from "./preferences";
+import { buildDailyReport } from "./dailyReport";
 import { agentName, useAgents } from "./providers";
 import type { SessionEvent } from "./types";
 import { useNow } from "./useNow";
@@ -67,6 +68,21 @@ export function NotificationCenter({ events, onGoTo }: { events: SessionEvent[];
       }
     });
   }, [pulses, now]);
+
+  // The complete report remains local in the Reports tab. This reminder provides the requested
+  // 24-hour cadence while the app is running in the background.
+  useEffect(() => {
+    if (!readPreference("notify.enabled", true, isBoolean) || !readPreference("daily-report.enabled", true, isBoolean) || !events.length) return;
+    const last = readPreference("daily-report.last-notified", 0, (value): value is number => typeof value === "number" && Number.isFinite(value));
+    if (last === 0) { writePreference("daily-report.last-notified", now); return; }
+    if (now - last < 24 * 60 * 60_000) return;
+    const report = buildDailyReport(events, now);
+    void canNotify().then((allowed) => {
+      if (!allowed) return;
+      sendNotification({ title: "Rapport Agent Observer disponible", body: `${report.agents.length} agent(s) · ${report.events.length} événement(s) · ${report.failures} échec(s) sur les dernières 24 h.` });
+      writePreference("daily-report.last-notified", now);
+    });
+  }, [events, now]);
 
   // Dock / taskbar badge: how many agents need you.
   const attention = pulses.filter((pulse) => ["looping", "blocked", "stalled", "waiting"].includes(pulse.status) && pulse.lastEventAt !== null && now - pulse.lastEventAt < 30 * 60_000).length;

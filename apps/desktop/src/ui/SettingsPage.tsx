@@ -140,10 +140,12 @@ function Toggle({ checked, disabled, onChange, title, hint }: { checked: boolean
 
 function NotificationSettings() {
   const [enabled, setEnabled] = usePreference("notify.enabled", true, isBoolean);
+  const [dailyReport, setDailyReport] = usePreference("daily-report.enabled", true, isBoolean);
   return <div className="settings-group">
     <h3>Notifications</h3>
     <p>{t("L’app te prévient quand un agent a besoin de toi, même si elle est en arrière-plan. Un clic sur la notification t’amène directement à l’agent. Les alertes (boucle, erreurs) ont un son distinct et s’affichent aussi en rouge en haut de l’app.", "The app tells you when an agent needs you, even in the background. Clicking the notification takes you straight to the agent. Alerts (loops, errors) have a distinct sound and also show in red at the top of the app.")}</p>
     <Toggle checked={enabled} disabled={false} onChange={setEnabled} title={t("Activer les notifications", "Enable notifications")} hint={t("Coupe toutes les notifications d’un coup (le badge et les bandeaux restent).", "Turns every notification off at once (the badge and banners stay).")} />
+    <Toggle checked={dailyReport} disabled={false} onChange={setDailyReport} title={t("Rapport quotidien", "Daily report")} hint={t("Une notification locale après 24 h d’activité ; le détail reste dans l’onglet Rapport 24 h.", "A local notification after 24 hours of activity; details stay in the 24 h report tab.")} />
     {noticeKinds().map((entry) => <KindToggle key={entry.kind} kind={entry.kind} label={entry.alert ? `⚠ ${entry.label}` : entry.label} hint={entry.hint} disabled={!enabled} />)}
   </div>;
 }
