@@ -67,7 +67,7 @@ const easeOut = (k: number) => 1 - (1 - k) ** 3;
 const easeIn = (k: number) => k * k;
 
 function Low({ color, emissive }: { color: string; emissive?: string }) {
-  return <meshLambertMaterial color={color} emissive={emissive} flatShading />;
+  return <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={emissive ? 0.2 : 0} roughness={0.82} metalness={0} />;
 }
 
 export default function SprintTrack3D({ lanes, reducedMotion }: { lanes: RaceLane[]; reducedMotion: boolean }) {
@@ -81,7 +81,7 @@ export default function SprintTrack3D({ lanes, reducedMotion }: { lanes: RaceLan
       className="sprint-canvas"
       shadows
       flat
-      dpr={[1, 1.75]}
+      dpr={[1, 2]}
       camera={{ fov: 30, position: [0, 7, 12], near: 0.1, far: 140 }}
       gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
       aria-label={t("Piste 3D de la course des agents", "3D track of the agents’ race")}
@@ -233,7 +233,7 @@ function Stadium({ lanes, excitement, reducedMotion }: { lanes: RaceLane[]; exci
       {/* Finish arch */}
       {[-1, 1].map((side) => (
         <mesh key={side} castShadow position={[FINISH_X + 0.2, 1.25, side * (halfWidth + 0.35)]}>
-          <cylinderGeometry args={[0.09, 0.11, 2.5, 6]} />
+          <cylinderGeometry args={[0.09, 0.11, 2.5, 10]} />
           <Low color="#ffd166" />
         </mesh>
       ))}
@@ -247,11 +247,11 @@ function Stadium({ lanes, excitement, reducedMotion }: { lanes: RaceLane[]; exci
       {trees.map((tree, index) => (
         <group key={index} position={[tree.x, 0, tree.z]} scale={tree.scale}>
           <mesh castShadow position={[0, 0.3, 0]}>
-            <cylinderGeometry args={[0.1, 0.14, 0.6, 5]} />
+            <cylinderGeometry args={[0.1, 0.14, 0.6, 8]} />
             <Low color="#8b5a3c" />
           </mesh>
           <mesh castShadow position={[0, 1.15, 0]}>
-            <coneGeometry args={[0.65, 1.5, 6]} />
+            <coneGeometry args={[0.65, 1.5, 10]} />
             <Low color={tree.color} />
           </mesh>
         </group>
@@ -260,12 +260,12 @@ function Stadium({ lanes, excitement, reducedMotion }: { lanes: RaceLane[]; exci
       {/* Distant hills and sun */}
       {HILLS.map(([x, z, radius, color], index) => (
         <mesh key={index} position={[x, -radius * 0.5, z]} scale={[1.7, 0.55, 1]}>
-          <icosahedronGeometry args={[radius, 0]} />
+          <icosahedronGeometry args={[radius, 1]} />
           <Low color={color} />
         </mesh>
       ))}
       <mesh position={[-16, 11, -30]}>
-        <icosahedronGeometry args={[2.2, 0]} />
+        <icosahedronGeometry args={[2.2, 1]} />
         <meshBasicMaterial color="#ffd66b" />
       </mesh>
       <Clouds reducedMotion={reducedMotion} />
@@ -320,7 +320,7 @@ function Crowd({ excitement, reducedMotion }: { excitement: number; reducedMotio
       ))}
       <instancedMesh ref={mesh} args={[undefined, undefined, seats.length]} castShadow>
         <boxGeometry args={[0.3, 0.34, 0.26]} />
-        <meshLambertMaterial flatShading />
+        <meshStandardMaterial roughness={0.82} metalness={0} />
       </instancedMesh>
     </group>
   );
@@ -345,7 +345,7 @@ function Clouds({ reducedMotion }: { reducedMotion: boolean }) {
         <group key={index} position={[cloud.x, cloud.y, cloud.z]} scale={cloud.scale}>
           {[[-1, 0, 0.9], [0, 0.35, 1.25], [1.1, 0, 0.85]].map(([x, y, radius], part) => (
             <mesh key={part} position={[x, y, 0]}>
-              <icosahedronGeometry args={[radius, 0]} />
+              <icosahedronGeometry args={[radius, 1]} />
               <Low color="#ffffff" />
             </mesh>
           ))}
@@ -519,7 +519,7 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
         ))}
         <group ref={body} position={[0, HIP_HEIGHT, 0]}>
           <mesh position={[0, 0.24, 0]}>
-            <cylinderGeometry args={[0.17, 0.14, 0.42, 6]} />
+            <cylinderGeometry args={[0.17, 0.14, 0.42, 10]} />
             <Low color={lane.color} />
           </mesh>
           <mesh position={[0.15, 0.26, 0]}>
@@ -527,11 +527,11 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
             <Low color="#ffffff" />
           </mesh>
           <mesh position={[0, 0.62, 0]}>
-            <icosahedronGeometry args={[0.15, 0]} />
+            <icosahedronGeometry args={[0.15, 1]} />
             <Low color={SKIN} />
           </mesh>
           <mesh position={[0, 0.72, 0]}>
-            <cylinderGeometry args={[0.13, 0.155, 0.08, 6]} />
+            <cylinderGeometry args={[0.13, 0.155, 0.08, 10]} />
             <Low color={capColor} />
           </mesh>
           <mesh position={[0.15, 0.69, 0]}>
