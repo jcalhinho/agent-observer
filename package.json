@@ -1,0 +1,23 @@
+{
+  "name": "agent-observer",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspaces",
+    "desktop:dev": "npm run tauri --workspace @repo-watcher/agent-observer-desktop dev",
+    "desktop:typecheck": "npm run typecheck --workspace @repo-watcher/agent-observer-desktop",
+    "desktop:build": "npm run tauri --workspace @repo-watcher/agent-observer-desktop build",
+    "desktop:install-mac": "bash apps/desktop/scripts/install-mac.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.5"
+  }
+}
