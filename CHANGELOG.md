@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-22
+
+### Fixed
+
+- "Go to agent" now finds sessions running in Claude Desktop, the Codex app and editor
+  extensions (they were ignored, so the app tried to start a command line that may not exist).
+- A stopped session is brought back where it was seen, or with what is installed: its command
+  line, its desktop app, then an editor that has its extension. A command that does not exist is
+  never run.
+
+### Security
+
+- tokio 1.54.1 (RUSTSEC-2026-0384).
+- GitHub Actions are pinned to commit SHAs.
+
 ## [0.1.1] - 2026-10-22
 
 ### Fixed
