@@ -79,7 +79,7 @@ export function NotificationCenter({ events, onGoTo }: { events: SessionEvent[];
     const report = buildDailyReport(events, now);
     void canNotify().then((allowed) => {
       if (!allowed) return;
-      sendNotification({ title: "Rapport Agent Observer disponible", body: `${report.agents.length} agent(s) · ${report.events.length} événement(s) · ${report.failures} échec(s) sur les dernières 24 h.` });
+      sendNotification({ title: t("Rapport Agent Observer disponible", "Agent Observer report ready"), body: t(`${report.agents.length} agent(s) · ${report.events.length} événement(s) · ${report.failures} échec(s) sur les dernières 24 h.`, `${report.agents.length} agent(s) · ${report.events.length} event(s) · ${report.failures} failure(s) in the last 24 h.`) });
       writePreference("daily-report.last-notified", now);
     });
   }, [events, now]);

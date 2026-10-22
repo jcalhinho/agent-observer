@@ -30,8 +30,8 @@ command for five minutes is not. Agent Observer answers one question at a glance
 It only **observes**. It never drives an agent, never edits your code, never modifies an
 agent's settings for you, and never talks to the network.
 
-> **Status:** early (0.x). The interface is currently in **French**; English localisation
-> is planned and contributions are welcome.
+> **Status:** early (0.x). The interface is available in **English and French** (it follows
+> your system language; change it in Settings). Contributions are welcome.
 
 ## Features
 
@@ -43,12 +43,24 @@ has consumed so far.
 
 | Status | Meaning |
 | --- | --- |
-| **Blocked** | At least two tools failed in a row — it may be going round in circles. |
+| **Going in circles** | It repeats the same actions without progress (same command, same file, same sequence) — it burns tokens for nothing. |
+| **Blocked** | At least two tools failed in a row. |
 | **Silent** | A turn is open but nothing has happened for more than 2 minutes — often waiting for your approval. |
 | **Waiting for you** | Its last turn has finished; it is ready for your next message. |
 | **Working** | Events arrived in the last 45 seconds. |
 | **Idle** | No recent activity. |
 | **Not seen yet** | Nothing received — check its connector. |
+
+Click a card to **go to the agent**: its terminal, editor or desktop app (Claude Desktop, the
+Codex app, VS Code and Cursor extensions, Terminal, iTerm2, Windows Terminal…) comes to the
+front. If the agent has stopped, its session is started again where it was seen, using only
+what is installed (its command line, its desktop app, or an editor with its extension).
+
+### Notifications and alerts
+
+A system notification when an agent waits for you, asks for approval, goes silent, keeps
+failing or goes round in circles; clicking it takes you to the agent. Loops and errors also
+raise a red banner in the app. Every kind can be switched off in Settings.
 
 ### Mini mode
 
@@ -56,6 +68,13 @@ Shrinks the app to a single always-visible column in a corner of the screen, one
 card per agent, with an optional "keep on top" pin.
 
 <img src="docs/media/mini-mode.png" alt="Mini mode: a column of agent cards" width="320">
+
+### 24 h report
+
+Plain-words facts about the last day, then the numbers behind them: agents, models, tools,
+files and activity per hour. Nothing is written by a model; it is computed from the events.
+
+<img src="docs/media/report.png" alt="24 h report: a short summary, then per-agent, per-model, per-tool and per-file numbers" width="900">
 
 ### The race
 
@@ -250,7 +269,7 @@ agent CLIs ──hooks (HTTP, 127.0.0.1 + token)──┐
 
 There are two ways to bring a new agent in:
 
-- **Local HTTP API** *(in progress)* — post events to the local collector from a script,
+- **Local HTTP API** — post events to the local collector from a script,
   a hook or a plugin, in any language. Documented in [`docs/CONNECTORS.md`](docs/CONNECTORS.md).
 - **Native connector** — a Rust module in the desktop app. See
   [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-connector).

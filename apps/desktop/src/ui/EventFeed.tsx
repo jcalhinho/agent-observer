@@ -25,8 +25,13 @@ export const EventFeed = memo(function EventFeed({ events }: { events: SessionEv
     observer.observe(node);
     return () => observer.disconnect();
   }, [hasMore, limit]);
-  return <div className="event-feed">{events.slice(0, limit).map((event) => <EventRow key={event.event_id} event={event} />)}{hasMore && <div ref={sentinel} aria-hidden="true" />}</div>;
+  return <div className="event-feed"><EventHead />{events.slice(0, limit).map((event) => <EventRow key={event.event_id} event={event} />)}{hasMore && <div ref={sentinel} aria-hidden="true" />}</div>;
 });
+
+/** Column titles that stay at the top while the list scrolls. */
+export function EventHead() {
+  return <div className="event-head" role="presentation"><span>{t("Heure", "Time")}</span><span>{t("Agent", "Agent")}</span><span>{t("Action", "Action")}</span><span /></div>;
+}
 
 /** One event in plain language: when, which agent, what it did, with the raw record on demand. */
 export const EventRow = memo(function EventRow({ event, showDate = false }: { event: SessionEvent; showDate?: boolean }) {

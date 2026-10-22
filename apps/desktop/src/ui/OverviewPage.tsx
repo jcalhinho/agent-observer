@@ -76,7 +76,7 @@ export function OverviewPage({ agentEvents, events, analyticsEvents, analytics, 
         description={t("Tout ce que les agents ont fait, du plus récent au plus ancien, en langage clair.", "Everything the agents did, newest first, in plain language.")}
         details={t("Chaque ligne est un événement reçu : l’heure, l’agent, ce qu’il a fait et, quand c’est connu, le détail (fichier, durée, tokens). « données brutes » affiche l’enregistrement exact.", "Each line is an event received: time, agent, what it did and, when known, details (file, duration, tokens). “raw data” shows the exact record.")}
       />
-      <Resizable id="activity-feed" defaultHeight={340} min={140} max={1600} label={t("le fil d’activité", "the activity feed")}>
+      <Resizable id="activity-feed-2" defaultHeight={260} min={140} max={1600} label={t("le fil d’activité", "the activity feed")}>
         {events.length ? <EventFeed events={events} /> : <EmptyState title={t("Rien pour l’instant", "Nothing yet")}>{t("Les actions de tes agents s’afficheront ici dès qu’ils travailleront.", "Your agents’ actions will show up here as soon as they work.")}</EmptyState>}
       </Resizable>
     </section>

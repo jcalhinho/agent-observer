@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-22
+
+### Changed
+
+- **Minimal, dense interface.** One 40 px header with the tabs inline, one-line section titles
+  (the explanation moved into the "i" next to the title), agent cards cut from about 500 px to
+  about 110 px (identity, current action, numbers, activity strip), flat surfaces, smaller type
+  and spacing. The overview now fits a laptop screen with the race and the first charts visible.
+- No scrollbars in navigation: tabs and repository chips wrap instead of scrolling.
+- Every scrolling area has a sticky header: event feed and timeline column titles, table
+  headers, the sessions list title, chart card titles, help sections.
+- Default section heights are smaller (existing custom heights are reset once).
+- The 24 h report is available in English and French and follows the new style.
+- Race labels, buttons and the mini window follow the denser layout; mini mode shows five agents
+  in about 600 px.
+
+### Added
+
+- A notice when the repository filter hides activity, naming where agents are working and
+  offering to show everything.
+- `docs/DESIGN.md`: the design rules (density, no scrolling navigation, sticky headers, tokens).
+- Report screenshots and refreshed screenshots for every page.
+
+### Fixed
+
+- A negative turn duration could show on a card when the clocks differed slightly.
+
 ## [0.1.2] - 2026-10-22
 
 ### Fixed

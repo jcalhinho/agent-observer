@@ -30,7 +30,7 @@ import { filterByRepository, pathKey, type RepositoryFilter } from "./workspace"
 import { RepositoryFilterBar, WorkspaceSwitcher, useRepositoryActivity } from "./WorkspaceViews";
 
 type Tab = "overview" | "reports" | "sessions" | "repositories" | "connectors" | "settings";
-const tabs = (): Array<[Tab, string]> => [["overview", t("Vue d’ensemble", "Overview")], ["reports", t("Rapport 24 h", "24 h report")], ["sessions", "Sessions"], ["repositories", t("Dépôts", "Repositories")], ["connectors", t("Connecteurs", "Connectors")], ["settings", t("Réglages", "Settings")]];
+const tabs = (): Array<[Tab, string]> => [["overview", t("Vue d’ensemble", "Overview")], ["reports", t("Rapport", "Report")], ["sessions", "Sessions"], ["repositories", t("Dépôts", "Repositories")], ["connectors", t("Connecteurs", "Connectors")], ["settings", t("Réglages", "Settings")]];
 const isTab = oneOf("overview", "reports", "sessions", "repositories", "connectors", "settings");
 const isRange = oneOf("15m", "1h", "24h", "all");
 
@@ -108,7 +108,7 @@ export function App() {
 
   return <div className="app">
     <header className="app-header">
-      <div className="brand"><span className="brand-mark"><Activity size={17} strokeWidth={2.4} /></span><span><b>Agent Observer</b></span></div>
+      <div className="brand"><span className="brand-mark"><Activity size={14} strokeWidth={2.4} /></span><span><b>Agent Observer</b></span></div>
       <WorkspaceSwitcher model={workspace} />
       <nav className="tabs" aria-label="Sections">
         {tabs().map(([id, label]) => <button key={id} className="tab" aria-current={tab === id ? "page" : undefined} onClick={() => setTab(id)}>
@@ -121,8 +121,8 @@ export function App() {
       </nav>
       <div className="header-actions">
         <CollectorStatus state={observer.collectorState} />
-        <button className="button" onClick={goMini} title={t("Réduire l’app à une colonne dans un coin de l’écran", "Shrink the app to a column in a corner of the screen")}><Minimize2 size={15} /> {t("Mode mini", "Mini mode")}</button>
-        <button className="button" onClick={() => setHelpOpen(true)}><CircleHelp size={15} /> {t("Aide", "Help")}</button>
+        <button className="icon-button" onClick={goMini} aria-label={t("Mode mini", "Mini mode")} title={t("Mode mini : réduire l’app à une colonne dans un coin de l’écran", "Mini mode: shrink the app to a column in a corner of the screen")}><Minimize2 size={14} /></button>
+        <button className="icon-button" onClick={() => setHelpOpen(true)} aria-label={t("Aide", "Help")} title={t("Aide", "Help")}><CircleHelp size={14} /></button>
       </div>
     </header>
 

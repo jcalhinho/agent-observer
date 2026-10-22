@@ -30,8 +30,8 @@ maintenant ?**
 Il ne fait **qu’observer**. Il ne pilote jamais un agent, ne modifie jamais ton code, ne
 change pas les réglages d’un agent à ta place et ne communique pas avec Internet.
 
-> **État :** jeune (0.x). L’interface est pour l’instant en **français** ; la traduction
-> anglaise est prévue et les contributions sont bienvenues.
+> **État :** jeune (0.x). L’interface existe en **français et en anglais** (elle suit la langue
+> de ton système ; à changer dans Réglages). Les contributions sont bienvenues.
 
 ## Fonctionnalités
 
@@ -43,12 +43,25 @@ ce que la session a consommé.
 
 | Statut | Signification |
 | --- | --- |
-| **Bloqué** | Au moins deux outils ont échoué d’affilée : il tourne peut-être en rond. |
+| **Tourne en rond** | Il répète les mêmes actions sans avancer (même commande, même fichier, même enchaînement) : il consomme des tokens pour rien. |
+| **Bloqué** | Au moins deux outils ont échoué d’affilée. |
 | **Silencieux** | Un tour est en cours mais rien ne se passe depuis plus de 2 minutes : il attend souvent ta validation. |
 | **T’attend** | Son dernier tour est terminé : il est prêt pour ton prochain message. |
 | **Au travail** | Des événements sont arrivés dans les 45 dernières secondes. |
 | **Au repos** | Aucune activité récente. |
 | **Pas encore vu** | Rien reçu : vérifie son connecteur. |
+
+Clique sur une carte pour **aller à l’agent** : son terminal, son éditeur ou son application
+(Claude Desktop, l’app Codex, les extensions VS Code et Cursor, Terminal, iTerm2, Windows
+Terminal…) passe au premier plan. Si l’agent est arrêté, sa session est relancée là où elle
+avait été vue, avec ce qui est installé (sa commande, son application, ou un éditeur avec son
+extension).
+
+### Notifications et alertes
+
+Une notification système quand un agent t’attend, demande une validation, devient silencieux,
+enchaîne les erreurs ou tourne en rond ; un clic dessus t’amène à l’agent. Les boucles et les
+erreurs affichent aussi une bannière rouge dans l’app. Chaque type se coupe dans Réglages.
 
 ### Mode mini
 
@@ -56,6 +69,14 @@ Réduit l’app à une colonne toujours visible dans un coin de l’écran, une 
 agent, avec une épingle « garder au premier plan ».
 
 <img src="docs/media/mini-mode.png" alt="Mini mode: a column of agent cards" width="320">
+
+### Rapport 24 h
+
+Les faits de la dernière journée en mots simples, puis les chiffres : agents, modèles, outils,
+fichiers et activité par heure. Rien n’est rédigé par un modèle : tout est calculé à partir des
+événements.
+
+<img src="docs/media/report.png" alt="Rapport 24 h : un résumé, puis les chiffres par agent, modèle, outil et fichier" width="900">
 
 ### La course
 
@@ -257,7 +278,7 @@ CLI des agents ──hooks (HTTP, 127.0.0.1 + jeton)───────┐
 
 Deux façons d’intégrer un nouvel agent :
 
-- **API HTTP locale** *(en cours)* — envoyer des événements au collecteur local depuis un
+- **API HTTP locale** — envoyer des événements au collecteur local depuis un
   script, un hook ou un plugin, dans n’importe quel langage. Documentée dans
   [`docs/CONNECTORS.md`](docs/CONNECTORS.md).
 - **Connecteur natif** — un module Rust dans l’app. Voir

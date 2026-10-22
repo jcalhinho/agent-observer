@@ -1,11 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Info } from "lucide-react";
+import { t } from "./i18n";
 
 /**
  * A small "i" button that reveals an explanation. Opens on hover, focus or click; Escape and a
  * click elsewhere close it. The text is linked to the button for screen readers.
  */
-export function InfoTip({ children, label = "Explication", align = "start" }: { children: ReactNode; label?: string; align?: "start" | "end" }) {
+export function InfoTip({ children, label = t("Explication", "Explanation"), align = "start" }: { children: ReactNode; label?: string; align?: "start" | "end" }) {
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   const id = useId();
@@ -26,14 +27,15 @@ export function InfoTip({ children, label = "Explication", align = "start" }: { 
   </span>;
 }
 
-/** Section title with a one-line explanation always visible, optional details and actions. */
+/**
+ * Section title on one line. The short description sits beside it, cut to one line; the full text
+ * and the details are in the "i" next to the title so nothing is lost and nothing takes room.
+ */
 export function SectionHeader({ title, description, details, actions, level = 2 }: { title: ReactNode; description: ReactNode; details?: ReactNode; actions?: ReactNode; level?: 2 | 3 }) {
   const Heading = level === 2 ? "h2" : "h3";
   return <header className={`section-header level-${level}`}>
-    <div className="section-header-text">
-      <Heading>{title}{details && <InfoTip label={`En savoir plus : ${typeof title === "string" ? title : "section"}`}>{details}</InfoTip>}</Heading>
-      <p>{description}</p>
-    </div>
+    <Heading>{title}<InfoTip label={t(`En savoir plus : ${typeof title === "string" ? title : "section"}`, `More about: ${typeof title === "string" ? title : "this section"}`)}><span className="tip-stack"><span>{description}</span>{details && <span>{details}</span>}</span></InfoTip></Heading>
+    <p className="section-desc">{description}</p>
     {actions && <div className="section-header-actions">{actions}</div>}
   </header>;
 }

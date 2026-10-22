@@ -27,7 +27,7 @@ export function RepositoriesPage({ model, activity, events, onFilter }: { model:
       : !model.repositories.length
         ? <EmptyState title={t("Aucun dépôt Git trouvé", "No Git repository found")}>{t("Ce workspace ne contient pas de dépôt Git (jusqu’à 4 niveaux de dossiers). Choisis un dossier plus haut ou un autre workspace.", "This workspace holds no Git repository (up to 4 folder levels deep). Pick a higher folder or another workspace.")}</EmptyState>
         : <>
-            <Resizable id="repositories-table" defaultHeight={320} min={150} max={1400} label={t("le tableau des dépôts", "the repositories table")}>
+            <Resizable id="repositories-table-2" defaultHeight={240} min={150} max={1400} label={t("le tableau des dépôts", "the repositories table")}>
               <RepositoryTable model={model} activity={activity} selected={current?.path ?? null} onSelect={setSelected} onFilter={onFilter} />
             </Resizable>
             {current && <div className="page-section">

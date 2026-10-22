@@ -139,7 +139,7 @@ the *estimated* cost.
 
 - Keep them focused; split refactors from behaviour changes.
 - Fill in the template, including what you tested and on which OS.
-- UI changes: add a screenshot or a short GIF.
+- UI changes: follow [docs/DESIGN.md](docs/DESIGN.md) and add a screenshot or a short GIF; update `docs/media/` when a page changes.
 - Update `CHANGELOG.md` under **Unreleased** for anything a user would notice.
 - A maintainer reviews within a few days. Be patient and kind — everyone here volunteers.
 

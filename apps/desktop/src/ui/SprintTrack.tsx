@@ -41,7 +41,7 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo }: { events: 
       {(["3d", "2d"] as const).map((value) => <button key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{value === "3d" ? "3D" : t("2D (plus léger)", "2D (lighter)")}</button>)}
     </div>
     {mode === "3d"
-      ? <Resizable id="race-stage" defaultHeight={400} min={220} max={1200} label={t("la course", "the race")}>
+      ? <Resizable id="race-stage-2" defaultHeight={280} min={220} max={1200} label={t("la course", "the race")}>
           <div className="race-stage"><Suspense fallback={<div className="race-loading">{t("Chargement du stade…", "Loading the stadium…")}</div>}>
             <SprintTrack3D reducedMotion={reducedMotion} lanes={lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse }) => ({ id: provider.id, name: provider.name, model: pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? null, color: provider.color, status: state.status, progress: state.progress, cue, cueKey: isLiveEvent && state.latest ? state.latest.event_id : null, bubble, mood: pulse?.status ?? "never", onSelect: pulse?.session && onGoTo ? () => onGoTo(pulse) : undefined }))} />
           </Suspense></div>

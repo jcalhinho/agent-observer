@@ -113,22 +113,19 @@ export function SessionAnalytics({ events, range, onRange, dataset, repositoryOf
 
   return <section className="page-section" aria-labelledby="analytics-title">
     <header className="section-header level-2">
-      <div className="section-header-text">
-        <h2 id="analytics-title">{t("Analyse", "Analytics")}<InfoTip label={t("Comment lire l’analyse ?", "How to read the analytics?")}>{t("Chaque graphique répond à une question sur la période choisie. Survole une courbe ou une barre pour voir les valeurs exactes. Les couleurs identifient toujours le même agent ; le rouge hachuré signale des échecs.", "Each chart answers one question about the chosen period. Hover a line or a bar to see exact values. Colours always identify the same agent; hatched red marks failures.")}</InfoTip></h2>
-        <p>{summary || t("Aucune activité sur cette période.", "No activity in this period.")}</p>
-        <p className={`data-scope tone-${scope.tone}`}>{scope.text}</p>
-      </div>
+      <h2 id="analytics-title">{t("Analyse", "Analytics")}<InfoTip label={t("Comment lire l’analyse ?", "How to read the analytics?")}>{t("Chaque graphique répond à une question sur la période choisie. Survole une courbe ou une barre pour voir les valeurs exactes. Les couleurs identifient toujours le même agent ; le rouge hachuré signale des échecs.", "Each chart answers one question about the chosen period. Hover a line or a bar to see exact values. Colours always identify the same agent; hatched red marks failures.")}</InfoTip></h2>
+      <p className="section-desc" title={`${summary} ${scope.text}`}>{summary || t("Aucune activité sur cette période.", "No activity in this period.")}{scope.tone === "warn" && <span className="data-scope tone-warn"> · {scope.text}</span>}</p>
       <div className="section-header-actions">
         <div className="segmented" role="group" aria-label={t("Période analysée", "Analysed period")}>{RANGES.map((key) => <button key={key} aria-pressed={key === range} onClick={() => onRange(key)}>{rangeLabel(key)}</button>)}</div>
       </div>
     </header>
-    <Resizable id="analytics-lines" defaultHeight={300} min={180} max={1000} label={t("les courbes", "the line charts")}>
+    <Resizable id="analytics-lines-2" defaultHeight={210} min={180} max={1000} label={t("les courbes", "the line charts")}>
       <div className="chart-grid two">
         <ChartCard title={t("Quand mes agents travaillent-ils ?", "When do my agents work?")} explain={t("Nombre d’événements reçus (actions, messages, fins de tour) par tranche de temps, un trait par agent. Un pic = une période de travail intense.", "Events received (actions, messages, turn ends) per time slot, one line per agent. A peak means intense work.")}><LineChart series={lines(data.activity)} axis={data.axis} format={formatCompact} unit={t("événements", "events")} emptyText={empty} /></ChartCard>
         <ChartCard title={t("Combien de tokens consomment-ils ?", "How many tokens do they use?")} explain={t("Tokens traités par le modèle à chaque tranche (texte lu, y compris le cache, et texte écrit), tels que fournis par chaque agent. Les agents qui ne transmettent pas ce compteur n’apparaissent pas.", "Tokens processed by the model per time slot (text read, cache included, and text written), as reported by each agent. Agents that don’t report this counter don’t appear.")}><LineChart series={lines(data.tokenSeries)} axis={data.axis} format={formatCompact} unit="tokens" emptyText={t("Aucun compteur de tokens fourni sur cette période.", "No token counter reported in this period.")} /></ChartCard>
       </div>
     </Resizable>
-    <Resizable id="analytics-bars" defaultHeight={560} min={220} max={1600} label={t("les graphiques en barres", "the bar charts")}>
+    <Resizable id="analytics-bars-2" defaultHeight={360} min={220} max={1600} label={t("les graphiques en barres", "the bar charts")}>
       <div className="chart-grid three">
         <ChartCard title={t("Qui agit le plus, et qui échoue ?", "Who acts the most, and who fails?")} explain={t("Actions terminées par agent. La partie rouge hachurée correspond aux actions en échec ; un taux élevé peut signaler un agent bloqué.", "Finished actions per agent. The hatched red part is failed actions; a high rate may mean a stuck agent.")}><BarList rows={callRows} format={formatCompact} legend={[{ label: t("échecs", "failures"), color: FAILURE, pattern: true }]} emptyText={t("Aucune action terminée sur cette période.", "No finished action in this period.")} /></ChartCard>
         <ChartCard title={t("Quels outils servent le plus ?", "Which tools are used most?")} explain={t("Outils lancés par tous les agents (lecture, modification, commande…), avec leurs échecs en rouge hachuré.", "Tools run by all agents (read, edit, command…), with their failures in hatched red.")}><BarList rows={toolRows} format={formatCompact} emptyText={t("Aucun outil utilisé sur cette période.", "No tool used in this period.")} /></ChartCard>

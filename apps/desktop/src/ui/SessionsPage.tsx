@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { t } from "./i18n";
 import { since } from "./AgentCard";
-import { EventRow } from "./EventFeed";
+import { EventHead, EventRow } from "./EventFeed";
 import { EmptyState, SectionHeader } from "./Explain";
 import { ProviderMark } from "./ProviderBadges";
 import { providerFor } from "./providers";
@@ -38,6 +38,7 @@ export function SessionsPage({ events, hasMore, loadingOlder, onLoadOlder, repos
     />
     {sessions.length ? <div className="sessions-layout">
       <nav className="session-list" aria-label={t("Sessions observées", "Observed sessions")}>
+        <h3 className="list-head">Sessions <small>{sessions.length}</small></h3>
         {sessions.map(([key, items]) => {
           const provider = providerFor(items[0].provider);
           const place = repositoryOf(items[0])?.name ?? items[0].project_path?.replaceAll("\\", "/").split("/").filter(Boolean).at(-1) ?? t("dossier inconnu", "unknown folder");
@@ -50,7 +51,7 @@ export function SessionsPage({ events, hasMore, loadingOlder, onLoadOlder, repos
       <div className="session-detail">
         <SessionSummaryPanel key={current?.[0]} events={timeline} loadedEvents={events} hasMore={hasMore} repository={repository ? { root: repository.path, project_hash: repository.project_hash } : null} />
         <SectionHeader level={3} title={t("Chronologie", "Timeline")} description={t(`${timeline.length} événements, du plus récent au plus ancien. « données brutes » montre l’enregistrement exact reçu.`, `${timeline.length} events, newest first. “raw data” shows the exact record received.`)} />
-        <div className="event-list">{timeline.map((event) => <EventRow key={event.event_id} event={event} showDate />)}</div>
+        <div className="event-list"><EventHead />{timeline.map((event) => <EventRow key={event.event_id} event={event} showDate />)}</div>
       </div>
     </div> : <EmptyState title={t("Aucune session pour l’instant", "No session yet")}>{t("Lance une session avec l’un de tes agents : elle apparaîtra ici en direct. Si rien n’arrive, vérifie l’onglet Connecteurs.", "Start a session with one of your agents: it will show up here live. If nothing comes, check the Connectors tab.")}</EmptyState>}
   </section>;
