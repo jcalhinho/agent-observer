@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import { t } from "./i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { isPermissionGranted, onAction, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
+import { onAction, sendNotification } from "@tauri-apps/plugin-notification";
+import { canNotify } from "./notify";
 import { AlertTriangle, ArrowUpRight } from "lucide-react";
 import { agentPulse, type AgentPulse } from "./agentPulse";
 import { isAlertStatus, notices, type Notice, type NoticeKind } from "./notificationRules";
-import { isBoolean, readPreference, writePreference } from "./preferences";
-import { buildDailyReport } from "./dailyReport";
+import { readPreference } from "./preferences";
 import { agentName, useAgents } from "./providers";
 import type { SessionEvent } from "./types";
 import { useNow } from "./useNow";
@@ -20,15 +20,6 @@ export function notificationsEnabled(kind: NoticeKind) {
   // Silences are the least urgent: off by default.
   const own = readPreference(`notify.${kind}`, kind !== "stalled", (value): value is boolean => typeof value === "boolean");
   return master && own;
-}
-
-async function canNotify() {
-  try {
-    if (await isPermissionGranted()) return true;
-    return (await requestPermission()) === "granted";
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -68,21 +59,6 @@ export function NotificationCenter({ events, onGoTo }: { events: SessionEvent[];
       }
     });
   }, [pulses, now]);
-
-  // The complete report remains local in the Reports tab. This reminder provides the requested
-  // 24-hour cadence while the app is running in the background.
-  useEffect(() => {
-    if (!readPreference("notify.enabled", true, isBoolean) || !readPreference("daily-report.enabled", true, isBoolean) || !events.length) return;
-    const last = readPreference("daily-report.last-notified", 0, (value): value is number => typeof value === "number" && Number.isFinite(value));
-    if (last === 0) { writePreference("daily-report.last-notified", now); return; }
-    if (now - last < 24 * 60 * 60_000) return;
-    const report = buildDailyReport(events, now);
-    void canNotify().then((allowed) => {
-      if (!allowed) return;
-      sendNotification({ title: t("Rapport Agent Observer disponible", "Agent Observer report ready"), body: t(`${report.agents.length} agent(s) · ${report.events.length} événement(s) · ${report.failures} échec(s) sur les dernières 24 h.`, `${report.agents.length} agent(s) · ${report.events.length} event(s) · ${report.failures} failure(s) in the last 24 h.`) });
-      writePreference("daily-report.last-notified", now);
-    });
-  }, [events, now]);
 
   // Dock / taskbar badge: how many agents need you.
   const attention = pulses.filter((pulse) => ["looping", "blocked", "stalled", "waiting"].includes(pulse.status) && pulse.lastEventAt !== null && now - pulse.lastEventAt < 30 * 60_000).length;

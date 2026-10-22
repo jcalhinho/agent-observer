@@ -13,8 +13,7 @@ Gemini CLI, OpenCode et Qwen Code sur ta machine, en direct.
 
 [Télécharger](#installation) · [Fonctionnalités](#fonctionnalités) · [Confidentialité](#confidentialité) · [Compiler](#compiler-depuis-les-sources) · [Contribuer](CONTRIBUTING.md) · [English](README.md)
 
-<!-- Capture : docs/media/overview.png — tableau de bord avec les cartes d’agents et la course -->
-<img src="docs/media/overview.png" alt="Tableau de bord d’Agent Observer : une carte par agent, la course 3D et les graphiques d’activité" width="900">
+<img src="docs/media/deck.png" alt="Agent Observer : la course 3D au centre, un bandeau d’agents en bas et le tiroir Histoire ouvert à droite" width="900">
 
 </div>
 
@@ -28,18 +27,31 @@ beaucoup moins. Agent Observer répond d’un coup d’œil à une question : **
 maintenant ?**
 
 Il ne fait **qu’observer**. Il ne pilote jamais un agent, ne modifie jamais ton code, ne
-change pas les réglages d’un agent à ta place et ne communique pas avec Internet.
+change pas les réglages d’un agent à ta place et n’a aucune télémétrie. Rien ne quitte ton ordinateur
+sauf si tu demandes l’histoire du jour : un agent que tu as déjà est alors lancé une fois et parle
+à son propre fournisseur, comme d’habitude.
 
 > **État :** jeune (0.x). L’interface existe en **français et en anglais** (elle suit la langue
 > de ton système ; à changer dans Réglages). Les contributions sont bienvenues.
 
 ## Fonctionnalités
 
-### Cartes d’agents — « qui a besoin de toi »
+### La scène : la course
 
-Une carte par agent, triées pour que ceux qui demandent ton attention passent en premier.
-Chaque carte dit en clair ce que fait l’agent, dans quel dépôt, depuis combien de temps, et
-ce que la session a consommé.
+Le centre de la fenêtre est un stade 3D low-poly où chaque agent est un coureur. Chaque
+événement le fait sauter, un outil en échec le fait tomber puis se relever, la fin d’un tour
+l’envoie franchir la ligne, un agent qui t’attend lève la main et celui qui tourne en rond
+court en rond. Une bulle raconte ce qu’il fait. La distance est un indicateur d’activité,
+jamais un pourcentage d’avancement. Une version 2D existe pour les machines sans WebGL, et la
+scène respecte le réglage système de *réduction des animations*.
+
+<img src="docs/media/overview.png" alt="La scène : la course 3D, une barre avec les agents au travail et ceux qui t’attendent, et un bandeau avec une pastille par agent" width="900">
+
+### Le bandeau : qui a besoin de toi
+
+Le long du bas de la scène, une pastille par agent, ceux qui demandent ton attention en
+premier : ce qu’il fait, dans quel dépôt, depuis quand. Clique sur une pastille pour **aller à
+l’agent** ; le petit « i » ouvre ses détails.
 
 | Statut | Signification |
 | --- | --- |
@@ -51,73 +63,80 @@ ce que la session a consommé.
 | **Au repos** | Aucune activité récente. |
 | **Pas encore vu** | Rien reçu : vérifie son connecteur. |
 
-Clique sur une carte pour **aller à l’agent** : son terminal, son éditeur ou son application
-(Claude Desktop, l’app Codex, les extensions VS Code et Cursor, Terminal, iTerm2, Windows
-Terminal…) passe au premier plan. Si l’agent est arrêté, sa session est relancée là où elle
-avait été vue, avec ce qui est installé (sa commande, son application, ou un éditeur avec son
-extension).
+« Aller à l’agent » met au premier plan son terminal, son éditeur ou son application (Claude
+Desktop, l’app Codex, les extensions VS Code et Cursor, Terminal, iTerm2, Windows Terminal…).
+Si l’agent est arrêté, sa session est relancée là où elle avait été vue, avec ce qui est
+installé (sa commande, son application, ou un éditeur avec son extension).
+
+### Les tiroirs : tout le reste
+
+Un rail d’onglets longe chaque bord de la fenêtre. Un onglet ouvre un **tiroir** qui glisse
+depuis ce bord, par-dessus la scène. Tire son bord intérieur pour l’agrandir, **épingle**-le
+pour que la scène lui laisse la place, `Échap` referme les tiroirs libres.
+
+| Bord | Onglets |
+| --- | --- |
+| **Gauche** | **Agents** (chaque carte en entier) · **Sessions** (résumé et chronologie) · **Dépôts** (branche, synchro, agents par dépôt) |
+| **Droite** | **Histoire** (l’histoire et le rapport des 24 h) · **Graphiques** (activité, tokens, outils, fichiers, durées de tours) |
+| **Bas** | **Fil en direct** (tout ce que les agents ont fait) · **À surveiller** (échecs et attentes seulement) |
+| **Haut** | **Connecteurs** · **Réglages** · **Aide** |
+
+<img src="docs/media/agents.png" alt="Le tiroir Agents ouvert à gauche : une carte complète par agent" width="900">
+
+### L’histoire du jour
+
+Un agent que tu **as déjà** — Claude Code, Codex, Gemini CLI, Qwen Code ou OpenCode, en
+commande, en extension d’éditeur ou (pour Claude) dans l’application — écrit l’histoire de tes
+dernières 24 h : à la demande, et chaque jour à l’heure de ton choix (**18 h** par défaut). Si
+l’app était fermée à ce moment-là, elle est écrite au lancement suivant.
+
+L’app calcule un résumé de faits (des chiffres et des noms de projets, de modèles, d’outils et
+de fichiers — jamais le texte de tes messages, tes commandes ni tes dossiers) ; l’agent est
+lancé **une seule fois, sans aucun outil, dans un dossier vide, sans garder de session**, avec
+la consigne de n’utiliser que ces faits. Rien n’est envoyé avant ton accord, une fois par
+agent, et tu peux lire le résumé exact avant. Aucune clé, rien à installer : c’est ton forfait
+qui est utilisé.
+
+<img src="docs/media/story.png" alt="Le tiroir Histoire : une courte histoire du jour avec chronologie, un paragraphe par agent et les points à regarder" width="900">
 
 ### Notifications et alertes
 
 Une notification système quand un agent t’attend, demande une validation, devient silencieux,
 enchaîne les erreurs ou tourne en rond ; un clic dessus t’amène à l’agent. Les boucles et les
-erreurs affichent aussi une bannière rouge dans l’app. Chaque type se coupe dans Réglages.
+erreurs affichent aussi une bannière rouge sur la scène. Chaque type se coupe dans Réglages.
 
 ### Mode mini
 
 Réduit l’app à une colonne toujours visible dans un coin de l’écran, une carte compacte par
-agent, avec une épingle « garder au premier plan ».
+agent, avec une épingle « rester au premier plan » facultative.
 
-<img src="docs/media/mini-mode.png" alt="Mini mode: a column of agent cards" width="320">
+<img src="docs/media/mini-mode.png" alt="Mode mini : une colonne de cartes d’agents" width="320">
 
-### Rapport 24 h
+### Graphiques, sessions et dépôts
 
-Les faits de la dernière journée en mots simples, puis les chiffres : agents, modèles, outils,
-fichiers et activité par heure. Rien n’est rédigé par un modèle : tout est calculé à partir des
-événements.
-
-<img src="docs/media/report.png" alt="Rapport 24 h : un résumé, puis les chiffres par agent, modèle, outil et fichier" width="900">
-
-### La course
-
-Un stade low-poly en 3D où chaque agent est un coureur sur un 100 m : chaque événement le
-fait sauter, un outil en échec le fait tomber puis se relever, la fin d’un tour l’envoie à
-l’arrivée. Une bulle raconte ce qu’il fait. La distance est un indicateur d’activité, jamais
-un pourcentage d’avancement. Le réglage système *réduire les animations* est respecté.
-
-<img src="docs/media/race.png" alt="The 3D race: agents running, one raising a hand because it waits for you" width="900">
-
-### Analyse
-
-Rythme d’événements, appels d’outils et échecs, tokens lus / écrits / en cache par agent et
-par modèle, sur 15 minutes, 1 heure, 24 heures ou tout l’historique. Un coût **estimé** est
-affiché pour les modèles dont le prix public figure dans
+Cadence d’événements, appels d’outils et échecs, tokens lus / écrits / en cache par agent et par
+modèle, sur 15 minutes, 1 heure, 24 heures ou tout l’historique. Un coût **estimé** est affiché
+pour les modèles dont le prix public figure dans
 [`pricing.ts`](apps/desktop/src/ui/pricing.ts) (Claude, GPT/Codex, Gemini, Qwen…), toujours
-affiché « ≈ $ au tarif API », jamais comme une facture. Si tu utilises un agent via un abonnement,
-un réglage par agent renomme le montant en *valeur consommée*. Quand un agent ne fournit pas une
-valeur, l’app affiche *non fourni* au lieu de deviner.
+« ≈ $ au tarif API », jamais comme une facture ; un réglage par agent le renomme *valeur
+consommée* si tu es au forfait. Quand un agent ne fournit pas une valeur, l’app affiche *non
+fourni* au lieu de deviner.
 
-<!-- Capture : docs/media/analytics.png -->
+<img src="docs/media/charts.png" alt="Le tiroir Graphiques : courbes d’activité et de tokens, puis barres par agent, outil et fichier" width="900">
 
-### Workspaces
+Pointe l’app vers un dossier (tous les dépôts Git jusqu’à quatre niveaux sont trouvés) ou vers
+un fichier `.code-workspace` de VS Code. Les événements sont rattachés au dépôt où ils ont eu
+lieu — les worktrees comptent pour le clone dont ils dépendent — et un filtre dans la barre
+au-dessus de la scène limite tout à un dépôt. Les dépôts sont lus, jamais modifiés, et un
+changement Git n’est **jamais attribué à un agent** sans preuve.
 
-Choisis un dossier (tous les dépôts Git jusqu’à quatre niveaux de profondeur sont trouvés)
-ou un fichier `.code-workspace` de VS Code. Chaque événement est rattaché au dépôt où il a eu
-lieu — un worktree compte pour le clone dont il dépend — et un filtre restreint la course, les
-graphiques et le fil d’activité à un dépôt. Le tableau des dépôts montre côte à côte branche,
-avance/retard, changements non commités, agents vus et dernière activité. Les dépôts sont lus,
-jamais modifiés, et un changement Git n’est **jamais attribué à un agent** sans preuve.
+<img src="docs/media/workspace.png" alt="Le tiroir Dépôts : branche, synchro et activité des agents côte à côte" width="900">
 
-<!-- Capture : docs/media/workspace.png -->
+Chaque session observée a un résumé de fin (durée, tours, outils, échecs, tokens, coût estimé,
+commits faits dans la fenêtre de temps de la session) et sa chronologie complète. Remonte dans
+les anciens événements, exporte tout l’historique local en JSON, ou efface-le.
 
-### Sessions
-
-Toutes les sessions observées, des plus récentes aux plus anciennes, avec un résumé de fin de
-session (durée, tours, outils, échecs, tokens, coût estimé, commits faits pendant la session)
-et la chronologie complète des événements. Remonte dans les événements anciens, exporte tout
-l’historique local en JSON, ou efface-le.
-
-<!-- Capture : docs/media/sessions.png -->
+<img src="docs/media/sessions.png" alt="Le tiroir Sessions : résumé et chronologie" width="900">
 
 ## Agents pris en charge
 
@@ -139,8 +158,12 @@ connectés — voir [ajouter un agent](#ajouter-ton-agent).
 
 ## Confidentialité
 
-Tout reste sur ton ordinateur. L’app ne fait aucune requête réseau, à part recevoir des hooks
-sur `127.0.0.1`.
+Tout reste sur ton ordinateur. L’app ne fait aucune requête réseau de son propre chef : elle ne
+fait que recevoir des hooks sur `127.0.0.1`. La seule exception est l’**histoire du jour**,
+désactivée tant que tu ne l’autorises pas pour un agent : l’app lance alors cet agent (déjà
+installé, avec sa propre connexion) une seule fois, sans outil, dans un dossier vide, sur un
+résumé de chiffres et de noms ; l’agent l’envoie à son fournisseur comme tout ce que tu lui
+écris. Tu peux lire le résumé exact avant d’accepter.
 
 **Enregistré par défaut** — le *déroulé* du travail : quel agent, quelle session, quel outil,
 quel chemin de fichier, quand, combien de temps, succès ou échec, nom du modèle et nombres de
@@ -290,8 +313,11 @@ avec un lien vers la page de tarifs officielle du fournisseur.
 ## FAQ
 
 **Est-ce que mon code ou mes messages partent quelque part ?**
-Non. Aucune télémétrie, aucun accès réseau en dehors du collecteur local. Tes messages et les
-commandes ne sont même pas enregistrés localement, sauf si tu l’actives.
+Non. Aucune télémétrie et aucune requête réseau de l’app elle-même. Tes messages et les commandes
+ne sont même pas enregistrés localement, sauf si tu l’actives. Si tu demandes l’histoire du jour,
+un résumé de chiffres et de noms (jamais tes messages, tes commandes ni tes dossiers) passe par
+l’agent que tu as choisi, vers son fournisseur — seulement après ton accord, et tu peux le lire
+avant.
 
 **Est-ce que ça ralentit mes agents ?**
 Les connecteurs à journaux lisent seulement les nouvelles lignes de fichiers que les agents

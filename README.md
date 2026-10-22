@@ -13,8 +13,7 @@ OpenCode and Qwen Code work on your machine, live.
 
 [Download](#install) · [Features](#features) · [Privacy](#privacy) · [Build from source](#build-from-source) · [Contributing](CONTRIBUTING.md) · [Français](README.fr.md)
 
-<!-- Screenshot: docs/media/overview.png — main dashboard with agent cards and the race -->
-<img src="docs/media/overview.png" alt="Agent Observer dashboard: one card per agent, the 3D race and the activity charts" width="900">
+<img src="docs/media/deck.png" alt="Agent Observer: the 3D race in the middle, a dock of agents along the bottom, and the Story drawer open on the right" width="900">
 
 </div>
 
@@ -28,18 +27,31 @@ command for five minutes is not. Agent Observer answers one question at a glance
 **who needs me right now?**
 
 It only **observes**. It never drives an agent, never edits your code, never modifies an
-agent's settings for you, and never talks to the network.
+agent's settings for you, and has no telemetry. The only time anything leaves your computer is when
+you ask for the daily story: then an agent you already have is run once and talks to its own
+provider, as it always does.
 
 > **Status:** early (0.x). The interface is available in **English and French** (it follows
 > your system language; change it in Settings). Contributions are welcome.
 
 ## Features
 
-### Agent cards — "who needs you"
+### The stage: the race
 
-One card per agent, sorted so the ones that need attention come first. Each card shows what
-the agent is doing in plain words, in which repository, for how long, and what the session
-has consumed so far.
+The middle of the window is a low-poly 3D stadium where each agent is a runner. Every event
+makes it hop, a failed tool makes it fall and get back up, the end of a turn sends it to the
+finish line, an agent that waits for you raises a hand, and one that goes round in circles
+runs in circles. A speech bubble narrates what it is doing. Distance is an activity
+indicator, never a completion percentage. A 2D version is available for machines without
+WebGL, and the stage respects the system's *reduced motion* setting.
+
+<img src="docs/media/overview.png" alt="The stage: the 3D race, a bar with the agents that work and the ones that need you, and a dock with one chip per agent" width="900">
+
+### The dock: who needs you
+
+Along the bottom of the stage, one chip per agent, the ones that need attention first: what
+it is doing, in which repository, how long ago. Click a chip to **go to the agent**; the small
+"i" opens its details.
 
 | Status | Meaning |
 | --- | --- |
@@ -51,16 +63,46 @@ has consumed so far.
 | **Idle** | No recent activity. |
 | **Not seen yet** | Nothing received — check its connector. |
 
-Click a card to **go to the agent**: its terminal, editor or desktop app (Claude Desktop, the
-Codex app, VS Code and Cursor extensions, Terminal, iTerm2, Windows Terminal…) comes to the
-front. If the agent has stopped, its session is started again where it was seen, using only
-what is installed (its command line, its desktop app, or an editor with its extension).
+Go to the agent brings its terminal, editor or desktop app (Claude Desktop, the Codex app,
+the VS Code and Cursor extensions, Terminal, iTerm2, Windows Terminal…) to the front. If the
+agent has stopped, its session is started again where it was seen, using only what is
+installed (its command line, its desktop app, or an editor with its extension).
+
+### Drawers: everything else
+
+A rail of tabs runs along each edge of the window. A tab opens a **drawer** that slides in
+from that edge, over the stage. Drag its inner edge to resize it, **pin** it so the stage makes
+room for it, press `Esc` to close the loose ones.
+
+| Edge | Tabs |
+| --- | --- |
+| **Left** | **Agents** (every card in full) · **Sessions** (summary and timeline of each) · **Repositories** (branch, sync, agents per repository) |
+| **Right** | **Story** (the 24 h story and report) · **Charts** (activity, tokens, tools, files, turn times) |
+| **Bottom** | **Live feed** (everything the agents did) · **Needs a look** (failures and waits only) |
+| **Top** | **Connectors** · **Settings** · **Help** |
+
+<img src="docs/media/agents.png" alt="The Agents drawer open on the left: one full card per agent" width="900">
+
+### The daily story
+
+An agent you **already have** — Claude Code, Codex, Gemini CLI, Qwen Code or OpenCode, as a
+command, an editor extension or (for Claude) the desktop app — writes the story of your last
+24 hours: on demand, and every day at a time you choose (**18:00** by default). If the app was
+closed at that time, it is written at the next launch.
+
+The app computes a summary of facts (numbers and the names of projects, models, tools and
+files — never the text of your messages, your commands or your folders); the agent is run **once,
+with every tool switched off, in an empty folder, with no session kept**, and told to use only
+those facts. Nothing is sent before you agree, once per agent, and you can read the exact
+summary first. No key is needed and nothing extra is installed: it uses your plan.
+
+<img src="docs/media/story.png" alt="The Story drawer: a short story of the day with a timeline, per-agent paragraphs and things worth a look" width="900">
 
 ### Notifications and alerts
 
 A system notification when an agent waits for you, asks for approval, goes silent, keeps
 failing or goes round in circles; clicking it takes you to the agent. Loops and errors also
-raise a red banner in the app. Every kind can be switched off in Settings.
+raise a red banner over the stage. Every kind can be switched off in Settings.
 
 ### Mini mode
 
@@ -69,52 +111,30 @@ card per agent, with an optional "keep on top" pin.
 
 <img src="docs/media/mini-mode.png" alt="Mini mode: a column of agent cards" width="320">
 
-### 24 h report
+### Charts, sessions and repositories
 
-Plain-words facts about the last day, then the numbers behind them: agents, models, tools,
-files and activity per hour. Nothing is written by a model; it is computed from the events.
+Event rate, tool calls and failures, input / output / cache tokens per agent and per model over
+15 minutes, 1 hour, 24 hours or the whole stored history. An **estimated** cost is shown for
+models with a published price in [`pricing.ts`](apps/desktop/src/ui/pricing.ts) (Claude,
+GPT/Codex, Gemini, Qwen and more) — always shown as “≈ $ at API price”, never as a bill; a
+per-agent setting relabels it *value consumed* if you use a subscription. When an agent
+doesn't report a value, the app says *not provided* instead of guessing.
 
-<img src="docs/media/report.png" alt="24 h report: a short summary, then per-agent, per-model, per-tool and per-file numbers" width="900">
-
-### The race
-
-A low-poly 3D stadium where each agent is a runner on a 100 m track: every event makes it
-hop, a failed tool makes it fall and get back up, the end of a turn sends it to the finish
-line. A speech bubble narrates what it is doing. Distance is an activity indicator, never a
-completion percentage. Respects the system's *reduced motion* setting.
-
-<img src="docs/media/race.png" alt="The 3D race: agents running, one raising a hand because it waits for you" width="900">
-
-### Analytics
-
-Event rate, tool calls and failures, input / output / cache tokens per agent and per model,
-over 15 minutes, 1 hour, 24 hours or the whole stored history. An **estimated** cost is
-shown for models with a published price in [`pricing.ts`](apps/desktop/src/ui/pricing.ts)
-(Claude, GPT/Codex, Gemini, Qwen and more) — always shown as “≈ $ at API price”, never as a bill.
-If you use an agent through a subscription, a per-agent setting relabels the amount as *value consumed*.
-When an agent doesn't report a value, the app says *not provided* instead of guessing.
-
-<img src="docs/media/analytics.png" alt="Analytics: tools, files, tokens and turn durations per agent" width="900">
-
-### Workspaces
+<img src="docs/media/charts.png" alt="The Charts drawer: activity and token lines, then bars per agent, tool and file" width="900">
 
 Point the app at a folder (every Git repository up to four levels deep is found) or at a
 VS Code `.code-workspace` file. Events are attached to the repository they happened in —
-worktrees count for the clone they belong to — and a filter scopes the race, charts and
-feed to one repository. The repositories table shows branch, ahead/behind, uncommitted
-changes, agents seen and last activity side by side. Repositories are read, never written,
-and Git changes are **never attributed to an agent** without evidence.
+worktrees count for the clone they belong to — and a filter in the bar over the stage scopes
+everything to one repository. Repositories are read, never written, and Git changes are
+**never attributed to an agent** without evidence.
 
-<img src="docs/media/workspace.png" alt="Repositories table: branch, sync state and agent activity side by side" width="900">
+<img src="docs/media/workspace.png" alt="The Repositories drawer: branch, sync state and agent activity side by side" width="900">
 
-### Sessions
+Every observed session has an end-of-session summary (duration, turns, tools, failures,
+tokens, estimated cost, commits made in the session's time window) and its full timeline.
+Page through older events, export the whole local history as JSON, or erase it.
 
-Every observed session, newest first, with an end-of-session summary (duration, turns, tools,
-failures, tokens, estimated cost, commits made in the session's time window) and the full
-event timeline. Page through older events, export the whole local history as JSON, or erase
-it.
-
-<img src="docs/media/sessions.png" alt="Sessions: summary and timeline" width="900">
+<img src="docs/media/sessions.png" alt="The Sessions drawer: summary and timeline" width="900">
 
 ## Supported agents
 
@@ -135,8 +155,11 @@ now. GitHub Copilot, Cline, Roo Code, Continue and Aider are **not** connected y
 
 ## Privacy
 
-Everything stays on your computer. The app makes no network request other than receiving
-hooks on `127.0.0.1`.
+Everything stays on your computer. The app makes no network request of its own: it only
+receives hooks on `127.0.0.1`. The single exception is the **daily story**, which is off until you
+allow it for an agent: the app then runs that agent (already installed, with its own login)
+once, with no tools, in an empty folder, on a summary of numbers and names; the agent sends it
+to its provider like anything you type to it. You can read the exact summary before agreeing.
 
 **Recorded by default** — the *shape* of the work: which agent, which session, which tool,
 which file path, when, how long, success or failure, model name and the token counts the
@@ -280,8 +303,10 @@ with a link to the provider's official pricing page.
 ## FAQ
 
 **Does it send my code or prompts anywhere?**
-No. There is no telemetry and no network access besides the loopback collector. Prompts and
-commands are not even stored locally unless you turn them on.
+No. There is no telemetry and the app makes no network request of its own. Prompts and
+commands are not even stored locally unless you turn them on. If you ask for the daily story,
+a summary of numbers and names (never your messages, commands or folders) goes through the agent
+you chose, to its provider — only after you agreed, and you can read it first.
 
 **Does it slow my agents down?**
 Log connectors only read new lines of files the agents already write. Claude Code hooks are

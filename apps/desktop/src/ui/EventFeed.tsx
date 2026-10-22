@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
 import { locale, t } from "./i18n";
 import { narrateEvent } from "./activity-copy";
 import { providerFor } from "./providers";
@@ -38,9 +38,9 @@ export const EventRow = memo(function EventRow({ event, showDate = false }: { ev
   const provider = providerFor(event.provider);
   const narration = narrateEvent(event);
   const at = new Date(event.occurred_at);
-  return <div className={`event-row tone-${narration?.tone ?? "info"}`}>
+  return <div className={`event-row tone-${narration?.tone ?? "info"}`} style={{ "--agent-color": provider?.color } as CSSProperties}>
     <time dateTime={event.occurred_at} title={at.toLocaleString(locale())}>{showDate ? at.toLocaleString(locale(), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : at.toLocaleTimeString(locale())}</time>
-    <span className="event-agent"><i style={{ background: provider?.color }} />{provider?.name ?? event.provider}</span>
+    <span className="event-agent" title={provider?.name ?? event.provider}><i style={{ background: provider?.color }} />{provider?.name ?? event.provider}</span>
     <span className="event-text">{narration ? <>{narration.text}{narration.detail && <small>{narration.detail}</small>}</> : event.kind.replaceAll("_", " ")}</span>
     <details className="event-raw"><summary>{t("données brutes", "raw data")}</summary><pre>{JSON.stringify(event, null, 2)}</pre></details>
   </div>;

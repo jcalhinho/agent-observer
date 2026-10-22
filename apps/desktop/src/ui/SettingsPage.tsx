@@ -4,7 +4,9 @@ import { SectionHeader } from "./Explain";
 import { currentLang, locale, setLang, t, type Lang } from "./i18n";
 import { noticeKinds, type NoticeKind } from "./notificationRules";
 import { useSubscription } from "./costPreferences";
-import { isBoolean, readPreference, usePreference } from "./preferences";
+import { DEFAULT_STORY_TIME, isClock, latestSlot } from "./story";
+import { pickAgent, storySettings, useStoryAgents } from "./useStory";
+import { isBoolean, isString, readPreference, usePreference, writePreference } from "./preferences";
 import { activeProviders } from "./providers";
 
 type CapturePolicy = { capture_prompts: boolean; capture_commands: boolean };
@@ -56,6 +58,8 @@ export function SettingsPage({ onExport, onClear, onMini }: { onExport: () => Pr
       <Toggle checked={policy?.capture_commands ?? false} disabled={!policy} onChange={(value) => policy && savePolicy({ ...policy, capture_commands: value })} title={t("Enregistrer les commandes lancées par les agents", "Record the commands agents run")} hint={t("Par exemple « npm test ». Une commande peut contenir un mot de passe ou un jeton : à activer en connaissance de cause.", "For example “npm test”. A command may contain a password or a token: enable knowingly.")} />
     </div>
 
+    <StorySettings />
+
     <NotificationSettings />
 
     <div className="settings-group">
@@ -97,6 +101,38 @@ export function SettingsPage({ onExport, onClear, onMini }: { onExport: () => Pr
       </div>
     </div>
   </section>;
+}
+
+/** The daily story: when, with which agent, and what it needs before it can run. */
+function StorySettings() {
+  const { agents } = useStoryAgents();
+  const [auto, setAuto] = usePreference("story.auto", false, isBoolean);
+  const [time, setTime] = usePreference("story.time", DEFAULT_STORY_TIME, isClock);
+  const [agent, setAgent] = usePreference("story.agent", "auto", isString);
+  const [message, setMessage] = useState("");
+  const chosen = agents ? pickAgent(agents, agent) : null;
+  const allowed = Boolean(chosen && storySettings.consented().includes(chosen.provider));
+
+  function toggle(value: boolean) {
+    setMessage("");
+    if (value && !allowed) { setMessage(t("Écris d’abord une première histoire à la main (panneau Histoire, à droite) : l’app te demandera ton accord pour cet agent.", "Write a first story by hand (Story panel, on the right) first: the app will ask your permission for that agent.")); return; }
+    // Starting today: the story is for the next 18:00, not for yesterday's.
+    if (value) writePreference("story.last-slot", latestSlot(Date.now(), time));
+    setAuto(value);
+  }
+
+  return <div className="settings-group">
+    <h3>{t("Histoire du jour", "Daily story")}</h3>
+    <p>{t("Un agent que tu as déjà écrit l’histoire de tes dernières 24 h, une fois par jour. Il est lancé sans outil, dans un dossier vide, avec un résumé de chiffres et de noms (jamais le texte de tes messages) ; cela consomme ton forfait. Désactivé par défaut.", "An agent you already have writes the story of your last 24 hours, once a day. It runs with no tools, in an empty folder, on a summary of numbers and names (never the text of your messages); it uses your plan. Off by default.")}</p>
+    {message && <p className="notice warn" role="status">{message}</p>}
+    <Toggle checked={auto} disabled={!agents?.length} onChange={toggle} title={t("Écrire l’histoire chaque jour", "Write the story every day")} hint={agents?.length ? t("Si l’app était fermée à l’heure choisie, l’histoire est écrite au lancement suivant.", "If the app was closed at that time, the story is written at the next launch.") : t("Aucun agent compatible trouvé sur cet ordinateur.", "No supported agent found on this computer.")} />
+    <label className="setting-row"><span><b>{t("Heure", "Time")}</b><small>{t("Heure locale. Sans l’option ci-dessus, l’app te prévient seulement que le rapport est prêt.", "Local time. Without the option above, the app only tells you the report is ready.")}</small></span>
+      <input type="time" value={time} onChange={(event) => { if (isClock(event.target.value)) { setTime(event.target.value); writePreference("story.last-slot", latestSlot(Date.now(), event.target.value)); } }} />
+    </label>
+    {agents && agents.length > 1 && <label className="setting-row"><span><b>{t("Agent qui écrit", "Writing agent")}</b><small>{t("« Automatique » prend Claude Code, puis Codex, Gemini CLI, Qwen Code, OpenCode.", "“Automatic” takes Claude Code, then Codex, Gemini CLI, Qwen Code, OpenCode.")}</small></span>
+      <select value={agent} onChange={(event) => setAgent(event.target.value)}><option value="auto">{t("Automatique", "Automatic")}</option>{agents.map((candidate) => <option key={candidate.provider} value={candidate.provider}>{candidate.name}</option>)}</select>
+    </label>}
+  </div>;
 }
 
 function LaunchHostSetting() {

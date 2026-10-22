@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-23
+
+A new interface, built around the race and sliding drawers, and a story of the day written by an
+agent you already have.
+
+### Added
+
+- **The daily story.** An agent already installed (Claude Code, Codex, Gemini CLI, Qwen Code or
+  OpenCode — as a command, an editor extension, or Claude's desktop app) writes the story of the
+  last 24 hours, on demand and every day at a chosen time (18:00 by default; caught up at the next
+  launch if the app was closed). It runs once, with every tool switched off, in an empty folder,
+  with no session kept, on a summary of numbers and names. Off until allowed once per agent, with
+  the exact summary shown first. No key, nothing to install. Works on macOS and Windows.
+  Stories are kept locally (60 at most), can be copied, saved as Markdown or deleted, and are erased
+  with the history.
+- Runs started for a story never appear in the observer (the report folder is ignored).
+- A language-neutral Markdown reader for stories that cannot inject markup.
+
+### Changed
+
+- **New interface and graphic charter ("flight deck").** The race is now the stage that fills the
+  window, with a bar over it (agents working, agents that need you, workspace, repository filter,
+  race view) and a dock of agent chips along the bottom. Everything else lives in **drawers** that
+  slide in from the four edges, each edge with a rail of tabs: Agents, Sessions and Repositories on
+  the left; Story and Charts on the right; Live feed and Needs a look at the bottom; Connectors,
+  Settings and Help at the top. Drawers resize by dragging their inner edge, can be pinned so the
+  stage makes room, and close with `Esc`.
+- New look: near-black instrument panels, hairline rules, square corners, small-caps labels and
+  tabular mono numbers; the chrome is monochrome so the agents' colours and the status colours are
+  the only saturated ones.
+- The repository filter is a select in the stage bar instead of a row of chips.
+- The 24 h report moved into the Story drawer; its reminder is now a daily notification at the
+  story time instead of a rolling 24 hours.
+- The sessions list is a select; its summary and timeline stack in one column.
+
+### Removed
+
+- The Overview page, the per-section resizing and maximize controls, the tab bar and the help
+  side panel (replaced by the stage, the drawers and the Help tab).
+
+### Security
+
+- The story feature is the only code path that can make anything leave the computer; it is opt-in,
+  per agent, previewable and documented in the README and `SECURITY.md`.
+- The agent is started with its tools off (`--tools ""` for Claude Code, a read-only sandbox for
+  Codex), without persisting a session, in an empty temporary folder, and the prompt goes through
+  its input, never its command line.
+
 ## [0.2.0] - 2026-10-22
 
 ### Changed

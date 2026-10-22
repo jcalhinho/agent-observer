@@ -1,4 +1,3 @@
-import { X } from "lucide-react";
 import { statusInfo } from "./AgentCard";
 import type { PulseStatus } from "./agentPulse";
 import { t } from "./i18n";
@@ -21,23 +20,35 @@ function glossary(): Array<[string, string]> {
 
 const STATUS_ORDER: PulseStatus[] = ["looping", "blocked", "stalled", "waiting", "working", "idle", "never"];
 
-/** Side panel explaining how the app works, what every state means, and the vocabulary used. */
-export function HelpPanel({ onClose }: { onClose: () => void }) {
-  return <div className="dialog-backdrop drawer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <aside className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-title" tabIndex={-1}>
-      <header className="dialog-header"><h2 id="help-title">{t("Comment ça marche", "How it works")}</h2><button className="icon-button" onClick={onClose} aria-label={t("Fermer l’aide", "Close help")}><X size={16} /></button></header>
-      <div className="help-content">
+/** How the app works, what every state means, and the vocabulary used. */
+export function HelpContent() {
+  return <div className="help-content">
         <section>
           <h3>{t("En une phrase", "In one sentence")}</h3>
-          <p>{t("Agent Observer regarde travailler tes agents de code sur cet ordinateur et te montre, en direct, ce qu’ils font, où, ce que ça consomme, et quand ils ont besoin de toi. Il ne les pilote jamais et n’envoie rien sur Internet.", "Agent Observer watches your coding agents work on this computer and shows you, live, what they do, where, what it costs, and when they need you. It never drives them and sends nothing over the Internet.")}</p>
+          <p>{t("Agent Observer regarde travailler tes agents de code sur cet ordinateur et te montre, en direct, ce qu’ils font, où, ce que ça consomme, et quand ils ont besoin de toi. Il ne les pilote jamais et n’envoie rien sur Internet, sauf quand tu demandes l’histoire du jour (voir plus bas).", "Agent Observer watches your coding agents work on this computer and shows you, live, what they do, where, what it costs, and when they need you. It never drives them and sends nothing over the Internet, except when you ask for the daily story (see below).")}</p>
+        </section>
+        <section>
+          <h3>{t("Se repérer", "Finding your way")}</h3>
+          <p>{t("Au centre, la course : chaque agent est un coureur. En bas, une pastille par agent (clique pour aller à lui). Sur chaque bord de la fenêtre, un rail d’onglets ouvre un tiroir :", "In the middle, the race: each agent is a runner. Along the bottom, one chip per agent (click to go to it). On each edge of the window a rail of tabs opens a drawer:")}</p>
+          <ul>
+            <li><b>{t("Gauche", "Left")}</b> : {t("agents en détail, sessions, dépôts.", "agents in detail, sessions, repositories.")}</li>
+            <li><b>{t("Droite", "Right")}</b> : {t("l’histoire des 24 h et les graphiques.", "the 24 h story and the charts.")}</li>
+            <li><b>{t("Bas", "Bottom")}</b> : {t("le fil d’activité et ce qui demande ton attention.", "the activity feed and what needs your attention.")}</li>
+            <li><b>{t("Haut", "Top")}</b> : {t("connecteurs, réglages et cette aide.", "connectors, settings and this help.")}</li>
+          </ul>
+          <p>{t("Tire le bord intérieur d’un tiroir pour l’agrandir, épingle-le pour que la scène lui laisse la place, Échap referme les tiroirs libres.", "Drag a drawer’s inner edge to resize it, pin it so the stage makes room, Escape closes the loose drawers.")}</p>
         </section>
         <section>
           <h3>{t("Bien démarrer", "Getting started")}</h3>
           <ol className="steps">
             <li><b>{t("Connecteurs", "Connectors")}</b> : {t("vérifie que tes agents sont détectés ; branche Claude Code si tu l’utilises.", "check that your agents are detected; set up Claude Code if you use it.")}</li>
-            <li><b>Workspace</b> ({t("en haut à gauche", "top left")}) : {t("choisis le dossier qui contient tes projets.", "pick the folder that holds your projects.")}</li>
-            <li>{t("Travaille normalement avec tes agents : la vue d’ensemble se remplit toute seule. Clique sur une carte pour aller directement à l’agent.", "Work with your agents as usual: the overview fills itself. Click a card to jump straight to the agent.")}</li>
+            <li><b>Workspace</b> : {t("choisis le dossier qui contient tes projets (en haut à droite de la scène).", "pick the folder that holds your projects (top right of the stage).")}</li>
+            <li>{t("Travaille normalement avec tes agents : la scène se remplit toute seule.", "Work with your agents as usual: the stage fills itself.")}</li>
           </ol>
+        </section>
+        <section>
+          <h3>{t("L’histoire du jour", "The daily story")}</h3>
+          <p>{t("Un agent que tu as déjà (Claude Code, Codex, Gemini CLI, Qwen Code ou OpenCode) écrit l’histoire de tes dernières 24 h à partir d’un résumé calculé ici : à la demande, ou chaque jour à l’heure choisie (18 h par défaut). Il est lancé une seule fois, sans outil, dans un dossier vide ; rien n’est envoyé avant ton accord, et tu peux voir le résumé exact. Cela consomme ton forfait.", "An agent you already have (Claude Code, Codex, Gemini CLI, Qwen Code or OpenCode) writes the story of your last 24 hours from a summary computed here: on demand, or every day at the chosen time (18:00 by default). It runs once, with no tools, in an empty folder; nothing is sent before you agree, and you can see the exact summary. It uses your plan.")}</p>
         </section>
         <section>
           <h3>{t("Que veulent dire les statuts ?", "What do the statuses mean?")}</h3>
@@ -53,18 +64,8 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
           <p>{t("Un changement Git n’est jamais attribué à un agent : l’app montre l’état des dépôts et l’activité des agents côte à côte, sans deviner qui a fait quoi.", "A Git change is never attributed to an agent: the app shows repository state and agent activity side by side, without guessing who did what.")}</p>
         </section>
         <section>
-          <h3>{t("Astuces", "Tips")}</h3>
-          <ul>
-            <li>{t("Survole ou clique sur", "Hover or click")} <span className="inline-info">i</span> {t("pour une explication.", "for an explanation.")}</li>
-            <li>{t("Tire la barre sous une section pour l’agrandir ; double-clic pour revenir à la taille d’origine. Le bouton en haut à droite d’une section l’affiche en plein écran (Échap pour revenir).", "Drag the bar under a section to resize it; double-click to reset. The button at the top right of a section shows it full screen (Escape to go back).")}</li>
-            <li>{t("Le mode mini garde une colonne d’agents dans un coin de l’écran.", "Mini mode keeps a column of agents in a corner of the screen.")}</li>
-          </ul>
-        </section>
-        <section>
           <h3>{t("Glossaire", "Glossary")}</h3>
           <dl className="glossary">{glossary().map(([term, definition]) => <div key={term}><dt>{term}</dt><dd>{definition}</dd></div>)}</dl>
         </section>
-      </div>
-    </aside>
   </div>;
 }

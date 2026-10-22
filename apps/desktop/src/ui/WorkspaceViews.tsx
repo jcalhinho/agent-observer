@@ -3,7 +3,6 @@ import { t } from "./i18n";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ChevronDown, FileCode2, FolderGit2, FolderOpen, X } from "lucide-react";
 import { since } from "./AgentCard";
-import { InfoTip } from "./Explain";
 import { ProviderMark } from "./ProviderBadges";
 import { providerFor } from "./providers";
 import type { SessionEvent } from "./types";
@@ -83,28 +82,19 @@ export function WorkspaceSwitcher({ model }: { model: WorkspaceModel }) {
 }
 
 /** One row of chips above the dashboard: every repository, one repository, or events outside the workspace. */
-export function RepositoryFilterBar({ model, filter, onFilter, activity, outside, total }: { model: WorkspaceModel; filter: RepositoryFilter; onFilter: (filter: RepositoryFilter) => void; activity: Map<string, RepositoryActivity>; outside: number; total: number }) {
+/** Which repository the stage and the panels look at; a plain select, so it never scrolls. */
+export function RepositoryFilterSelect({ model, filter, onFilter, activity, outside, total }: { model: WorkspaceModel; filter: RepositoryFilter; onFilter: (filter: RepositoryFilter) => void; activity: Map<string, RepositoryActivity>; outside: number; total: number }) {
   if (!model.repositories.length) return null;
   const ordered = [...model.repositories].sort((a, b) => (activity.get(pathKey(b.path))?.lastAt ?? 0) - (activity.get(pathKey(a.path))?.lastAt ?? 0) || a.name.localeCompare(b.name));
-  const elsewhere = filter === "all" ? [] : ordered.filter((repository) => pathKey(repository.path) !== pathKey(filter) && activity.get(pathKey(repository.path))?.activeAgents.length).map((repository) => repository.name);
-  const chip = (key: RepositoryFilter, label: string, count: number, repository?: WorkspaceRepository) => {
-    const info = repository ? activity.get(pathKey(repository.path)) : undefined;
-    const selected = filter === key || (repository && filter !== "all" && filter !== "outside" && pathKey(filter) === pathKey(repository.path));
-    return <button key={key} className="chip" aria-pressed={Boolean(selected)} onClick={() => onFilter(key)} title={repository?.path}>
-      {info?.activeAgents.length ? <i className="live-dot" title={t("Un agent travaille ici en ce moment", "An agent is working here right now")} /> : null}{label}<small>{count}</small>
-    </button>;
-  };
-  return <nav className="repo-filter" aria-label={t("Filtrer par dépôt", "Filter by repository")}>
-    <span className="repo-filter-label">{t("Afficher", "Show")}<InfoTip label={t("À quoi sert ce filtre ?", "What is this filter for?")}>{t("Limite la course, l’analyse et le fil d’activité à un seul dépôt. Le chiffre indique le nombre d’événements de la période ; le point vert, un agent actif en ce moment. « Hors workspace » regroupe l’activité dans des dossiers qui ne font pas partie du workspace.", "Limits the race, analytics and activity feed to one repository. The number is the period’s event count; the green dot, an agent active right now. “Outside workspace” groups activity in folders that are not part of the workspace.")}</InfoTip></span>
-    {chip("all", t("Tous les dépôts", "All repositories"), total)}
-    {ordered.map((repository) => chip(repository.path, repository.name, activity.get(pathKey(repository.path))?.events ?? 0, repository))}
-    {outside > 0 && chip("outside", t("Hors workspace", "Outside workspace"), outside)}
-    {filter !== "all" && <p className="repo-filter-note" role="status">
-      {t("Filtre actif : seule l’activité de ce dépôt est affichée.", "Filter on: only this repository’s activity is shown.")}
-      {elsewhere.length > 0 && <> {t("Des agents travaillent ailleurs :", "Agents are working elsewhere:")} <b>{elsewhere.join(", ")}</b>.</>}
-      {" "}<button className="link-button" onClick={() => onFilter("all")}>{t("Tout afficher", "Show everything")}</button>
-    </p>}
-  </nav>;
+  const value = filter === "all" || filter === "outside" ? filter : ordered.find((repository) => pathKey(repository.path) === pathKey(filter))?.path ?? "all";
+  return <label className={`select-field ${filter !== "all" ? "is-filtering" : ""}`} title={t("Limite la scène et les panneaux à un seul dépôt. Le point indique un agent actif.", "Limits the stage and the panels to one repository. The dot marks an active agent.")}>
+    <FolderGit2 size={13} />
+    <select value={value} onChange={(event) => onFilter(event.target.value as RepositoryFilter)} aria-label={t("Filtrer par dépôt", "Filter by repository")}>
+      <option value="all">{t("Tous les dépôts", "All repositories")} · {total}</option>
+      {ordered.map((repository) => <option key={repository.path} value={repository.path}>{activity.get(pathKey(repository.path))?.activeAgents.length ? "● " : ""}{repository.name} · {activity.get(pathKey(repository.path))?.events ?? 0}</option>)}
+      {outside > 0 && <option value="outside">{t("Hors workspace", "Outside workspace")} · {outside}</option>}
+    </select>
+  </label>;
 }
 
 /** Git state and agent activity of every repository in the workspace, side by side. */

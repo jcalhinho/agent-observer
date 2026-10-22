@@ -1,56 +1,67 @@
 import { useEffect, useMemo, useState } from "react";
-import { t, useLang } from "./i18n";
-import { Activity, CircleHelp, Minimize2 } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { Activity, AlertTriangle, BarChart3, Bot, CircleHelp, Feather, GitBranch, History, Plug, Radio, Settings2 } from "lucide-react";
 import type { AgentPulse } from "./agentPulse";
 import type { AnalyticsRange } from "./analytics";
-import { CollectorStatus } from "./CollectorStatus";
+import { AgentsPanel } from "./AgentsPanel";
 import { ConnectorSetupDialog, type ConnectorSetup } from "./ConnectorDialog";
 import { ConnectorsPage } from "./ConnectorsPage";
-import { HelpPanel } from "./HelpPanel";
+import { DailyReportPage } from "./DailyReportPage";
+import { Deck, type TabDef } from "./Deck";
+import { FeedPanel } from "./FeedPanel";
+import { FocusToast } from "./FocusToast";
+import { HelpContent } from "./HelpPanel";
+import { t, useLang } from "./i18n";
 import { MiniView } from "./MiniView";
 import { enterMiniWindow, leaveMiniWindow, setMiniPinned } from "./miniWindow";
-import { OverviewPage } from "./OverviewPage";
-import { DailyReportPage } from "./DailyReportPage";
+import { NotificationCenter } from "./NotificationCenter";
 import { isBoolean, isString, oneOf, usePreference } from "./preferences";
+import { agentName, setCustomProviders, useAgents, type CustomConnectorInfo } from "./providers";
 import { RepositoriesPage } from "./RepositoriesPage";
+import { SessionAnalytics } from "./SessionAnalytics";
 import { SessionsPage } from "./SessionsPage";
 import { SettingsPage } from "./SettingsPage";
+import { useShell } from "./shell";
+import { Stage } from "./Stage";
+import { StoryPanel } from "./StoryPanel";
+import { StoryScheduler } from "./StoryScheduler";
 import { sessionKey } from "./types";
+import { needsYou, useAgentPulses } from "./useAgentPulses";
 import { useAnalyticsEvents } from "./useAnalyticsEvents";
 import { useDialogFocus } from "./useDialogFocus";
+import { useFocusAgent } from "./useFocusAgent";
 import { useNow } from "./useNow";
 import { useObserver } from "./useObserver";
 import { useWorkspace } from "./useWorkspace";
-import { useFocusAgent } from "./useFocusAgent";
-import { FocusToast } from "./FocusToast";
-import { NotificationCenter } from "./NotificationCenter";
-import { agentName, setCustomProviders, useAgents, type CustomConnectorInfo } from "./providers";
-import { invoke } from "@tauri-apps/api/core";
 import { filterByRepository, pathKey, type RepositoryFilter } from "./workspace";
-import { RepositoryFilterBar, WorkspaceSwitcher, useRepositoryActivity } from "./WorkspaceViews";
+import { RepositoryFilterSelect, WorkspaceSwitcher, useRepositoryActivity } from "./WorkspaceViews";
 
-type Tab = "overview" | "reports" | "sessions" | "repositories" | "connectors" | "settings";
-const tabs = (): Array<[Tab, string]> => [["overview", t("Vue d’ensemble", "Overview")], ["reports", t("Rapport", "Report")], ["sessions", "Sessions"], ["repositories", t("Dépôts", "Repositories")], ["connectors", t("Connecteurs", "Connectors")], ["settings", t("Réglages", "Settings")]];
-const isTab = oneOf("overview", "reports", "sessions", "repositories", "connectors", "settings");
 const isRange = oneOf("15m", "1h", "24h", "all");
+
+/** The number of agents that need you, on the tab that opens them. Ticks on its own. */
+function AttentionBadge({ events }: { events: Parameters<typeof useAgentPulses>[0] }) {
+  const { pulses } = useAgentPulses(events);
+  const count = pulses.filter((pulse) => needsYou(pulse.status)).length;
+  return count ? <>{count}</> : null;
+}
 
 export function App() {
   useLang();
   useAgents();
   useEffect(() => { invoke<CustomConnectorInfo[]>("list_custom_connectors").then(setCustomProviders).catch(() => undefined); }, []);
   const observer = useObserver();
-  const [tab, setTab] = usePreference<Tab>("tab", "overview", isTab);
+  const [shell, dispatch] = useShell();
   const [range, setRange] = usePreference<AnalyticsRange>("analytics-range", "24h", isRange);
   const [storedFilter, setRepositoryFilter] = usePreference<RepositoryFilter>("repository-filter", "all", isString);
   const [miniMode, setMiniMode] = usePreference("mini-mode", false, isBoolean);
   const [miniPinned, setMiniPinnedPreference] = usePreference("mini-pinned", true, isBoolean);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [connectorSetup, setConnectorSetup] = useState<ConnectorSetup | null>(null);
+  const [inspected, setInspected] = useState<string | null>(null);
   const narrowWindow = useNarrowWindow();
   const compact = miniMode || narrowWindow;
 
-  // Agent cards always look at the last 24 hours; charts follow the chosen period. Both read the
-  // whole local database for their window, merged with live events.
+  // Agents always look at the last 24 hours; charts follow the chosen period. Both read the whole
+  // local database for their window, merged with live events.
   const agentWindow = useAnalyticsEvents("24h", observer.events);
   const chartWindow = useAnalyticsEvents(range, observer.events);
   const workspace = useWorkspace(agentWindow.events);
@@ -62,11 +73,9 @@ export function App() {
   }), [observer.events, agentWindow.events, chartWindow.events, filter, workspace.repositoryOf]);
   const { activity: repositoryActivity, outside } = useRepositoryActivity(chartWindow.events, workspace);
   const sessionCount = useMemo(() => new Set(observer.events.map(sessionKey)).size, [observer.events]);
-  const setup = useMemo(() => ({
-    anyAgent: agentWindow.events.length > 0 || observer.events.length > 0,
-    claudeHooks: observer.events.some((event) => event.provider === "claude_code" && event.kind !== "model_usage" && event.kind !== "session_started"),
-    workspace: Boolean(workspace.workspace)
-  }), [agentWindow.events.length, observer.events, workspace.workspace]);
+  const claudeHooks = useMemo(() => observer.events.some((event) => event.provider === "claude_code" && event.kind !== "model_usage" && event.kind !== "session_started"), [observer.events]);
+  const attentionEvents = useMemo(() => scope.agentEvents.filter((event) => event.kind === "tool_failed" || (event.kind === "checkpoint" && (/error|fail|cancel/i.test(event.outcome ?? "") || (event.outcome ?? "").startsWith("attention:")))), [scope.agentEvents]);
+
   const focus = useFocusAgent();
   const goToAgent = (pulse: AgentPulse) => {
     if (!pulse.session) return;
@@ -76,10 +85,7 @@ export function App() {
   const toast = <FocusToast toast={focus.toast} onReveal={(path) => void focus.revealFolder(path)} onDismiss={focus.dismiss} />;
   const repositoryName = (pulse: AgentPulse) => (pulse.project ? workspace.repositoryOf(pulse.project)?.name ?? null : null);
 
-  useDialogFocus(() => {
-    if (connectorSetup) setConnectorSetup(null);
-    else setHelpOpen(false);
-  }, [connectorSetup, helpOpen]);
+  useDialogFocus(() => setConnectorSetup(null), [connectorSetup]);
 
   useEffect(() => {
     // The corner placement is re-applied when the app starts in mini mode.
@@ -97,65 +103,43 @@ export function App() {
     void leaveMiniWindow();
   }
 
-  function filterOn(next: RepositoryFilter) {
-    setRepositoryFilter(next);
-    setTab("overview");
-  }
-
   if (compact) {
-    return <><MiniView agentEvents={agentWindow.events} collectorState={observer.collectorState} pinned={miniPinned} onTogglePin={() => { setMiniPinnedPreference(!miniPinned); void setMiniPinned(!miniPinned); }} onExpand={leaveMini} repositoryName={repositoryName} onGoTo={goToAgent} />{watcher}{toast}</>;
+    return <><MiniView agentEvents={agentWindow.events} collectorState={observer.collectorState} pinned={miniPinned} onTogglePin={() => { setMiniPinnedPreference(!miniPinned); void setMiniPinned(!miniPinned); }} onExpand={leaveMini} repositoryName={repositoryName} onGoTo={goToAgent} />{watcher}{toast}<StoryScheduler events={agentWindow.events} /></>;
   }
 
-  return <div className="app">
-    <header className="app-header">
-      <div className="brand"><span className="brand-mark"><Activity size={14} strokeWidth={2.4} /></span><span><b>Agent Observer</b></span></div>
-      <WorkspaceSwitcher model={workspace} />
-      <nav className="tabs" aria-label="Sections">
-        {tabs().map(([id, label]) => <button key={id} className="tab" aria-current={tab === id ? "page" : undefined} onClick={() => setTab(id)}>
-          {label}
-          {id === "sessions" && sessionCount > 0 && <small>{sessionCount}</small>}
-          {id === "reports" && <small>24 h</small>}
-          {id === "repositories" && workspace.repositories.length > 0 && <small>{workspace.repositories.length}</small>}
-          {id === "connectors" && !setup.claudeHooks && <i className="tab-dot" title={t("Une action est conseillée", "An action is recommended")} />}
-        </button>)}
-      </nav>
-      <div className="header-actions">
-        <CollectorStatus state={observer.collectorState} />
-        <button className="icon-button" onClick={goMini} aria-label={t("Mode mini", "Mini mode")} title={t("Mode mini : réduire l’app à une colonne dans un coin de l’écran", "Mini mode: shrink the app to a column in a corner of the screen")}><Minimize2 size={14} /></button>
-        <button className="icon-button" onClick={() => setHelpOpen(true)} aria-label={t("Aide", "Help")} title={t("Aide", "Help")}><CircleHelp size={14} /></button>
-      </div>
-    </header>
+  const tabs: TabDef[] = [
+    { id: "agents", edge: "left", label: t("Agents", "Agents"), icon: Bot, badge: <AttentionBadge events={scope.agentEvents} />, tone: "warn", content: <AgentsPanel agentEvents={scope.agentEvents} repositoryName={repositoryName} onGoTo={goToAgent} focusKey={inspected} /> },
+    { id: "sessions", edge: "left", label: "Sessions", icon: History, badge: sessionCount || null, content: <SessionsTab observer={observer} repositoryOf={workspace.repositoryOf} /> },
+    { id: "repositories", edge: "left", label: t("Dépôts", "Repositories"), icon: GitBranch, badge: workspace.repositories.length || null, content: <RepositoriesPage model={workspace} activity={repositoryActivity} events={chartWindow.events} onFilter={(next) => setRepositoryFilter(next)} /> },
+    { id: "story", edge: "right", label: t("Histoire", "Story"), icon: Feather, content: <><StoryPanel events={agentWindow.events} /><DailyReportPage events={agentWindow.events} hasMore={observer.hasMore} /></> },
+    { id: "charts", edge: "right", label: t("Graphiques", "Charts"), icon: BarChart3, content: <SessionAnalytics events={scope.chartEvents} range={range} onRange={setRange} dataset={chartWindow} repositoryOf={workspace.repositories.length && filter === "all" ? workspace.repositoryOf : undefined} /> },
+    { id: "feed", edge: "bottom", label: t("Fil en direct", "Live feed"), icon: Radio, tone: "live", content: <FeedPanel events={scope.events} only="all" /> },
+    { id: "attention", edge: "bottom", label: t("À surveiller", "Needs a look"), icon: AlertTriangle, badge: attentionEvents.length || null, tone: attentionEvents.length ? "bad" : undefined, content: <FeedPanel events={scope.events} only="attention" /> },
+    { id: "connectors", edge: "top", label: t("Connecteurs", "Connectors"), icon: Plug, badge: claudeHooks ? null : "!", tone: claudeHooks ? undefined : "warn", content: <ConnectorsTab events={agentWindow.events} onConfigure={setConnectorSetup} /> },
+    { id: "settings", edge: "top", label: t("Réglages", "Settings"), icon: Settings2, content: <SettingsPage onExport={observer.exportHistory} onClear={observer.clearHistory} onMini={goMini} /> },
+    { id: "help", edge: "top", label: t("Aide", "Help"), icon: CircleHelp, content: <HelpContent /> }
+  ];
 
-    <main className="app-main">
-      {watcher}
-      {tab === "overview" && <>
-        <RepositoryFilterBar model={workspace} filter={filter} onFilter={setRepositoryFilter} activity={repositoryActivity} outside={outside} total={chartWindow.events.length} />
-        <OverviewPage
-          agentEvents={scope.agentEvents}
-          events={scope.events}
-          analyticsEvents={scope.chartEvents}
-          analytics={chartWindow}
-          range={range}
-          onRange={setRange}
-          liveEventIds={observer.liveEventIds}
-          repositoryOf={workspace.repositories.length && filter === "all" ? workspace.repositoryOf : undefined}
-          repositoryName={repositoryName}
-          onGoTo={goToAgent}
-          setup={setup}
-          onOpen={setTab}
-        />
-      </>}
-      {tab === "reports" && <DailyReportPage events={agentWindow.events} hasMore={observer.hasMore} />}
-      {tab === "sessions" && <SessionsTab observer={observer} repositoryOf={workspace.repositoryOf} />}
-      {tab === "repositories" && <RepositoriesPage model={workspace} activity={repositoryActivity} events={chartWindow.events} onFilter={filterOn} />}
-      {tab === "connectors" && <ConnectorsTab events={agentWindow.events} onConfigure={setConnectorSetup} />}
-      {tab === "settings" && <SettingsPage onExport={observer.exportHistory} onClear={observer.clearHistory} onMini={goMini} />}
-    </main>
+  const stage = <Stage
+    events={scope.events}
+    agentEvents={scope.agentEvents}
+    liveEventIds={observer.liveEventIds}
+    collectorState={observer.collectorState}
+    repositoryName={repositoryName}
+    onGoTo={goToAgent}
+    onInspect={(pulse) => { setInspected(pulse.key); dispatch({ type: "open", edge: "left", tab: "agents" }); }}
+    onMini={goMini}
+    onOpenConnectors={() => dispatch({ type: "open", edge: "top", tab: "connectors" })}
+    controls={<><WorkspaceSwitcher model={workspace} /><RepositoryFilterSelect model={workspace} filter={filter} onFilter={setRepositoryFilter} activity={repositoryActivity} outside={outside} total={chartWindow.events.length} /></>}
+    alerts={watcher}
+  />;
 
+  return <>
+    <Deck stage={stage} tabs={tabs} state={shell} dispatch={dispatch} />
     {toast}
-    {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
     {connectorSetup && <ConnectorSetupDialog key={connectorSetup.kind} connector={connectorSetup} onClose={() => setConnectorSetup(null)} />}
-  </div>;
+    <StoryScheduler events={agentWindow.events} />
+  </>;
 }
 
 /** Pages that show relative times tick slowly on their own. */
@@ -169,7 +153,7 @@ function ConnectorsTab({ events, onConfigure }: Omit<Parameters<typeof Connector
   return <ConnectorsPage events={events} now={now} onConfigure={onConfigure} />;
 }
 
-/** The dashboard needs width: a window narrowed by hand switches to the mini layout. */
+/** The deck needs room: a window narrowed by hand switches to the mini layout. */
 function useNarrowWindow() {
   const query = "(max-width: 700px)";
   const [narrow, setNarrow] = useState(() => window.matchMedia?.(query).matches ?? false);

@@ -12,7 +12,7 @@ export function DailyReportPage({ events, hasMore }: { events: SessionEvent[]; h
   const now = useNow(30_000);
   const report = buildDailyReport(events, now);
   const maxHour = Math.max(1, ...report.hourly.map((bucket) => bucket.count));
-  return <div className="page daily-report">
+  return <div className="stack daily-report">
     <section className="page-section">
       <SectionHeader
         title={t("Rapport 24 h", "24 h report")}

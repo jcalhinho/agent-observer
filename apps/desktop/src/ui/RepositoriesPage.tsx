@@ -2,7 +2,6 @@ import { useState } from "react";
 import { t } from "./i18n";
 import { EmptyState, SectionHeader } from "./Explain";
 import { RepositoryMap } from "./RepositoryMap";
-import { Resizable } from "./Resizable";
 import type { SessionEvent } from "./types";
 import type { WorkspaceModel } from "./useWorkspace";
 import { filterByRepository, pathKey, type RepositoryFilter, type WorkspaceRepository } from "./workspace";
@@ -14,7 +13,7 @@ export function RepositoriesPage({ model, activity, events, onFilter }: { model:
   const current = (selected && model.repositories.find((repository) => pathKey(repository.path) === pathKey(selected.path))) ?? model.repositories[0] ?? null;
   const snapshot = current ? model.states[current.path]?.snapshot ?? null : null;
 
-  return <section className="page">
+  return <section className="panel">
     <SectionHeader
       title={t("Dépôts", "Repositories")}
       description={model.workspace ? t(`${model.repositories.length} dépôt${model.repositories.length > 1 ? "s" : ""} dans « ${model.workspace.label} ». Clique sur une ligne pour voir le détail du dépôt.`, `${model.repositories.length} repositor${model.repositories.length > 1 ? "ies" : "y"} in “${model.workspace.label}”. Click a row to see the repository’s details.`) : t("Choisis un workspace en haut à gauche pour suivre ici tous ses dépôts Git.", "Pick a workspace at the top left to follow all its Git repositories here.")}
@@ -27,9 +26,8 @@ export function RepositoriesPage({ model, activity, events, onFilter }: { model:
       : !model.repositories.length
         ? <EmptyState title={t("Aucun dépôt Git trouvé", "No Git repository found")}>{t("Ce workspace ne contient pas de dépôt Git (jusqu’à 4 niveaux de dossiers). Choisis un dossier plus haut ou un autre workspace.", "This workspace holds no Git repository (up to 4 folder levels deep). Pick a higher folder or another workspace.")}</EmptyState>
         : <>
-            <Resizable id="repositories-table-2" defaultHeight={240} min={150} max={1400} label={t("le tableau des dépôts", "the repositories table")}>
-              <RepositoryTable model={model} activity={activity} selected={current?.path ?? null} onSelect={setSelected} onFilter={onFilter} />
-            </Resizable>
+            <div className="table-box"><RepositoryTable model={model} activity={activity} selected={current?.path ?? null} onSelect={setSelected} onFilter={onFilter} />
+            </div>
             {current && <div className="page-section">
               <SectionHeader level={3} title={t(`Détail : ${current.name}`, `Details: ${current.name}`)} description={t("Fichiers modifiés selon Git, fichiers touchés par les agents, et derniers commits, présentés côte à côte.", "Files changed according to Git, files touched by agents, and latest commits, side by side.")} />
               {snapshot ? <RepositoryMap snapshot={snapshot} events={filterByRepository(events, current.path, model.repositoryOf)} /> : <p className="text-muted">{t("Lecture de l’état Git…", "Reading Git state…")}</p>}
