@@ -28,6 +28,13 @@ describe("ask facts", () => {
     expect(JSON.stringify(facts)).not.toContain("/Users/me");
   });
 
+  it("hands the agent readable figures and ready-made rankings", () => {
+    const { facts } = buildAskFacts(events, "24h", NOW, "en");
+    expect(facts.leaders.mostEvents).toContain("Claude Code");
+    expect(facts.leaders.longestSession).toMatch(/^s\d, /);
+    expect(typeof facts.sessions[0].duration).toBe("string");
+  });
+
   it("looks at one chosen day", () => {
     const { facts } = buildAskFacts(events, "day:2026-10-21", NOW, "en");
     expect(facts.totals.events).toBe(0);

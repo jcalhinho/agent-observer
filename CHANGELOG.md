@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-24
+
+### Fixed
+- Ask: answers no longer mix up figures between sessions or agents. Each session carries its own agent, duration and tokens, in readable units (58 h 53 min, 284.6M), and rankings ("who worked the most", "longest session", "most expensive") are computed by the app and copied by the agent.
+- Ask: answers start with the answer in one sentence instead of "it depends".
+
 ## [0.5.0] - 2026-10-24
 
 ### Added
