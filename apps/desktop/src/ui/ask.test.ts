@@ -35,6 +35,15 @@ describe("ask facts", () => {
     expect(typeof facts.sessions[0].duration).toBe("string");
   });
 
+  it("lists edited files, commit subjects and the sessions that did not fit", () => {
+    const more = [...events, event("9", at(9, 20), { kind: "tool_started", tool_name: "Edit", file_path: "/Users/me/work/api/src/render.ts" })];
+    const { facts, targets } = buildAskFacts(more, "24h", NOW, "en", { s1: ["fix: handle missing module"] });
+    expect(facts.sessions[0].changedFiles).toEqual(["src/render.ts"]);
+    expect(facts.sessions[0].commits).toEqual(["fix: handle missing module"]);
+    expect(targets[0]).toMatchObject({ ref: "s1", projectPath: "/Users/me/work/api" });
+    expect(facts.otherProjects).toEqual([]);
+  });
+
   it("looks at one chosen day", () => {
     const { facts } = buildAskFacts(events, "day:2026-10-21", NOW, "en");
     expect(facts.totals.events).toBe(0);

@@ -1,7 +1,7 @@
 import { eventsInRange, timeAxis } from "./analytics";
 import { detectLoop } from "./loopDetector";
 import { agentName } from "./providers";
-import { summarizeSession } from "./sessionSummary";
+import { countEditedFiles, summarizeSession } from "./sessionSummary";
 import type { SessionEvent } from "./types";
 import type { Lang } from "./i18n";
 
@@ -55,6 +55,7 @@ export function sessionFact(own: SessionEvent[], locale: string) {
     toolCalls: own.filter((event) => event.kind === "tool_started").length,
     failures: own.filter(isFailure).length,
     filesChanged: summary?.files.filter((file) => file.changed).length ?? 0,
+    changedFiles: (summary?.files.filter((file) => file.changed) ?? []).slice(0, 6).map((file) => file.path),
     models: summary?.models.map((model) => model.name) ?? [],
     tokensRead: summary?.tokens ? (summary.tokens.input ?? 0) + (summary.tokens.cacheRead ?? 0) + (summary.tokens.cacheWrite ?? 0) : null,
     tokensWritten: summary?.tokens?.output ?? null,
@@ -117,7 +118,7 @@ export function buildStoryFacts(allEvents: SessionEvent[], now: number, language
     totals: {
       events: events.length, sessions: bySession.size, turns: events.filter((event) => event.kind === "checkpoint").length,
       toolCalls: events.filter((event) => event.kind === "tool_started").length, failures: events.filter(isFailure).length, waitsForUser: events.filter(isWait).length,
-      filesChanged: events.filter((event) => event.kind === "file_changed").length, tokensRead, tokensWritten, estimatedCostUsd: cost === null ? null : Math.round(cost * 100) / 100
+      filesChanged: countEditedFiles(events), tokensRead, tokensWritten, estimatedCostUsd: cost === null ? null : Math.round(cost * 100) / 100
     },
     busiestHours: busiest.map((hour) => `${clock(hour.start, locale)} (${hour.count} events)`),
     agents,

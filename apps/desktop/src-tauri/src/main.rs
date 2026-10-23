@@ -285,6 +285,7 @@ fn update_capture_errors(
         )
         .map_err(|error| error.to_string())?;
     state.capture_errors.store(enabled, Ordering::Relaxed);
+    redact::keep_messages(enabled);
     Ok(())
 }
 
@@ -1239,6 +1240,7 @@ fn main() {
             let capture_prompts = preference("capture_prompts");
             let capture_commands = preference("capture_commands");
             let capture_errors = preference("capture_errors");
+            redact::keep_messages(capture_errors);
             let state = CollectorState {
                 app: app.handle().clone(),
                 token,

@@ -110,7 +110,7 @@ anything to an agent for you.
 
 Error messages are **not recorded** by default, so "why" can only be inferred. **Settings › What is recorded ›
 Keep error messages** records a short (300 characters), single-line, cleaned version (keys, tokens, passwords
-and your home folder removed) of the errors of failed tools — Claude Code only for now.
+and your home folder removed) of the errors of failed tools — Claude Code, Codex, Gemini CLI, Qwen Code and OpenCode, for failures from now on.
 
 <img src="docs/media/ask.png" alt="The Ask drawer: example questions, an input at the bottom, and the history under the race" width="900">
 

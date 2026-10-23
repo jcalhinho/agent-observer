@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-24
+
+### Added
+- **Ask knows which files were edited.** Each session lists the files its agent edited (up to six),
+  and Ask can name them exactly.
+- **Ask can tell a fix from a feature, as an inference.** For the main sessions, the subjects of the
+  Git commits made during the session are added to the facts (read locally, shown in the preview
+  before anything is sent) and the agent is told to label any fix/feature call as an inference.
+- **Ask covers the whole period.** Sessions beyond the listed ones are summed per project instead of
+  being dropped.
+- **Keep error messages now covers Codex, Gemini CLI, Qwen Code and OpenCode**, not only Claude Code.
+  Codex failures are now detected from non-zero exit codes (they were never flagged before).
+
+### Fixed
+- "Files changed" was always 0 except for Cursor: edits made through editing tools (Edit, Write,
+  apply_patch, replace…) now count, per distinct file, in Ask, the daily story, the report and the
+  agent cards.
+
 ## [0.5.1] - 2026-10-24
 
 ### Fixed

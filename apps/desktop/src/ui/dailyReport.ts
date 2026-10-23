@@ -1,3 +1,4 @@
+import { countEditedFiles } from "./sessionSummary";
 import { t } from "./i18n";
 import { agentName } from "./providers";
 import { eventsInRange, formatCompact, modelsUsed, timeAxis, topFiles, topTools } from "./analytics";
@@ -61,7 +62,7 @@ export function buildDailyReport(allEvents: SessionEvent[], now = Date.now()): D
       turns: own.filter((event) => event.kind === "checkpoint").length,
       toolCalls: own.filter((event) => event.kind === "tool_started").length,
       failures: own.filter((event) => event.kind === "tool_failed" || (event.kind === "checkpoint" && /error|fail|cancel/i.test(event.outcome ?? ""))).length,
-      filesChanged: own.filter((event) => event.kind === "file_changed").length,
+      filesChanged: countEditedFiles(own),
       inputTokens: own.reduce((sum, event) => sum + (event.input_tokens?.value ?? 0) + (event.cache_read_tokens?.value ?? 0) + (event.cache_write_tokens?.value ?? 0), 0),
       outputTokens: own.reduce((sum, event) => sum + (event.output_tokens?.value ?? 0), 0),
       models: [...new Set(own.filter((event) => event.model?.value).map((event) => event.model!.value))]
@@ -82,7 +83,7 @@ export function buildDailyReport(allEvents: SessionEvent[], now = Date.now()): D
   const models = modelsUsed(events);
   const active = agentRows.filter((row) => row.events > 0);
   const leader = active[0];
-  const fileChanges = events.filter((event) => event.kind === "file_changed").length;
+  const fileChanges = countEditedFiles(events);
   const plural = (count: number, one: string, many: string) => (count > 1 ? many : one);
   const summary = events.length === 0
     ? t("Aucune activité d’agent n’a été captée sur les dernières 24 heures.", "No agent activity was captured in the last 24 hours.")
@@ -114,7 +115,7 @@ export function buildDailyReport(allEvents: SessionEvent[], now = Date.now()): D
   return {
     from: axis.start, to: axis.end, events, sessions: new Set(events.map((event) => `${event.provider}:${event.session_id}`)).size,
     agents: agentRows, projects, toolCalls: events.filter((event) => event.kind === "tool_started").length, failures, waiting,
-    turns: events.filter((event) => event.kind === "checkpoint").length, filesChanged: events.filter((event) => event.kind === "file_changed").length,
+    turns: events.filter((event) => event.kind === "checkpoint").length, filesChanged: countEditedFiles(events),
     inputTokens, outputTokens, models, tools, files, hourly, editorial: { summary, paragraphs, highlights }
   };
 }

@@ -115,7 +115,7 @@ vers un agent. L’app n’envoie jamais rien à un agent à ta place.
 Les messages d’erreur ne sont **pas enregistrés** par défaut : le « pourquoi » ne peut donc qu’être déduit.
 **Réglages › Ce qui est enregistré › Garder les messages d’erreur** garde une version courte (300 caractères),
 sur une ligne et nettoyée (clés, jetons, mots de passe et dossier personnel retirés) des erreurs des outils en
-échec — Claude Code seulement pour l’instant.
+échec — Claude Code, Codex, Gemini CLI, Qwen Code et OpenCode, pour les prochains échecs.
 
 <img src="docs/media/ask.png" alt="Le tiroir Demander : questions d’exemple, une zone de saisie en bas, et l’historique sous la course" width="900">
 

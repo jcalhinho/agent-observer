@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Send, Square, Trash2 } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { buildAskFacts, buildAskPrompt, readAnswer, STARTERS, type Suggestion, type Turn } from "./ask";
 import { isDayRange, rangeLabel, type AnalyticsRange } from "./analytics";
 import { Consent } from "./Consent";
@@ -20,7 +21,7 @@ export function AskPanel({ events, range, onOpenSession }: { events: SessionEven
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
-  const [asking, setAsking] = useState<{ agent: StoryAgent; question: string } | null>(null);
+  const [asking, setAsking] = useState<{ agent: StoryAgent; question: string; preview: string } | null>(null);
   const [chosen, setChosen] = useState(() => storySettings.agent());
   const [copied, setCopied] = useState<string | null>(null);
   const refs = useRef<Map<string, string>>(new Map());
@@ -29,16 +30,30 @@ export function AskPanel({ events, range, onOpenSession }: { events: SessionEven
   const period = range === "all" ? t("tout l’historique", "the whole history") : isDayRange(range) ? rangeLabel(range) : rangeLabel(range);
   useEffect(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, [messages.length, busy]);
 
-  const context = () => buildAskFacts(events, range, Date.now(), currentLang());
+  /** The facts, with the subjects of the commits made while the main sessions ran (when Git can tell). */
+  async function gather() {
+    const now = Date.now();
+    const lang = currentLang();
+    const first = buildAskFacts(events, range, now, lang);
+    const found: Record<string, string[]> = {};
+    await Promise.all(first.targets.map(async (target) => {
+      try {
+        const result = await invoke<{ commits: Array<{ subject: string }> }>("commits_in_window", { path: target.projectPath, since: target.from, until: target.to });
+        const subjects = result.commits.slice(0, 5).map((commit) => commit.subject.slice(0, 90));
+        if (subjects.length) found[target.ref] = subjects;
+      } catch { /* not a Git folder, or Git is missing: no commit facts */ }
+    }));
+    return Object.keys(found).length ? buildAskFacts(events, range, now, lang, found) : first;
+  }
 
   async function send(question: string, target: StoryAgent) {
     const history = messages.filter((message) => !message.failed).map(({ role, text }) => ({ role, text }));
-    const { facts, refs: map } = context();
-    refs.current = map;
     setMessages((current) => [...current, { role: "user", text: question }]);
     setDraft("");
     setBusy(true);
     try {
+      const { facts, refs: map } = await gather();
+      refs.current = map;
       const answer = readAnswer(await askAgent(target.provider, buildAskPrompt(question, history, facts)));
       setMessages((current) => [...current, { role: "assistant", text: answer.text, suggestions: answer.suggestions }]);
     } catch (error) {
@@ -51,7 +66,7 @@ export function AskPanel({ events, range, onOpenSession }: { events: SessionEven
     const text = question.trim();
     if (!text || busy || !agent) return;
     if (storySettings.consented().includes(agent.provider)) void send(text, agent);
-    else setAsking({ agent, question: text });
+    else void gather().then(({ facts }) => setAsking({ agent, question: text, preview: buildAskPrompt(text, [], facts) }));
   }
 
   return <section className="panel ask">
@@ -90,6 +105,6 @@ export function AskPanel({ events, range, onOpenSession }: { events: SessionEven
       <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); ask(draft); } }} rows={2} maxLength={600} placeholder={t("Ex. : pourquoi Codex a échoué cet après-midi ?", "E.g. why did Codex fail this afternoon?")} aria-label={t("Ta question", "Your question")} disabled={!agent} />
       {busy ? <button type="button" className="button" onClick={() => void cancelStory()}><Square size={12} />{t("Annuler", "Cancel")}</button> : <button className="button primary" disabled={!draft.trim() || !agent}><Send size={13} />{t("Envoyer", "Send")}</button>}
     </form>
-    {asking && <Consent agent={asking.agent} purpose="ask" preview={buildAskPrompt(asking.question, [], context().facts)} onCancel={() => setAsking(null)} onAllow={() => { storySettings.consent(asking.agent.provider); const pending = asking; setAsking(null); void send(pending.question, pending.agent); }} />}
+    {asking && <Consent agent={asking.agent} purpose="ask" preview={asking.preview} onCancel={() => setAsking(null)} onAllow={() => { storySettings.consent(asking.agent.provider); const pending = asking; setAsking(null); void send(pending.question, pending.agent); }} />}
   </section>;
 }

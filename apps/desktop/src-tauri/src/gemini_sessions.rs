@@ -541,11 +541,39 @@ fn project_message(
             tool.tool_name = Some(name);
             tool.file_path = file_path;
             tool.command = command;
-            tool.outcome = Some(status.to_owned()).filter(|status| !status.is_empty());
+            tool.outcome = if event_kind == EventKind::ToolFailed {
+                Some(crate::redact::failure_outcome(
+                    error_text(call, &["resultDisplay", "error", "message"]).as_deref(),
+                ))
+            } else {
+                Some(status.to_owned()).filter(|status| !status.is_empty())
+            };
             events.push(tool);
         }
     }
     events
+}
+
+/// The first text found under `keys` on a tool call or its result (string, or `{ message }`).
+fn error_text(call: &Value, keys: &[&str]) -> Option<String> {
+    let text = |value: &Value| match value {
+        Value::String(text) => Some(text.clone()),
+        other => other
+            .get("message")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+    };
+    keys.iter()
+        .find_map(|key| call.get(*key).and_then(text))
+        .or_else(|| {
+            call.get("result")?.as_array()?.iter().find_map(|part| {
+                let response = part.get("functionResponse")?.get("response")?;
+                ["error", "output"]
+                    .iter()
+                    .find_map(|key| response.get(*key).and_then(text))
+            })
+        })
+        .filter(|message| !message.trim().is_empty())
 }
 
 fn event(context: &SessionContext, kind: EventKind, key: &str) -> SessionEvent {

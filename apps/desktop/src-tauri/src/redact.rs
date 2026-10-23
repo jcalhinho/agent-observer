@@ -1,7 +1,29 @@
 //! Error messages are only kept when the user asks for it, and never as they came: one line,
 //! cut short, with anything that looks like a secret or a personal folder taken out.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 const MAX_CHARS: usize = 300;
+
+/// Mirrors the setting, so every connector (not only Claude's hooks) follows it.
+static KEEP_MESSAGES: AtomicBool = AtomicBool::new(false);
+
+pub fn keep_messages(enabled: bool) {
+    KEEP_MESSAGES.store(enabled, Ordering::Relaxed);
+}
+
+/// What a connector records for a failed action: the cleaned message if the user asked for it.
+pub fn failure_outcome(message: Option<&str>) -> String {
+    if KEEP_MESSAGES.load(Ordering::Relaxed) {
+        if let Some(message) = message {
+            let cleaned = redact_error(message);
+            if !cleaned.is_empty() {
+                return format!("error: {cleaned}");
+            }
+        }
+    }
+    "failed".to_owned()
+}
 
 const SECRET_PREFIXES: &[&str] = &[
     "sk-",
@@ -148,5 +170,15 @@ mod tests {
         let cut = redact_error(&long);
         assert!(cut.chars().count() <= MAX_CHARS + 1);
         assert!(cut.ends_with('…'));
+    }
+
+    #[test]
+    fn connectors_record_a_message_only_when_asked() {
+        keep_messages(false);
+        assert_eq!(failure_outcome(Some("boom")), "failed");
+        keep_messages(true);
+        assert_eq!(failure_outcome(Some("boom  now")), "error: boom now");
+        assert_eq!(failure_outcome(None), "failed");
+        keep_messages(false);
     }
 }

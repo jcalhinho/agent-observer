@@ -412,17 +412,58 @@ fn project_record(
                     .and_then(Value::as_str)
                     .unwrap_or_default();
                 let details = context.active_tools.remove(call_id)?;
-                let mut event = event(context, EventKind::ToolFinished);
+                let failure = failed_output(payload);
+                let mut event = event(
+                    context,
+                    if failure.is_some() {
+                        EventKind::ToolFailed
+                    } else {
+                        EventKind::ToolFinished
+                    },
+                );
                 event.occurred_at = timestamp.unwrap_or_else(Utc::now);
                 event.tool_name = Some(details.0);
                 event.file_path = details.1;
                 event.command = details.2;
+                event.outcome =
+                    failure.map(|message| crate::redact::failure_outcome(message.as_deref()));
                 Some(event)
             }
             _ => None,
         };
     }
     None
+}
+
+/// A shell call that ended with a non-zero exit code. `Some(message)` is a failure, with the end
+/// of its output as the message (kept only if the user asked, and then cleaned).
+fn failed_output(payload: &Value) -> Option<Option<String>> {
+    let tail = |text: &str| {
+        let lines: Vec<&str> = text
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .collect();
+        let start = lines.len().saturating_sub(4);
+        Some(lines[start..].join(" ")).filter(|message| !message.is_empty())
+    };
+    match payload.get("output")? {
+        Value::String(text) => {
+            let code = text
+                .split("Process exited with code ")
+                .nth(1)?
+                .split(|c: char| !(c.is_ascii_digit() || c == '-'))
+                .next()?
+                .parse::<i64>()
+                .ok()?;
+            (code != 0).then(|| tail(text.split("Output:").last().unwrap_or(text)))
+        }
+        Value::Array(parts) => parts.iter().find_map(|part| {
+            let inner: Value = serde_json::from_str(part.get("text")?.as_str()?).ok()?;
+            let code = inner.get("exit_code")?.as_i64()?;
+            (code != 0).then(|| inner.get("output").and_then(Value::as_str).and_then(tail))
+        }),
+        _ => None,
+    }
 }
 
 /// OpenAI usage semantics (Responses API, prompt caching guide): `input_tokens`
@@ -639,5 +680,24 @@ mod tests {
         assert_eq!(captured_prompt.content.as_deref(), Some("private prompt"));
         assert_eq!(omitted_command.command, None);
         assert_eq!(captured_command.command.as_deref(), Some("echo private"));
+    }
+
+    #[test]
+    fn reads_failed_shell_calls_in_both_output_shapes() {
+        let text = json!({ "output": "Process exited with code 2\nOutput:\nwarming up\nerror: no such file" });
+        assert_eq!(
+            failed_output(&text),
+            Some(Some("warming up error: no such file".to_owned()))
+        );
+        let ok = json!({ "output": "Process exited with code 0\nOutput:\nfine" });
+        assert_eq!(failed_output(&ok), None);
+        let parts = json!({ "output": [
+            { "type": "input_text", "text": "Script completed" },
+            { "type": "input_text", "text": "{\"exit_code\":1,\"output\":\"cargo: not found\\n\"}" }
+        ] });
+        assert_eq!(
+            failed_output(&parts),
+            Some(Some("cargo: not found".to_owned()))
+        );
     }
 }

@@ -288,7 +288,13 @@ impl OpenCodeMonitor {
                                             EventKind::ToolFailed,
                                             "failed",
                                             completed_ms,
-                                            status,
+                                            &crate::redact::failure_outcome(
+                                                state.get("error").and_then(|error| {
+                                                    error.as_str().or_else(|| {
+                                                        error.get("message").and_then(Value::as_str)
+                                                    })
+                                                }),
+                                            ),
                                         ));
                                     }
                                     _ => {}

@@ -332,9 +332,28 @@ fn project_record(
             finished.tool_name = Some(name);
             finished.file_path = file_path;
             finished.command = command;
-            finished.outcome = status
-                .filter(|value| *value != "success")
-                .map(str::to_owned);
+            finished.outcome = if kind == EventKind::ToolFailed {
+                let message = result
+                    .and_then(|value| value.get("error"))
+                    .and_then(|error| error.get("message").or(Some(error)))
+                    .and_then(Value::as_str)
+                    .or_else(|| {
+                        result
+                            .and_then(|value| value.get("resultDisplay"))
+                            .and_then(Value::as_str)
+                    })
+                    .or_else(|| {
+                        response
+                            .and_then(|value| value.get("response"))
+                            .and_then(|value| value.get("error"))
+                            .and_then(Value::as_str)
+                    });
+                Some(crate::redact::failure_outcome(message))
+            } else {
+                status
+                    .filter(|value| *value != "success")
+                    .map(str::to_owned)
+            };
             vec![finished]
         }
         (Some("system"), Some("ui_telemetry")) => {
@@ -502,7 +521,7 @@ mod tests {
             failed[0].file_path.as_deref(),
             Some("/work/demo/src/main.rs")
         );
-        assert_eq!(failed[0].outcome.as_deref(), Some("error"));
+        assert_eq!(failed[0].outcome.as_deref(), Some("failed"));
         assert_eq!(failed[0].content, None);
 
         let mut context = SessionContext::default();
