@@ -42,8 +42,10 @@ Le centre de la fenêtre est un stade 3D low-poly où chaque agent est un coureu
 événement le fait sauter, un outil en échec le fait tomber puis se relever, la fin d’un tour
 l’envoie franchir la ligne, un agent qui t’attend lève la main et celui qui tourne en rond
 court en rond. Une bulle raconte ce qu’il fait. La distance est un indicateur d’activité,
-jamais un pourcentage d’avancement. Une version 2D existe pour les machines sans WebGL, et la
-scène respecte le réglage système de *réduction des animations*.
+jamais un pourcentage d’avancement. Une version 2D existe pour les machines sans WebGL, la
+scène respecte le réglage système de *réduction des animations*, et **Réglages › Affichage ›
+Qualité de la course 3D** (*Léger*, *Automatique*, *Fluide*) échange de la netteté contre de la
+vitesse sur les ordinateurs plus lents.
 
 <img src="docs/media/overview.png" alt="La scène : la course 3D, une barre avec les agents au travail et ceux qui t’attendent, et un bandeau avec une pastille par agent" width="900">
 

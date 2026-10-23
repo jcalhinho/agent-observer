@@ -4,6 +4,8 @@ import { SectionHeader } from "./Explain";
 import { currentLang, locale, setLang, t, type Lang } from "./i18n";
 import { noticeKinds, type NoticeKind } from "./notificationRules";
 import { useSubscription } from "./costPreferences";
+import { isRaceQuality } from "./SprintTrack";
+import type { RaceQuality } from "./SprintTrack3D";
 import { DEFAULT_STORY_TIME, isClock, latestSlot } from "./story";
 import { pickAgent, storySettings, useStoryAgents } from "./useStory";
 import { isBoolean, isString, readPreference, usePreference, writePreference } from "./preferences";
@@ -94,6 +96,7 @@ export function SettingsPage({ onExport, onClear, onMini }: { onExport: () => Pr
     <div className="settings-group">
       <h3>{t("Affichage", "Display")}</h3>
       <LanguageSetting />
+      <RaceQualitySetting />
       <LaunchHostSetting />
       <div className="setting-row">
         <span><b>{t("Mode mini", "Mini mode")}</b><small>{t("Réduit l’app à une colonne dans un coin de l’écran, toujours visible, avec une carte par agent.", "Shrinks the app to an always-visible column in a corner of the screen, one card per agent.")}</small></span>
@@ -133,6 +136,19 @@ function StorySettings() {
       <select value={agent} onChange={(event) => setAgent(event.target.value)}><option value="auto">{t("Automatique", "Automatic")}</option>{agents.map((candidate) => <option key={candidate.provider} value={candidate.provider}>{candidate.name}</option>)}</select>
     </label>}
   </div>;
+}
+
+/** How much the 3D race may ask of the computer. */
+function RaceQualitySetting() {
+  const [quality, setQuality] = usePreference<RaceQuality>("race-quality", "auto", isRaceQuality);
+  return <label className="setting-row">
+    <span><b>{t("Qualité de la course 3D", "3D race quality")}</b><small>{t("« Léger » dessine à basse résolution, 20 images par seconde : pour un ordinateur lent ou une batterie à ménager. « Fluide » dessine plus net et à 60 images par seconde.", "“Light” draws at a low resolution, 20 frames per second: for a slow computer or to save battery. “Smooth” draws sharper at 60 frames per second.")}</small></span>
+    <select value={quality} onChange={(event) => setQuality(event.target.value as RaceQuality)}>
+      <option value="light">{t("Léger", "Light")}</option>
+      <option value="auto">{t("Automatique", "Automatic")}</option>
+      <option value="smooth">{t("Fluide", "Smooth")}</option>
+    </select>
+  </label>;
 }
 
 function LaunchHostSetting() {

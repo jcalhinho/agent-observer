@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-23
+
+### Changed
+
+- **A rounder, softer race.** No more cubes or sharp edges: the stands are arcs that bend around
+  the track, the crowd is made of little capsules, the track has rounded corners and rounded
+  lines, the finish is a rainbow arch, the meadow is a round island, trees and clouds are made of
+  soft spheres and the runners are built from capsules and spheres, with eyes and rosy cheeks.
+  The speech bubbles have a curved tail.
+- **A much lighter race**, for Windows laptops and high-density screens in particular. The 3D
+  scene no longer uses real-time shadows (soft round shadows instead) or a shadow map; it draws at
+  a resolution that fits a pixel budget instead of the full size of a large or high-DPI screen,
+  at 30 frames per second instead of 60, and not at all while the window is hidden; trees, crowd
+  and track markings are drawn in a handful of calls; texture memory is trimmed.
+
+### Added
+
+- Settings › Display › **3D race quality**: *Light* (low resolution, 20 fps), *Automatic* (default)
+  or *Smooth* (sharper, 60 fps).
+
 ## [0.3.1] - 2026-10-23
 
 ### Fixed

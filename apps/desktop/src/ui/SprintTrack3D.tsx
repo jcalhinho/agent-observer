@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { t } from "./i18n";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Narration } from "./activity-copy";
 import type { PulseStatus } from "./agentPulse";
@@ -64,14 +64,61 @@ function seeded(seed: number) {
   return value - Math.floor(value);
 }
 
+/** How much the race may ask of the computer. "auto" suits most; "light" is for weak graphics. */
+export type RaceQuality = "light" | "auto" | "smooth";
+const QUALITY: Record<RaceQuality, { fps: number; pixels: number; dprMax: number }> = {
+  light: { fps: 20, pixels: 0.4e6, dprMax: 1 },
+  auto: { fps: 30, pixels: 0.9e6, dprMax: 1.25 },
+  smooth: { fps: 60, pixels: 2.2e6, dprMax: 2 }
+};
+
 const easeOut = (k: number) => 1 - (1 - k) ** 3;
 const easeIn = (k: number) => k * k;
 
+/** Soft, cheap shading: no shadow maps, no specular. Rounded shapes do the rest. */
 function Low({ color, emissive }: { color: string; emissive?: string }) {
-  return <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={emissive ? 0.2 : 0} roughness={0.82} metalness={0} />;
+  return <meshLambertMaterial color={color} emissive={emissive} emissiveIntensity={emissive ? 0.2 : 0} />;
 }
 
-export default function SprintTrack3D({ lanes, reducedMotion }: { lanes: RaceLane[]; reducedMotion: boolean }) {
+/**
+ * Keeps the race cheap: it draws at a resolution that fits a pixel budget (not the full size of a
+ * big or high-density screen), at a capped frame rate, and not at all while the window is hidden.
+ */
+function Governor({ quality }: { quality: RaceQuality }) {
+  const { size, setDpr, invalidate } = useThree();
+  const budget = QUALITY[quality];
+  useEffect(() => {
+    const device = window.devicePixelRatio || 1;
+    const fit = Math.sqrt(budget.pixels / Math.max(1, size.width * size.height));
+    setDpr(Math.max(0.5, Math.min(device, budget.dprMax, fit)));
+  }, [size.width, size.height, budget, setDpr]);
+  useEffect(() => {
+    const timer = window.setInterval(() => { if (!document.hidden) invalidate(); }, 1000 / budget.fps);
+    return () => window.clearInterval(timer);
+  }, [budget, invalidate]);
+  return null;
+}
+
+/** Colours and transforms for instanced meshes (one draw call for many objects). */
+function useInstances(items: Array<{ position: [number, number, number]; scale?: [number, number, number]; color: string }>) {
+  const mesh = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const instances = mesh.current;
+    if (!instances) return;
+    const matrix = new THREE.Matrix4();
+    const color = new THREE.Color();
+    items.forEach((item, index) => {
+      matrix.compose(new THREE.Vector3(...item.position), new THREE.Quaternion(), new THREE.Vector3(...(item.scale ?? [1, 1, 1])));
+      instances.setMatrixAt(index, matrix);
+      instances.setColorAt(index, color.set(item.color));
+    });
+    instances.instanceMatrix.needsUpdate = true;
+    if (instances.instanceColor) instances.instanceColor.needsUpdate = true;
+  }, [items]);
+  return mesh;
+}
+
+export default function SprintTrack3D({ lanes, reducedMotion, quality = "auto" }: { lanes: RaceLane[]; reducedMotion: boolean; quality?: RaceQuality }) {
   const active = lanes.filter((lane) => lane.status === "running" || lane.status === "recent");
   const bubbleRows = assignBubbleRows(lanes);
   // The camera drifts towards the agent that needs you, otherwise towards the leader.
@@ -80,28 +127,17 @@ export default function SprintTrack3D({ lanes, reducedMotion }: { lanes: RaceLan
   return (
     <Canvas
       className="sprint-canvas"
-      shadows
       flat
-      dpr={[1, 2]}
+      frameloop="demand"
+      dpr={1}
       camera={{ fov: 30, position: [0, 7, 12], near: 0.1, far: 140 }}
       gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
       aria-label={t("Piste 3D de la course des agents", "3D track of the agents’ race")}
     >
+      <Governor quality={quality} />
       <CameraRig leaderX={leaderX} reducedMotion={reducedMotion} />
-      <hemisphereLight args={["#e4f5ff", "#6fae5f", 1.25]} />
-      <directionalLight
-        castShadow
-        position={[-7, 13, 9]}
-        intensity={2.1}
-        color="#fff0d4"
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
-        shadow-camera-top={8}
-        shadow-camera-bottom={-8}
-        shadow-bias={-0.0006}
-      />
-      <ambientLight intensity={0.25} />
+      <hemisphereLight args={["#eaf6ff", "#8cc67a", 1.7]} />
+      <directionalLight position={[-7, 13, 9]} intensity={1.35} color="#fff3dc" />
       <Stadium lanes={lanes} excitement={active.length} reducedMotion={reducedMotion} />
       {lanes.map((lane, index) => (
         <Runner key={lane.id} lane={lane} z={laneZ(index, lanes.length)} bubbleRow={bubbleRows.get(lane.id) ?? 0} renderOrder={index} reducedMotion={reducedMotion} />
@@ -152,121 +188,168 @@ function CameraRig({ leaderX, reducedMotion }: { leaderX: number; reducedMotion:
   return null;
 }
 
+/** A flat rounded rectangle on the ground. */
+function roundedRect(halfX: number, halfZ: number, radius: number) {
+  const shape = new THREE.Shape();
+  shape.moveTo(-halfX + radius, -halfZ);
+  shape.lineTo(halfX - radius, -halfZ);
+  shape.absarc(halfX - radius, -halfZ + radius, radius, -Math.PI / 2, 0, false);
+  shape.lineTo(halfX, halfZ - radius);
+  shape.absarc(halfX - radius, halfZ - radius, radius, 0, Math.PI / 2, false);
+  shape.lineTo(-halfX + radius, halfZ);
+  shape.absarc(-halfX + radius, halfZ - radius, radius, Math.PI / 2, Math.PI, false);
+  shape.lineTo(-halfX, -halfZ + radius);
+  shape.absarc(-halfX + radius, -halfZ + radius, radius, Math.PI, Math.PI * 1.5, false);
+  return new THREE.ShapeGeometry(shape, 12);
+}
+
+/** The finish line: a small chequered strip, one texture instead of dozens of tiles. */
+function useChecker(rows: number) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 32;
+    canvas.height = rows * 16;
+    const context = canvas.getContext("2d");
+    if (context) {
+      for (let row = 0; row < rows; row += 1) for (let column = 0; column < 2; column += 1) {
+        context.fillStyle = (row + column) % 2 ? "#232a38" : "#fbfbfb";
+        context.fillRect(column * 16, row * 16, 16, 16);
+      }
+    }
+    const result = new THREE.CanvasTexture(canvas);
+    result.colorSpace = THREE.SRGBColorSpace;
+    result.magFilter = THREE.NearestFilter;
+    result.minFilter = THREE.NearestFilter;
+    result.generateMipmaps = false;
+    return result;
+  }, [rows]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return texture;
+}
+
+/** The stands are arcs of a huge circle, so they bend gently around the track. */
+const STAND_RADIUS = 60;
+const STAND_FRONT = -4.3;
+const STAND_HALF_ANGLE = 0.2;
+const STAND_CENTER_Z = STAND_RADIUS + STAND_FRONT;
+const STAND_ROW_GAP = 0.7;
+
 function Stadium({ lanes, excitement, reducedMotion }: { lanes: RaceLane[]; excitement: number; reducedMotion: boolean }) {
   const count = lanes.length;
   const halfWidth = (count * LANE_WIDTH) / 2;
   const trackLength = FINISH_X - START_X + 5;
-  const checker = useMemo(() => {
-    const cells: Array<[number, number, string]> = [];
-    const size = 0.19;
-    const rows = Math.ceil((halfWidth * 2) / size);
-    for (let row = 0; row < rows; row += 1) {
-      for (let column = 0; column < 2; column += 1) {
-        cells.push([FINISH_X + column * size, -halfWidth + size / 2 + row * size, (row + column) % 2 ? "#1f2430" : "#fbfbfb"]);
-      }
-    }
-    return cells;
-  }, [halfWidth]);
-  const trees = useMemo(
-    () =>
-      Array.from({ length: 22 }, (_, index) => {
-        const side = index % 2 ? 1 : -1;
-        const backdrop = index > 11;
-        return {
-          x: backdrop ? -24 + index * 3.6 + seeded(index) * 1.5 : side * (13 + seeded(index) * 5),
-          z: backdrop ? -10 - seeded(index + 40) * 4 : -3 + seeded(index + 20) * 8,
-          scale: 0.8 + seeded(index + 60) * 0.7,
-          color: ["#2f9e5b", "#3fb06a", "#58b368", "#2b8a57"][index % 4]
-        };
-      }),
-    []
-  );
+  const checker = useChecker(Math.max(2, Math.round((halfWidth * 2) / 0.19)));
+  const track = useMemo(() => roundedRect(trackLength / 2, halfWidth + 0.25, 1.0), [trackLength, halfWidth]);
+  useEffect(() => () => track.dispose(), [track]);
+  const treeItems = useMemo(() => Array.from({ length: 22 }, (_, index) => {
+    const side = index % 2 ? 1 : -1;
+    const backdrop = index > 11;
+    return {
+      x: backdrop ? -24 + index * 3.6 + seeded(index) * 1.5 : side * (13 + seeded(index) * 5),
+      z: backdrop ? -10 - seeded(index + 40) * 4 : -3 + seeded(index + 20) * 8,
+      scale: 0.8 + seeded(index + 60) * 0.7,
+      color: ["#2f9e5b", "#3fb06a", "#58b368", "#2b8a57"][index % 4]
+    };
+  }), []);
+  // Trunks, lower and upper tufts: three draw calls for every tree.
+  const trunks = useInstances(treeItems.map((tree) => ({ position: [tree.x, 0.32 * tree.scale, tree.z], scale: [tree.scale, tree.scale, tree.scale], color: "#9a6a47" })));
+  const tufts = useInstances(treeItems.map((tree) => ({ position: [tree.x, 0.95 * tree.scale, tree.z], scale: [tree.scale, tree.scale, tree.scale], color: tree.color })));
+  const crowns = useInstances(treeItems.map((tree) => ({ position: [tree.x, 1.5 * tree.scale, tree.z], scale: [0.78 * tree.scale, 0.78 * tree.scale, 0.78 * tree.scale], color: tree.color })));
+  const laneLines = useMemo(() => Array.from({ length: count + 1 }, (_, index) => -halfWidth + index * LANE_WIDTH), [count, halfWidth]);
+
   return (
     <group>
-      {/* Grass with mowing stripes */}
-      <mesh receiveShadow position={[0, -0.12, 2]}>
-        <boxGeometry args={[80, 0.1, 44]} />
-        <Low color="#79c46b" />
+      {/* A round island of meadow with concentric mowing stripes and soft soil sides */}
+      <mesh position={[0, -1.3, 2]}>
+        <cylinderGeometry args={[26.4, 24.5, 2.2, 80]} />
+        <Low color="#c99a6e" />
       </mesh>
-      {Array.from({ length: 14 }, (_, index) => (
-        <mesh key={index} receiveShadow position={[-26 + index * 4, -0.065, halfWidth + 4]}>
-          <boxGeometry args={[2, 0.01, 7]} />
-          <Low color={index % 2 ? "#6db760" : "#86cd77"} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 2]}>
+        <circleGeometry args={[26.4, 80]} />
+        <Low color="#7ccb6e" />
+      </mesh>
+      {[8, 16].map((inner) => (
+        <mesh key={inner} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.07, 2]}>
+          <ringGeometry args={[inner, inner + 4, 80]} />
+          <Low color="#8bd27c" />
         </mesh>
       ))}
 
-      {/* Track */}
-      <mesh receiveShadow position={[0, -0.04, 0]}>
-        <boxGeometry args={[trackLength, 0.06, halfWidth * 2 + 0.5]} />
-        <Low color="#e07a5f" />
+      {/* Track: a rounded lane with rounded lines */}
+      <mesh geometry={track} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
+        <Low color="#e8836a" />
       </mesh>
-      {Array.from({ length: count + 1 }, (_, index) => (
-        <mesh key={index} receiveShadow position={[0, -0.005, -halfWidth + index * LANE_WIDTH]}>
-          <boxGeometry args={[trackLength, 0.012, 0.035]} />
+      {laneLines.map((z) => (
+        <mesh key={z} rotation={[0, 0, Math.PI / 2]} position={[0, 0.004, z]}>
+          <capsuleGeometry args={[0.018, trackLength - 2.6, 4, 8]} />
           <Low color="#fff6ee" />
         </mesh>
       ))}
       {[25, 50, 75].map((mark) => (
-        <mesh key={mark} receiveShadow position={[progressToX(mark), -0.006, 0]}>
-          <boxGeometry args={[0.05, 0.01, halfWidth * 2]} />
-          <Low color="#f2b39f" />
+        <mesh key={mark} rotation={[Math.PI / 2, 0, 0]} position={[progressToX(mark), 0.003, 0]}>
+          <capsuleGeometry args={[0.022, halfWidth * 2 - 0.3, 4, 8]} />
+          <Low color="#f6bba7" />
         </mesh>
       ))}
-      <mesh receiveShadow position={[START_X, -0.004, 0]}>
-        <boxGeometry args={[0.09, 0.012, halfWidth * 2]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[START_X, 0.004, 0]}>
+        <capsuleGeometry args={[0.04, halfWidth * 2 - 0.2, 4, 8]} />
         <Low color="#ffffff" />
       </mesh>
-      {checker.map(([x, z, color], index) => (
-        <mesh key={index} receiveShadow position={[x, -0.003, z]}>
-          <boxGeometry args={[0.19, 0.014, 0.19]} />
-          <Low color={color} />
-        </mesh>
-      ))}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[FINISH_X + 0.19, 0.006, 0]}>
+        <planeGeometry args={[0.38, halfWidth * 2]} />
+        <meshBasicMaterial map={checker} />
+      </mesh>
 
-      {/* Starting blocks in each provider colour */}
+      {/* Starting pads in each provider colour: little soft domes */}
       {lanes.map((lane, index) => (
-        <mesh key={lane.id} castShadow position={[START_X - 0.45, 0.06, laneZ(index, count)]} rotation={[0, 0, 0.35]}>
-          <boxGeometry args={[0.22, 0.12, 0.34]} />
+        <mesh key={lane.id} position={[START_X - 0.45, 0.02, laneZ(index, count)]} scale={[0.17, 0.09, 0.22]}>
+          <sphereGeometry args={[1, 16, 10]} />
           <Low color={lane.color} />
         </mesh>
       ))}
 
-      {/* Finish arch */}
+      {/* Finish arch: one smooth rainbow */}
+      <group position={[FINISH_X + 0.2, 0, 0]} rotation={[0, Math.PI / 2, 0]} scale={[1, 0.72, 1]}>
+        <mesh>
+          <torusGeometry args={[halfWidth + 0.5, 0.1, 14, 56, Math.PI]} />
+          <Low color="#ff7a99" />
+        </mesh>
+        <mesh scale={[0.93, 0.93, 1]}>
+          <torusGeometry args={[halfWidth + 0.5, 0.07, 12, 56, Math.PI]} />
+          <Low color="#ffd166" />
+        </mesh>
+      </group>
       {[-1, 1].map((side) => (
-        <mesh key={side} castShadow position={[FINISH_X + 0.2, 1.25, side * (halfWidth + 0.35)]}>
-          <cylinderGeometry args={[0.09, 0.11, 2.5, 10]} />
+        <mesh key={side} position={[FINISH_X + 0.2, 0.06, side * (halfWidth + 0.5)]}>
+          <sphereGeometry args={[0.17, 14, 10]} />
           <Low color="#ffd166" />
         </mesh>
       ))}
-      <mesh castShadow position={[FINISH_X + 0.2, 2.45, 0]}>
-        <boxGeometry args={[0.18, 0.42, halfWidth * 2 + 0.95]} />
-        <Low color="#ef476f" />
-      </mesh>
 
       <Crowd excitement={excitement} reducedMotion={reducedMotion} />
 
-      {trees.map((tree, index) => (
-        <group key={index} position={[tree.x, 0, tree.z]} scale={tree.scale}>
-          <mesh castShadow position={[0, 0.3, 0]}>
-            <cylinderGeometry args={[0.1, 0.14, 0.6, 8]} />
-            <Low color="#8b5a3c" />
-          </mesh>
-          <mesh castShadow position={[0, 1.15, 0]}>
-            <coneGeometry args={[0.65, 1.5, 10]} />
-            <Low color={tree.color} />
-          </mesh>
-        </group>
-      ))}
+      <instancedMesh ref={trunks} args={[undefined, undefined, treeItems.length]}>
+        <capsuleGeometry args={[0.1, 0.4, 4, 8]} />
+        <meshLambertMaterial />
+      </instancedMesh>
+      <instancedMesh ref={tufts} args={[undefined, undefined, treeItems.length]}>
+        <sphereGeometry args={[0.62, 16, 12]} />
+        <meshLambertMaterial />
+      </instancedMesh>
+      <instancedMesh ref={crowns} args={[undefined, undefined, treeItems.length]}>
+        <sphereGeometry args={[0.62, 16, 12]} />
+        <meshLambertMaterial />
+      </instancedMesh>
 
-      {/* Distant hills and sun */}
+      {/* Distant hills and sun: smooth domes */}
       {HILLS.map(([x, z, radius, color], index) => (
         <mesh key={index} position={[x, -radius * 0.5, z]} scale={[1.7, 0.55, 1]}>
-          <icosahedronGeometry args={[radius, 1]} />
+          <sphereGeometry args={[radius, 28, 16]} />
           <Low color={color} />
         </mesh>
       ))}
       <mesh position={[-16, 11, -30]}>
-        <icosahedronGeometry args={[2.2, 1]} />
+        <sphereGeometry args={[2.2, 20, 14]} />
         <meshBasicMaterial color="#ffd66b" />
       </mesh>
       <Clouds reducedMotion={reducedMotion} />
@@ -279,16 +362,18 @@ function Crowd({ excitement, reducedMotion }: { excitement: number; reducedMotio
   const seats = useMemo(() => {
     const result: Array<{ x: number; y: number; z: number; phase: number }> = [];
     for (let row = 0; row < 3; row += 1) {
+      const radius = STAND_RADIUS + row * STAND_ROW_GAP;
       for (let column = 0; column < 46; column += 1) {
         if (seeded(row * 100 + column) < 0.18) continue;
-        result.push({ x: -12.6 + column * 0.56, y: 0.55 + row * 0.5 + 0.17, z: -4.3 - row * 0.7, phase: seeded(column + row * 7) * Math.PI * 2 });
+        const angle = (column / 45 - 0.5) * 2 * (STAND_HALF_ANGLE - 0.012);
+        result.push({ x: radius * Math.sin(angle), y: 0.5 + row * 0.5 + 0.2, z: STAND_CENTER_Z - radius * Math.cos(angle), phase: seeded(column + row * 7) * Math.PI * 2 });
       }
     }
     return result;
   }, []);
   const matrix = useMemo(() => new THREE.Matrix4(), []);
   const energy = useRef(0);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const instances = mesh.current;
     if (!instances) return;
     const color = new THREE.Color();
@@ -313,15 +398,23 @@ function Crowd({ excitement, reducedMotion }: { excitement: number; reducedMotio
   });
   return (
     <group>
-      {[0, 1, 2].map((row) => (
-        <mesh key={row} receiveShadow castShadow position={[0, 0.25 + row * 0.25, -4.3 - row * 0.7]}>
-          <boxGeometry args={[27, 0.5 + row * 0.5, 0.7]} />
-          <Low color={["#7b8cc4", "#6a7bb5", "#5b6ba3"][row]} />
-        </mesh>
-      ))}
-      <instancedMesh ref={mesh} args={[undefined, undefined, seats.length]} castShadow>
-        <boxGeometry args={[0.3, 0.34, 0.26]} />
-        <meshStandardMaterial roughness={0.82} metalness={0} />
+      {[0, 1, 2].map((row) => {
+        const radius = STAND_RADIUS + row * STAND_ROW_GAP;
+        const height = 0.5 + row * 0.5;
+        return <group key={row} position={[0, 0, STAND_CENTER_Z]}>
+          <mesh position={[0, height / 2, 0]}>
+            <cylinderGeometry args={[radius + 0.32, radius + 0.32, height, 96, 1, true, Math.PI - STAND_HALF_ANGLE, STAND_HALF_ANGLE * 2]} />
+            <meshLambertMaterial color={["#8c9bd6", "#7a8ac7", "#6b7bb7"][row]} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, height, 0]}>
+            <ringGeometry args={[radius - 0.38, radius + 0.32, 96, 1, Math.PI / 2 - STAND_HALF_ANGLE, STAND_HALF_ANGLE * 2]} />
+            <meshLambertMaterial color={["#a3b0e2", "#919fd5", "#8190c6"][row]} side={THREE.DoubleSide} />
+          </mesh>
+        </group>;
+      })}
+      <instancedMesh ref={mesh} args={[undefined, undefined, seats.length]}>
+        <capsuleGeometry args={[0.12, 0.12, 4, 10]} />
+        <meshLambertMaterial />
       </instancedMesh>
     </group>
   );
@@ -344,10 +437,10 @@ function Clouds({ reducedMotion }: { reducedMotion: boolean }) {
     <group ref={group}>
       {clouds.map((cloud, index) => (
         <group key={index} position={[cloud.x, cloud.y, cloud.z]} scale={cloud.scale}>
-          {[[-1, 0, 0.9], [0, 0.35, 1.25], [1.1, 0, 0.85]].map(([x, y, radius], part) => (
+          {[[-1, 0, 0.9], [0, 0.35, 1.25], [1.1, 0, 0.85], [0.35, -0.2, 0.9]].map(([x, y, radius], part) => (
             <mesh key={part} position={[x, y, 0]}>
-              <icosahedronGeometry args={[radius, 1]} />
-              <Low color="#ffffff" />
+              <sphereGeometry args={[radius, 14, 10]} />
+              <meshBasicMaterial color="#ffffff" />
             </mesh>
           ))}
         </group>
@@ -366,6 +459,7 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
   const leftLeg = useRef<THREE.Group>(null);
   const rightLeg = useRef<THREE.Group>(null);
   const confetti = useRef<THREE.Group>(null);
+  const blob = useRef<THREE.Mesh>(null);
   const motion = useRef({
     x: progressToX(lane.progress),
     phase: seeded(z + 4) * Math.PI * 2,
@@ -386,12 +480,6 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
     state.seenCue = lane.cueKey;
     state.pendingCue = lane.cue;
   }, [lane.cueKey, lane.cue]);
-
-  useEffect(() => {
-    root.current?.traverse((object) => {
-      if ((object as THREE.Mesh).isMesh) object.castShadow = true;
-    });
-  }, []);
 
   useFrame((frame, rawDelta) => {
     const delta = Math.min(rawDelta, 0.05);
@@ -474,6 +562,11 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
     }
 
     root.current.position.set(state.x + offsetX, y, z + offsetZ);
+    if (blob.current) {
+      blob.current.position.set(state.x + offsetX, 0.012, z + offsetZ);
+      const lift = 1 / (1 + y * 3);
+      blob.current.scale.set(0.34 * RUNNER_SCALE * lift, 0.24 * RUNNER_SCALE * lift, 1);
+    }
     root.current.rotation.y = state.heading;
     root.current.rotation.z = tilt;
     body.current.rotation.z = lean;
@@ -505,58 +598,76 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
         {[-1, 1].map((side) => (
           <group key={side} ref={side < 0 ? leftLeg : rightLeg} position={[0, HIP_HEIGHT, side * 0.09]}>
             <mesh position={[0, -0.1, 0]}>
-              <boxGeometry args={[0.13, 0.2, 0.12]} />
+              <capsuleGeometry args={[0.075, 0.07, 4, 10]} />
               <Low color={SHORTS} />
             </mesh>
             <mesh position={[0, -0.33, 0]}>
-              <boxGeometry args={[0.09, 0.3, 0.09]} />
+              <capsuleGeometry args={[0.05, 0.2, 4, 10]} />
               <Low color={SKIN} />
             </mesh>
-            <mesh position={[0.04, -0.52, 0]}>
-              <boxGeometry args={[0.17, 0.07, 0.1]} />
+            <mesh position={[0.04, -0.52, 0]} scale={[1.5, 0.8, 1]}>
+              <sphereGeometry args={[0.065, 14, 10]} />
               <Low color="#fafafa" />
             </mesh>
           </group>
         ))}
         <group ref={body} position={[0, HIP_HEIGHT, 0]}>
           <mesh position={[0, 0.24, 0]}>
-            <cylinderGeometry args={[0.17, 0.14, 0.42, 10]} />
+            <capsuleGeometry args={[0.155, 0.16, 6, 16]} />
             <Low color={lane.color} />
           </mesh>
-          <mesh position={[0.15, 0.26, 0]}>
-            <boxGeometry args={[0.02, 0.13, 0.16]} />
-            <Low color="#ffffff" />
+          <mesh position={[0.158, 0.26, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <circleGeometry args={[0.055, 20]} />
+            <meshBasicMaterial color="#ffffff" />
           </mesh>
-          <mesh position={[0, 0.62, 0]}>
-            <icosahedronGeometry args={[0.15, 1]} />
+          <mesh position={[0, 0.64, 0]}>
+            <sphereGeometry args={[0.165, 24, 16]} />
             <Low color={SKIN} />
           </mesh>
-          <mesh position={[0, 0.72, 0]}>
-            <cylinderGeometry args={[0.13, 0.155, 0.08, 10]} />
+          {/* A cap that is a soft dome with a rounded peak, and a little face */}
+          <mesh position={[0, 0.665, 0]}>
+            <sphereGeometry args={[0.172, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.46]} />
             <Low color={capColor} />
           </mesh>
-          <mesh position={[0.15, 0.69, 0]}>
-            <boxGeometry args={[0.14, 0.025, 0.2]} />
+          <mesh position={[0.15, 0.665, 0]} scale={[1.1, 0.28, 1]}>
+            <sphereGeometry args={[0.1, 14, 8]} />
             <Low color={capColor} />
           </mesh>
           {[-1, 1].map((side) => (
+            <group key={side}>
+              <mesh position={[0.152, 0.635, side * 0.06]}>
+                <sphereGeometry args={[0.022, 10, 8]} />
+                <meshBasicMaterial color="#2b2f3a" />
+              </mesh>
+              <mesh position={[0.15, 0.595, side * 0.1]} scale={[0.5, 0.8, 1.2]}>
+                <sphereGeometry args={[0.03, 10, 8]} />
+                <meshBasicMaterial color="#ff9db0" />
+              </mesh>
+            </group>
+          ))}
+          {[-1, 1].map((side) => (
             <group key={side} ref={side < 0 ? leftArm : rightArm} position={[0, 0.4, side * 0.21]}>
               <mesh position={[0, -0.04, 0]}>
-                <boxGeometry args={[0.11, 0.1, 0.1]} />
+                <sphereGeometry args={[0.07, 14, 10]} />
                 <Low color={lane.color} />
               </mesh>
               <mesh position={[0, -0.19, 0]}>
-                <boxGeometry args={[0.075, 0.26, 0.075]} />
+                <capsuleGeometry args={[0.04, 0.16, 4, 10]} />
                 <Low color={SKIN} />
               </mesh>
             </group>
           ))}
         </group>
       </group>
+      {/* A soft round shadow instead of a shadow map */}
+      <mesh ref={blob} rotation={[-Math.PI / 2, 0, 0]} position={[motion.current.x, 0.012, z]} scale={[0.34 * RUNNER_SCALE, 0.24 * RUNNER_SCALE, 1]}>
+        <circleGeometry args={[1, 24]} />
+        <meshBasicMaterial color="#1c2a1c" transparent opacity={0.22} depthWrite={false} />
+      </mesh>
       <group ref={confetti} visible={false}>
         {Array.from({ length: CONFETTI_COUNT }, (_, index) => (
           <mesh key={index}>
-            <tetrahedronGeometry args={[0.07, 0]} />
+            <sphereGeometry args={[0.05, 8, 6]} />
             <Low color={CONFETTI_COLORS[index % CONFETTI_COLORS.length]} />
           </mesh>
         ))}
@@ -602,6 +713,8 @@ function NameTag({ name, model, color, icon, renderOrder }: { name: string; mode
     }
     const result = new THREE.CanvasTexture(canvas);
     result.colorSpace = THREE.SRGBColorSpace;
+    result.generateMipmaps = false;
+    result.minFilter = THREE.LinearFilter;
     return result;
   }, [name, model, color, icon]);
   useEffect(() => () => texture.dispose(), [texture]);
@@ -627,18 +740,18 @@ function SpeechBubble({ narration, color, row, flipped, renderOrder }: { narrati
       context.roundRect(10, 10, 1004, 236, 36);
       context.fill();
       context.stroke();
-      // Tail pointing down to the runner's head.
-      const tail = flipped ? (x: number) => 1024 - x : (x: number) => x;
+      // A soft, curved tail pointing down to the runner's head.
+      const x = flipped ? (value: number) => 1024 - value : (value: number) => value;
       context.beginPath();
-      context.moveTo(tail(70), 241);
-      context.lineTo(tail(52), 292);
-      context.lineTo(tail(130), 241);
+      context.moveTo(x(62), 240);
+      context.quadraticCurveTo(x(66), 276, x(46), 292);
+      context.quadraticCurveTo(x(96), 282, x(128), 240);
       context.closePath();
       context.fill();
       context.beginPath();
-      context.moveTo(tail(70), 246);
-      context.lineTo(tail(52), 292);
-      context.lineTo(tail(130), 246);
+      context.moveTo(x(62), 244);
+      context.quadraticCurveTo(x(66), 276, x(46), 292);
+      context.quadraticCurveTo(x(96), 282, x(128), 244);
       context.stroke();
       context.fillStyle = BUBBLE_TONES[narration.tone];
       context.font = "700 58px system-ui, sans-serif";
@@ -659,7 +772,8 @@ function SpeechBubble({ narration, color, row, flipped, renderOrder }: { narrati
     }
     const result = new THREE.CanvasTexture(canvas);
     result.colorSpace = THREE.SRGBColorSpace;
-    result.anisotropy = 4;
+    result.generateMipmaps = false;
+    result.minFilter = THREE.LinearFilter;
     result.needsUpdate = true;
     return result;
   }, [narration.text, narration.detail, narration.tone, color, flipped]);

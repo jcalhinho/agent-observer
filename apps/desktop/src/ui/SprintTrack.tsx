@@ -3,7 +3,8 @@ import type { AgentPulse } from "./agentPulse";
 import { statusInfo } from "./AgentCard";
 import { t } from "./i18n";
 import { deriveRaceState, isTurnComplete } from "./race";
-import type { RaceLane } from "./SprintTrack3D";
+import type { RaceLane, RaceQuality } from "./SprintTrack3D";
+import { oneOf, usePreference } from "./preferences";
 import { useAgents } from "./providers";
 import { ProviderMark } from "./ProviderBadges";
 import type { SessionEvent } from "./types";
@@ -15,6 +16,7 @@ const SprintTrack3D = lazy(() => import("./SprintTrack3D"));
 const BUBBLE_MAX_AGE_MS = 3 * 60_000;
 
 export type TrackMode = "3d" | "2d";
+export const isRaceQuality = oneOf<RaceQuality>("light", "auto", "smooth");
 
 /**
  * The race: each agent is a runner that moves forward when it acts, trips on a failed tool and
@@ -25,6 +27,7 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo, mode }: { ev
   // The race advances with elapsed time, so only this panel ticks every second.
   const now = useNow(1000);
   const reducedMotion = usePrefersReducedMotion();
+  const [quality] = usePreference<RaceQuality>("race-quality", "auto", isRaceQuality);
   const agents = useAgents();
   const lanes = agents.map((provider) => {
     const state = deriveRaceState(provider.eventKey, events, now);
@@ -37,7 +40,7 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo, mode }: { ev
 
   return mode === "3d"
     ? <div className="race-stage"><Suspense fallback={<div className="race-loading">{t("Chargement du stade…", "Loading the stadium…")}</div>}>
-        <SprintTrack3D reducedMotion={reducedMotion} lanes={lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse }) => ({ id: provider.id, name: provider.name, model: pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? null, color: provider.color, status: state.status, progress: state.progress, cue, cueKey: isLiveEvent && state.latest ? state.latest.event_id : null, bubble, mood: pulse?.status ?? "never", onSelect: pulse?.session && onGoTo ? () => onGoTo(pulse) : undefined }))} />
+        <SprintTrack3D reducedMotion={reducedMotion} quality={quality} lanes={lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse }) => ({ id: provider.id, name: provider.name, model: pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? null, color: provider.color, status: state.status, progress: state.progress, cue, cueKey: isLiveEvent && state.latest ? state.latest.event_id : null, bubble, mood: pulse?.status ?? "never", onSelect: pulse?.session && onGoTo ? () => onGoTo(pulse) : undefined }))} />
       </Suspense></div>
     : <div className="race-lanes">
         {lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse, label }) => {

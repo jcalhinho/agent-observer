@@ -24,6 +24,14 @@ interface coherent; follow them when you add or change a screen.
 - Where a thing lives: *who and what now* → stage and dock; *detail of one agent, session or
   repository* → left; *interpretation over time* → right; *raw stream* → bottom; *setup* → top.
 
+## The race
+
+The race is the hero and follows the same language: **no cube, no sharp edge**. Build with
+capsules, spheres, arcs, rounded rectangles and tori; shade with `meshLambertMaterial` (no
+shadow maps; round blob shadows under characters). Keep it cheap: instance anything repeated,
+share geometry, avoid mipmaps on label textures, and leave the pixel budget and frame cap to the
+`Governor` in `SprintTrack3D.tsx` (quality levels *light*, *auto*, *smooth*).
+
 ## Principles
 
 1. **One screen, one answer.** The stage and the dock answer "who needs me" without opening

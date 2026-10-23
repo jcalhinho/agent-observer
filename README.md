@@ -43,7 +43,8 @@ makes it hop, a failed tool makes it fall and get back up, the end of a turn sen
 finish line, an agent that waits for you raises a hand, and one that goes round in circles
 runs in circles. A speech bubble narrates what it is doing. Distance is an activity
 indicator, never a completion percentage. A 2D version is available for machines without
-WebGL, and the stage respects the system's *reduced motion* setting.
+WebGL, the stage respects the system's *reduced motion* setting, and **Settings › Display ›
+3D race quality** (*Light*, *Automatic*, *Smooth*) trades sharpness for speed on slower computers.
 
 <img src="docs/media/overview.png" alt="The stage: the 3D race, a bar with the agents that work and the ones that need you, and a dock with one chip per agent" width="900">
 
