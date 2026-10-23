@@ -6,8 +6,8 @@ import { readPreference, writePreference } from "./preferences";
  * opens a drawer. The state is plain data so it can be tested and remembered between launches.
  */
 
-export type Edge = "left" | "right" | "top" | "bottom";
-export const EDGES: Edge[] = ["left", "right", "top", "bottom"];
+export type Edge = "left" | "right" | "top";
+export const EDGES: Edge[] = ["left", "right", "top"];
 
 export type DrawerState = { tab: string | null; size: number; pinned: boolean };
 export type ShellState = { drawers: Record<Edge, DrawerState>; /** Open drawers, the one opened last on top. */ order: Edge[] };
@@ -15,8 +15,7 @@ export type ShellState = { drawers: Record<Edge, DrawerState>; /** Open drawers,
 export const SIZES: Record<Edge, { initial: number; min: number }> = {
   left: { initial: 460, min: 320 },
   right: { initial: 520, min: 360 },
-  top: { initial: 430, min: 220 },
-  bottom: { initial: 300, min: 160 }
+  top: { initial: 430, min: 220 }
 };
 
 export type ShellAction =
@@ -77,7 +76,8 @@ export function useShell() {
   const [state, dispatch] = useReducer(shellReducer, undefined, () => {
     const stored = readPreference<ShellState | null>("shell", null, (value): value is ShellState | null => value === null || isShell(value));
     if (!stored) return initialShell();
-    return shellReducer(stored, { type: "closeLoose" });
+    // An older layout may remember an edge that no longer exists.
+    return shellReducer({ ...stored, order: stored.order.filter((edge) => EDGES.includes(edge)) }, { type: "closeLoose" });
   });
   useEffect(() => { writePreference("shell", state); }, [state]);
   return [state, dispatch] as const;

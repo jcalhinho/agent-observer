@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import {
-  RANGES, bucketSeries, rangeLabel, eventsInRange, formatCompact, formatDuration, modelsUsed, timeAxis, toolCallsByAgent,
+  bucketSeries, isDayRange, rangeLabel, eventsInRange, formatCompact, formatDuration, modelsUsed, timeAxis, toolCallsByAgent,
   tokensByAgent, topFiles, topTools, totalTokens, turnDurations, type AnalyticsRange
 } from "./analytics";
 import { BarList, LineChart, type BarRow } from "./charts";
@@ -22,10 +22,9 @@ const nameOf = (key: string) => providerFor(key)?.name ?? key;
 const colorOf = (key: string) => providerFor(key)?.color ?? SINGLE_SERIES;
 const shortPath = (path: string) => path.replaceAll("\\", "/").split("/").filter(Boolean).slice(-2).join("/");
 
-export function SessionAnalytics({ events, range, onRange, dataset, repositoryOf }: {
+export function SessionAnalytics({ events, range, dataset, repositoryOf }: {
   events: SessionEvent[];
   range: AnalyticsRange;
-  onRange: (range: AnalyticsRange) => void;
   /** How complete `events` is for the window. */
   dataset: AnalyticsDataset;
   /** Set when a multi-repository workspace is shown unfiltered. */
@@ -102,7 +101,7 @@ export function SessionAnalytics({ events, range, onRange, dataset, repositoryOf
     data.failures ? t(`${data.failures} échec${data.failures > 1 ? "s" : ""}`, `${data.failures} failure${data.failures === 1 ? "" : "s"}`) : null,
     data.tokens ? `${formatCompact(data.tokens)} tokens` : null
   ].filter(Boolean).join(" · ");
-  const empty = range === "all" ? t("Aucun événement pour l’instant.", "No events yet.") : t(`Rien sur ${rangeLabel(range)} — essaie « Tout ».`, `Nothing in the last ${rangeLabel(range)} — try “All”.`);
+  const empty = range === "all" ? t("Aucun événement pour l’instant.", "No events yet.") : isDayRange(range) ? t(`Aucune activité le ${rangeLabel(range)}.`, `No activity on ${rangeLabel(range)}.`) : t(`Rien sur ${rangeLabel(range)} — essaie « Tout ».`, `Nothing in the last ${rangeLabel(range)} — try “All”.`);
 
   const scope = dataset.truncated
     ? { tone: "warn", text: t(`Calculé sur les ${formatCompact(dataset.events.length)} événements les plus récents, sur ${formatCompact(dataset.total)} enregistrés pour cette période : choisis une période plus courte pour des totaux complets.`, `Computed on the ${formatCompact(dataset.events.length)} most recent events out of ${formatCompact(dataset.total)} stored for this period: pick a shorter period for complete totals.`) }
@@ -114,9 +113,6 @@ export function SessionAnalytics({ events, range, onRange, dataset, repositoryOf
     <header className="section-header level-2">
       <h2 id="analytics-title">{t("Analyse", "Analytics")}<InfoTip label={t("Comment lire l’analyse ?", "How to read the analytics?")}>{t("Chaque graphique répond à une question sur la période choisie. Survole une courbe ou une barre pour voir les valeurs exactes. Les couleurs identifient toujours le même agent ; le rouge hachuré signale des échecs.", "Each chart answers one question about the chosen period. Hover a line or a bar to see exact values. Colours always identify the same agent; hatched red marks failures.")}</InfoTip></h2>
       <p className="section-desc" title={`${summary} ${scope.text}`}>{summary || t("Aucune activité sur cette période.", "No activity in this period.")}{scope.tone === "warn" && <span className="data-scope tone-warn"> · {scope.text}</span>}</p>
-      <div className="section-header-actions">
-        <div className="segmented" role="group" aria-label={t("Période analysée", "Analysed period")}>{RANGES.map((key) => <button key={key} aria-pressed={key === range} onClick={() => onRange(key)}>{rangeLabel(key)}</button>)}</div>
-      </div>
     </header>
     <div className="chart-block">
       <div className="chart-grid two">

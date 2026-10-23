@@ -4,14 +4,13 @@ Images used by the READMEs. Keep file names stable: the READMEs link to them.
 
 | File | What it shows | Used in |
 | --- | --- | --- |
-| `deck.png` | The whole interface: race, dock and the Story drawer open on the right (1600 × 960). | README hero |
-| `overview.png` | The stage alone: race, bar and dock, no drawer. | Features › The stage |
+| `deck.png` | The whole interface with the Story drawer open on the right (1600 × 960). | README hero |
+| `overview.png` | The window with no drawer: race and dock, charts and history. | Features › The window |
+| `day.png` | A past day chosen in the period bar. | Features › Charts and history |
 | `agents.png` | The Agents drawer on the left. | Features › Drawers |
+| `ask.png` | The Ask drawer. | Features › Ask |
 | `story.png` | The Story drawer. | Features › The daily story |
-| `charts.png` | The Charts drawer. | Features › Charts |
-| `sessions.png` | The Sessions drawer: summary and timeline. | Features › Sessions |
-| `workspace.png` | The Repositories drawer. | Features › Repositories |
-| `feed.png` | The Live feed drawer at the bottom. | Docs |
+| `workspace.png` | The Repositories drawer. | Features › Workspaces |
 | `mini-mode.png` | Mini mode: a column of agent cards. | Features › Mini mode |
 | `connectors.png`, `settings.png` | The top drawer's Connectors and Settings tabs. | Docs |
 

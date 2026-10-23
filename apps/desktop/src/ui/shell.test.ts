@@ -21,12 +21,12 @@ describe("shell", () => {
 
   it("keeps pinned drawers when the rest is closed, and gives them room on the stage", () => {
     let state = shellReducer(initialShell(), { type: "open", edge: "right", tab: "story" });
-    state = shellReducer(state, { type: "open", edge: "bottom", tab: "feed" });
+    state = shellReducer(state, { type: "open", edge: "top", tab: "settings" });
     state = shellReducer(state, { type: "pin", edge: "right" });
-    expect(reserved(state)).toEqual({ left: 0, right: 520, top: 0, bottom: 0 });
+    expect(reserved(state)).toEqual({ left: 0, right: 520, top: 0 });
     state = shellReducer(state, { type: "closeLoose" });
     expect(state.drawers.right.tab).toBe("story");
-    expect(state.drawers.bottom.tab).toBeNull();
+    expect(state.drawers.top.tab).toBeNull();
     expect(state.order).toEqual(["right"]);
   });
 

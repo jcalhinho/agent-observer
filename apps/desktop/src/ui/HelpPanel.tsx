@@ -29,22 +29,26 @@ export function HelpContent() {
         </section>
         <section>
           <h3>{t("Se repérer", "Finding your way")}</h3>
-          <p>{t("Au centre, la course : chaque agent est un coureur. En bas, une pastille par agent (clique pour aller à lui). Sur chaque bord de la fenêtre, un rail d’onglets ouvre un tiroir :", "In the middle, the race: each agent is a runner. Along the bottom, one chip per agent (click to go to it). On each edge of the window a rail of tabs opens a drawer:")}</p>
+          <p>{t("En haut, une barre d’onglets. Au centre, la course (jamais plus de la moitié de la fenêtre) : chaque agent est un coureur, et une pastille par agent longe son bas (clique pour aller à lui). Dessous, à gauche les graphiques et à droite l’historique, pour la période choisie : les 15 dernières minutes, 1 h, 24 h, tout, ou un jour précis (flèches et calendrier).", "At the top, a bar of tabs. In the middle, the race (never more than half the window): each agent is a runner, with one chip per agent along its bottom (click to go to it). Below, charts on the left and history on the right, for the chosen period: the last 15 minutes, 1 h, 24 h, everything, or a specific day (arrows and calendar).")}</p>
+          <p>{t("Chaque onglet ouvre un tiroir qui glisse depuis un bord :", "Each tab opens a drawer that slides in from an edge:")}</p>
           <ul>
-            <li><b>{t("Gauche", "Left")}</b> : {t("agents en détail, sessions, dépôts.", "agents in detail, sessions, repositories.")}</li>
-            <li><b>{t("Droite", "Right")}</b> : {t("l’histoire des 24 h et les graphiques.", "the 24 h story and the charts.")}</li>
-            <li><b>{t("Bas", "Bottom")}</b> : {t("le fil d’activité et ce qui demande ton attention.", "the activity feed and what needs your attention.")}</li>
-            <li><b>{t("Haut", "Top")}</b> : {t("connecteurs, réglages et cette aide.", "connectors, settings and this help.")}</li>
+            <li><b>{t("Gauche", "Left")}</b> : {t("Agents (en détail) et Dépôts.", "Agents (in detail) and Repositories.")}</li>
+            <li><b>{t("Droite", "Right")}</b> : {t("Histoire (les 24 h racontées) et Demander (poser une question sur l’historique).", "Story (the 24 h told) and Ask (question the history).")}</li>
+            <li><b>{t("Haut", "Top")}</b> : {t("Connecteurs, Réglages et cette aide.", "Connectors, Settings and this help.")}</li>
           </ul>
-          <p>{t("Tire le bord intérieur d’un tiroir pour l’agrandir, épingle-le pour que la scène lui laisse la place, Échap referme les tiroirs libres.", "Drag a drawer’s inner edge to resize it, pin it so the stage makes room, Escape closes the loose drawers.")}</p>
+          <p>{t("Tire le bord intérieur d’un tiroir pour l’agrandir, épingle-le pour qu’il garde sa place, Échap referme les tiroirs libres. Tire la ligne sous la course pour la rétrécir.", "Drag a drawer’s inner edge to resize it, pin it so it keeps its place, Escape closes the loose drawers. Drag the line under the race to shrink it.")}</p>
         </section>
         <section>
           <h3>{t("Bien démarrer", "Getting started")}</h3>
           <ol className="steps">
             <li><b>{t("Connecteurs", "Connectors")}</b> : {t("vérifie que tes agents sont détectés ; branche Claude Code si tu l’utilises.", "check that your agents are detected; set up Claude Code if you use it.")}</li>
-            <li><b>Workspace</b> : {t("choisis le dossier qui contient tes projets (en haut à droite de la scène).", "pick the folder that holds your projects (top right of the stage).")}</li>
+            <li><b>Workspace</b> : {t("choisis le dossier qui contient tes projets (en haut à droite de la course).", "pick the folder that holds your projects (top right of the race).")}</li>
             <li>{t("Travaille normalement avec tes agents : la scène se remplit toute seule.", "Work with your agents as usual: the stage fills itself.")}</li>
           </ol>
+        </section>
+        <section>
+          <h3>{t("Demander à l’historique", "Asking the history")}</h3>
+          <p>{t("L’onglet Demander répond à tes questions (« pourquoi des erreurs ? », « qui a le plus travaillé ? ») avec l’agent que tu as déjà, à partir de faits calculés ici pour la période choisie. Les réponses citent les sessions ([s3]) : un clic les ouvre dans l’historique. Les pistes proposées sont à copier : l’app n’envoie jamais rien à ta place. Les messages d’erreur ne sont gardés que si tu l’actives dans Réglages.", "The Ask tab answers your questions (“why were there errors?”, “who worked the most?”) with the agent you already have, from facts computed here for the chosen period. Answers cite sessions ([s3]): a click opens them in the history. Suggested next steps are for you to copy: the app never sends anything for you. Error messages are only kept if you turn that on in Settings.")}</p>
         </section>
         <section>
           <h3>{t("L’histoire du jour", "The daily story")}</h3>

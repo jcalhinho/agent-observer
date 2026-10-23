@@ -13,7 +13,7 @@ Gemini CLI, OpenCode et Qwen Code sur ta machine, en direct.
 
 [Télécharger](#installation) · [Fonctionnalités](#fonctionnalités) · [Confidentialité](#confidentialité) · [Compiler](#compiler-depuis-les-sources) · [Contribuer](CONTRIBUTING.md) · [English](README.md)
 
-<img src="docs/media/deck.png" alt="Agent Observer : la course 3D au centre, un bandeau d’agents en bas et le tiroir Histoire ouvert à droite" width="900">
+<img src="docs/media/deck.png" alt="Agent Observer : une barre d’onglets, la course 3D avec son bandeau d’agents, graphiques et historique dessous, et le tiroir Histoire ouvert à droite" width="900">
 
 </div>
 
@@ -36,24 +36,27 @@ sauf si tu demandes l’histoire du jour : un agent que tu as déjà est alors l
 
 ## Fonctionnalités
 
-### La scène : la course
+### La fenêtre : la course, puis tes données
 
-Le centre de la fenêtre est un stade 3D low-poly où chaque agent est un coureur. Chaque
-événement le fait sauter, un outil en échec le fait tomber puis se relever, la fin d’un tour
-l’envoie franchir la ligne, un agent qui t’attend lève la main et celui qui tourne en rond
-court en rond. Une bulle raconte ce qu’il fait. La distance est un indicateur d’activité,
-jamais un pourcentage d’avancement. Une version 2D existe pour les machines sans WebGL, la
-scène respecte le réglage système de *réduction des animations*, et **Réglages › Affichage ›
-Qualité de la course 3D** (*Léger*, *Automatique*, *Fluide*) échange de la netteté contre de la
-vitesse sur les ordinateurs plus lents.
+La barre du haut réunit tous les **onglets**. Dessous, la **course** prend au plus **la moitié** de la fenêtre
+(tire la ligne sous elle pour la rétrécir) ; sous la course, l’**atelier** montre les **graphiques** et
+l’**historique** côte à côte, pour la période choisie.
 
-<img src="docs/media/overview.png" alt="La scène : la course 3D, une barre avec les agents au travail et ceux qui t’attendent, et un bandeau avec une pastille par agent" width="900">
+<img src="docs/media/overview.png" alt="Agent Observer : une barre d’onglets, la course 3D avec un bandeau d’agents, puis graphiques et historique côte à côte" width="900">
 
-### Le bandeau : qui a besoin de toi
+### La course et le bandeau : qui a besoin de toi
 
-Le long du bas de la scène, une pastille par agent, ceux qui demandent ton attention en
-premier : ce qu’il fait, dans quel dépôt, depuis quand. Clique sur une pastille pour **aller à
-l’agent** ; le petit « i » ouvre ses détails.
+La course est un stade 3D low-poly où chaque agent est un coureur. Chaque événement le fait sauter, un outil
+en échec le fait tomber puis se relever, la fin d’un tour l’envoie franchir la ligne, un agent qui t’attend
+lève la main, celui qui tourne en rond court en rond. Tout est arrondi, doux et léger à dessiner :
+**Réglages › Affichage › Qualité de la course 3D** (*Léger*, *Automatique*, *Fluide*) échange de la netteté
+contre de la vitesse sur les ordinateurs plus lents. Une version 2D existe pour les machines sans WebGL, et la
+course respecte le réglage système de *réduction des animations*. La distance est un indicateur d’activité,
+jamais un pourcentage d’avancement.
+
+Le long du bas de la course, une **pastille par agent**, ceux qui demandent ton attention en premier : ce qu’il
+fait, dans quel dépôt, depuis quand. Clique sur une pastille pour **aller à l’agent** ; le petit « i » ouvre ses
+détails.
 
 | Statut | Signification |
 | --- | --- |
@@ -65,80 +68,93 @@ l’agent** ; le petit « i » ouvre ses détails.
 | **Au repos** | Aucune activité récente. |
 | **Pas encore vu** | Rien reçu : vérifie son connecteur. |
 
-« Aller à l’agent » met au premier plan son terminal, son éditeur ou son application (Claude
-Desktop, l’app Codex, les extensions VS Code et Cursor, Terminal, iTerm2, Windows Terminal…).
-Si l’agent est arrêté, sa session est relancée là où elle avait été vue, avec ce qui est
-installé (sa commande, son application, ou un éditeur avec son extension).
+« Aller à l’agent » met au premier plan son terminal, son éditeur ou son application (Claude Desktop, l’app
+Codex, les extensions VS Code et Cursor, Terminal, iTerm2, Windows Terminal…). Si l’agent est arrêté, sa session
+est relancée là où elle avait été vue, avec ce qui est installé (sa commande, son application, ou un éditeur
+avec son extension).
+
+### Graphiques et historique, par période ou par jour
+
+La barre au-dessus choisit la période : les **15 dernières minutes**, **1 heure**, **24 heures**, **tout**, ou
+un **jour du calendrier** (flèches et sélecteur de date) — tout ce qui reste dans l’historique local, 30 jours
+par défaut.
+
+- **Graphiques** : activité et tokens dans le temps, qui agit le plus et qui échoue, outils, fichiers, durées
+  de tours, dépôts. Un coût **estimé** est affiché pour les modèles dont le prix public figure dans
+  [`pricing.ts`](apps/desktop/src/ui/pricing.ts) — toujours « ≈ $ au tarif API », jamais une facture (un
+  réglage par agent le renomme *valeur consommée* si tu es au forfait). Une valeur qu’un agent ne fournit pas
+  est affichée *non fournie*, jamais devinée.
+- **Historique** : les sessions de cette période ; choisis-en une pour son résumé (durée, tours, outils, échecs,
+  tokens, coût, commits faits pendant) et sa chronologie complète, que tu peux limiter à ce qui **mérite un
+  coup d’œil**.
+
+<img src="docs/media/day.png" alt="Un jour passé choisi dans la barre de période : les graphiques et l’historique montrent ce jour seulement" width="900">
 
 ### Les tiroirs : tout le reste
 
-Un rail d’onglets longe chaque bord de la fenêtre. Un onglet ouvre un **tiroir** qui glisse
-depuis ce bord, par-dessus la scène. Tire son bord intérieur pour l’agrandir, **épingle**-le
-pour que la scène lui laisse la place, `Échap` referme les tiroirs libres.
+Chaque onglet de la barre du haut ouvre un **tiroir** qui glisse depuis un bord — l’icône à côté du nom de
+l’onglet indique lequel. Tire son bord intérieur pour l’agrandir, **épingle**-le pour qu’il garde sa place,
+`Échap` referme les tiroirs libres.
 
 | Bord | Onglets |
 | --- | --- |
-| **Gauche** | **Agents** (chaque carte en entier) · **Sessions** (résumé et chronologie) · **Dépôts** (branche, synchro, agents par dépôt) |
-| **Droite** | **Histoire** (l’histoire et le rapport des 24 h) · **Graphiques** (activité, tokens, outils, fichiers, durées de tours) |
-| **Bas** | **Fil en direct** (tout ce que les agents ont fait) · **À surveiller** (échecs et attentes seulement) |
+| **Gauche** | **Agents** (chaque carte en entier) · **Dépôts** (branche, synchro, agents par dépôt) |
+| **Droite** | **Histoire** (l’histoire et le rapport des 24 h) · **Demander** (interroger l’historique) |
 | **Haut** | **Connecteurs** · **Réglages** · **Aide** |
 
 <img src="docs/media/agents.png" alt="Le tiroir Agents ouvert à gauche : une carte complète par agent" width="900">
 
+### Demander : interroger l’historique
+
+**Demander** répond à des questions comme *« pourquoi des erreurs cet après-midi ? »* ou *« quel agent a le
+plus travaillé ? »* avec un agent que tu **as déjà**, sur la période choisie sous la course. L’app sélectionne
+les faits (sessions, échecs, attentes, boucles, coûts) ; la réponse cite les sessions sur lesquelles elle
+s’appuie sous la forme `[s3]` — un clic les ouvre dans l’historique — et peut finir par des **pistes** à copier
+vers un agent. L’app n’envoie jamais rien à un agent à ta place.
+
+Les messages d’erreur ne sont **pas enregistrés** par défaut : le « pourquoi » ne peut donc qu’être déduit.
+**Réglages › Ce qui est enregistré › Garder les messages d’erreur** garde une version courte (300 caractères),
+sur une ligne et nettoyée (clés, jetons, mots de passe et dossier personnel retirés) des erreurs des outils en
+échec — Claude Code seulement pour l’instant.
+
+<img src="docs/media/ask.png" alt="Le tiroir Demander : questions d’exemple, une zone de saisie en bas, et l’historique sous la course" width="900">
+
 ### L’histoire du jour
 
-Un agent que tu **as déjà** — Claude Code, Codex, Gemini CLI, Qwen Code ou OpenCode, en
-commande, en extension d’éditeur ou (pour Claude) dans l’application — écrit l’histoire de tes
-dernières 24 h : à la demande, et chaque jour à l’heure de ton choix (**18 h** par défaut). Si
-l’app était fermée à ce moment-là, elle est écrite au lancement suivant.
-
-L’app calcule un résumé de faits (des chiffres et des noms de projets, de modèles, d’outils et
-de fichiers — jamais le texte de tes messages, tes commandes ni tes dossiers) ; l’agent est
-lancé **une seule fois, sans aucun outil, dans un dossier vide, sans garder de session**, avec
-la consigne de n’utiliser que ces faits. Rien n’est envoyé avant ton accord, une fois par
-agent, et tu peux lire le résumé exact avant. Aucune clé, rien à installer : c’est ton forfait
-qui est utilisé.
+Un agent que tu **as déjà** — Claude Code, Codex, Gemini CLI, Qwen Code ou OpenCode, en commande, en extension
+d’éditeur ou (pour Claude) dans l’application — écrit l’histoire de tes dernières 24 h : à la demande, et chaque
+jour à l’heure de ton choix (**18 h** par défaut). Si l’app était fermée à ce moment-là, elle est écrite au
+lancement suivant.
 
 <img src="docs/media/story.png" alt="Le tiroir Histoire : une courte histoire du jour avec chronologie, un paragraphe par agent et les points à regarder" width="900">
 
+**Comment Demander et l’histoire restent privés.** L’app calcule un résumé de faits (des chiffres et des noms de
+projets, de modèles, d’outils et de fichiers — jamais le texte de tes messages, tes commandes ni tes dossiers).
+L’agent est lancé **une fois par demande, sans aucun outil, dans un dossier vide, sans garder de session**, avec
+la consigne de n’utiliser que ces faits. Rien n’est envoyé avant ton accord, une fois par agent, et tu peux lire
+le résumé exact avant. Aucune clé, rien à installer : c’est ton forfait qui est utilisé.
+
 ### Notifications et alertes
 
-Une notification système quand un agent t’attend, demande une validation, devient silencieux,
-enchaîne les erreurs ou tourne en rond ; un clic dessus t’amène à l’agent. Les boucles et les
-erreurs affichent aussi une bannière rouge sur la scène. Chaque type se coupe dans Réglages.
+Une notification système quand un agent t’attend, demande une validation, devient silencieux, enchaîne les
+erreurs ou tourne en rond ; un clic dessus t’amène à l’agent. Les boucles et les erreurs affichent aussi une
+bannière rouge sur la course. Chaque type se coupe dans Réglages.
 
 ### Mode mini
 
-Réduit l’app à une colonne toujours visible dans un coin de l’écran, une carte compacte par
-agent, avec une épingle « rester au premier plan » facultative.
+Réduit l’app à une colonne toujours visible dans un coin de l’écran, une carte compacte par agent, avec une
+épingle « rester au premier plan » facultative.
 
 <img src="docs/media/mini-mode.png" alt="Mode mini : une colonne de cartes d’agents" width="320">
 
-### Graphiques, sessions et dépôts
+### Workspaces
 
-Cadence d’événements, appels d’outils et échecs, tokens lus / écrits / en cache par agent et par
-modèle, sur 15 minutes, 1 heure, 24 heures ou tout l’historique. Un coût **estimé** est affiché
-pour les modèles dont le prix public figure dans
-[`pricing.ts`](apps/desktop/src/ui/pricing.ts) (Claude, GPT/Codex, Gemini, Qwen…), toujours
-« ≈ $ au tarif API », jamais comme une facture ; un réglage par agent le renomme *valeur
-consommée* si tu es au forfait. Quand un agent ne fournit pas une valeur, l’app affiche *non
-fourni* au lieu de deviner.
-
-<img src="docs/media/charts.png" alt="Le tiroir Graphiques : courbes d’activité et de tokens, puis barres par agent, outil et fichier" width="900">
-
-Pointe l’app vers un dossier (tous les dépôts Git jusqu’à quatre niveaux sont trouvés) ou vers
-un fichier `.code-workspace` de VS Code. Les événements sont rattachés au dépôt où ils ont eu
-lieu — les worktrees comptent pour le clone dont ils dépendent — et un filtre dans la barre
-au-dessus de la scène limite tout à un dépôt. Les dépôts sont lus, jamais modifiés, et un
-changement Git n’est **jamais attribué à un agent** sans preuve.
+Pointe l’app vers un dossier (tous les dépôts Git jusqu’à quatre niveaux sont trouvés) ou vers un fichier
+`.code-workspace` de VS Code. Les événements sont rattachés au dépôt où ils ont eu lieu — les worktrees comptent
+pour le clone dont ils dépendent — et le filtre dans la barre au-dessus de la course limite tout à un dépôt. Les
+dépôts sont lus, jamais modifiés, et un changement Git n’est **jamais attribué à un agent** sans preuve.
 
 <img src="docs/media/workspace.png" alt="Le tiroir Dépôts : branche, synchro et activité des agents côte à côte" width="900">
-
-Chaque session observée a un résumé de fin (durée, tours, outils, échecs, tokens, coût estimé,
-commits faits dans la fenêtre de temps de la session) et sa chronologie complète. Remonte dans
-les anciens événements, exporte tout l’historique local en JSON, ou efface-le.
-
-<img src="docs/media/sessions.png" alt="Le tiroir Sessions : résumé et chronologie" width="900">
 
 ## Agents pris en charge
 

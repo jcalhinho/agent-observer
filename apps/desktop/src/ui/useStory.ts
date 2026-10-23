@@ -65,3 +65,14 @@ export async function writeStory(events: SessionEvent[], provider: string): Prom
 }
 
 export const cancelStory = () => invoke("cancel_story").catch(() => undefined);
+
+/** Asks the agent a question about the history; the answer is not kept anywhere. */
+export async function askAgent(provider: string, prompt: string): Promise<string> {
+  try {
+    const result = await invoke<{ text: string }>("generate_story", { provider, prompt });
+    return result.text;
+  } catch (error) {
+    const { code, detail } = (error ?? {}) as { code?: StoryErrorCode; detail?: string };
+    throw new StoryError(code ?? "failed", detail ?? String(error));
+  }
+}

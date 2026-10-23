@@ -8,6 +8,7 @@ mod ingest;
 mod no_window;
 mod opencode_sessions;
 mod qwen_sessions;
+mod redact;
 mod story;
 mod workspace;
 
@@ -46,6 +47,8 @@ struct CollectorState {
     status: Arc<Mutex<String>>,
     capture_prompts: Arc<AtomicBool>,
     capture_commands: Arc<AtomicBool>,
+    /// Keep a short, cleaned version of failed tools' error messages (off by default).
+    capture_errors: Arc<AtomicBool>,
     /// Claude Code process of each session, learnt from the connection of its first hook.
     agent_pids: Arc<Mutex<std::collections::HashMap<String, u32>>>,
     /// A story is being written (only one at a time) and a request to stop it.
@@ -261,6 +264,28 @@ fn cursor_setup(
         settings_fragment: serde_json::to_string_pretty(&fragment).unwrap_or_default(),
         capture_commands: state.capture_commands.load(Ordering::Relaxed),
     })
+}
+
+/// Whether short, cleaned error messages are kept (so "why did it fail?" can be answered).
+#[tauri::command]
+fn capture_errors(state: tauri::State<'_, CollectorState>) -> bool {
+    state.capture_errors.load(Ordering::Relaxed)
+}
+
+#[tauri::command]
+fn update_capture_errors(
+    state: tauri::State<'_, CollectorState>,
+    enabled: bool,
+) -> Result<(), String> {
+    let database = state.database.lock().map_err(|error| error.to_string())?;
+    database
+        .execute(
+            "INSERT INTO preferences(key, value) VALUES ('capture_errors', ?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [enabled as i64],
+        )
+        .map_err(|error| error.to_string())?;
+    state.capture_errors.store(enabled, Ordering::Relaxed);
+    Ok(())
 }
 
 #[tauri::command]
@@ -519,30 +544,33 @@ struct AnalyticsEvents {
 fn load_analytics_events(
     state: tauri::State<'_, CollectorState>,
     since: Option<String>,
+    until: Option<String>,
     limit: Option<usize>,
 ) -> Result<AnalyticsEvents, String> {
     let limit = limit.unwrap_or(50_000).clamp(1, 100_000);
     // Same RFC 3339 shape as the stored `occurred_at`, so text comparison orders correctly.
-    let since = since
-        .map(|value| {
-            chrono::DateTime::parse_from_rfc3339(&value)
-                .map(|time| time.with_timezone(&chrono::Utc).to_rfc3339())
-                .map_err(|error| error.to_string())
-        })
-        .transpose()?;
+    let normalize = |value: String| {
+        chrono::DateTime::parse_from_rfc3339(&value)
+            .map(|time| time.with_timezone(&chrono::Utc).to_rfc3339())
+            .map_err(|error| error.to_string())
+    };
+    let since = since.map(normalize).transpose()?;
+    let until = until.map(normalize).transpose()?;
     let database = state.database.lock().map_err(|error| error.to_string())?;
     let total: usize = database
         .query_row(
-            "SELECT count(*) FROM session_events WHERE ?1 IS NULL OR occurred_at >= ?1",
-            params![since],
+            "SELECT count(*) FROM session_events WHERE (?1 IS NULL OR occurred_at >= ?1) AND (?2 IS NULL OR occurred_at < ?2)",
+            params![since, until],
             |row| row.get::<_, i64>(0),
         )
         .map_err(|error| error.to_string())? as usize;
     let mut statement = database
-        .prepare("SELECT payload FROM session_events WHERE ?1 IS NULL OR occurred_at >= ?1 ORDER BY occurred_at DESC, event_id DESC LIMIT ?2")
+        .prepare("SELECT payload FROM session_events WHERE (?1 IS NULL OR occurred_at >= ?1) AND (?2 IS NULL OR occurred_at < ?2) ORDER BY occurred_at DESC, event_id DESC LIMIT ?3")
         .map_err(|error| error.to_string())?;
     let rows = statement
-        .query_map(params![since, limit as i64], |row| row.get::<_, String>(0))
+        .query_map(params![since, until, limit as i64], |row| {
+            row.get::<_, String>(0)
+        })
         .map_err(|error| error.to_string())?;
     let mut events = Vec::new();
     for row in rows {
@@ -923,6 +951,7 @@ async fn receive_claude_hook(
         &input,
         state.capture_prompts.load(Ordering::Relaxed),
         state.capture_commands.load(Ordering::Relaxed),
+        state.capture_errors.load(Ordering::Relaxed),
     ) else {
         return StatusCode::NO_CONTENT;
     };
@@ -1072,6 +1101,7 @@ fn normalize_claude_event(
     input: &Value,
     capture_prompts: bool,
     capture_commands: bool,
+    capture_errors: bool,
 ) -> Option<SessionEvent> {
     let event_name = input.get("hook_event_name")?.as_str()?;
     let session_id = input.get("session_id")?.as_str()?.to_owned();
@@ -1109,10 +1139,14 @@ fn normalize_claude_event(
             .and_then(Value::as_str)
             .map(str::to_owned);
     }
-    event.outcome = input
-        .get("error")
-        .and_then(Value::as_str)
-        .map(|_| "failed".to_owned());
+    event.outcome = input.get("error").and_then(Value::as_str).map(|message| {
+        // The message itself is kept only when the user asked for it, and always cleaned.
+        if capture_errors {
+            format!("error: {}", redact::redact_error(message))
+        } else {
+            "failed".to_owned()
+        }
+    });
     if event_name == "Notification" {
         // Claude's own system message ("Claude needs your permission to use Bash"), never user text.
         let message: String = input
@@ -1204,6 +1238,7 @@ fn main() {
             };
             let capture_prompts = preference("capture_prompts");
             let capture_commands = preference("capture_commands");
+            let capture_errors = preference("capture_errors");
             let state = CollectorState {
                 app: app.handle().clone(),
                 token,
@@ -1211,6 +1246,7 @@ fn main() {
                 status: Arc::new(Mutex::new("starting".into())),
                 capture_prompts: Arc::new(AtomicBool::new(capture_prompts)),
                 capture_commands: Arc::new(AtomicBool::new(capture_commands)),
+                capture_errors: Arc::new(AtomicBool::new(capture_errors)),
                 agent_pids: Arc::new(Mutex::new(std::collections::HashMap::new())),
                 story_busy: Arc::new(AtomicBool::new(false)),
                 story_cancel: Arc::new(AtomicBool::new(false)),
@@ -1319,6 +1355,8 @@ fn main() {
             create_custom_connector,
             delete_custom_connector,
             clear_session_history,
+            capture_errors,
+            update_capture_errors,
             story_agents,
             generate_story,
             cancel_story,
@@ -1436,7 +1474,7 @@ mod tests {
     #[test]
     fn claude_notification_hook_marks_attention_without_user_text() {
         let input = json!({ "hook_event_name": "Notification", "session_id": "s", "message": "Claude needs your permission to use Bash", "cwd": "/w" });
-        let event = normalize_claude_event(&input, false, false).unwrap();
+        let event = normalize_claude_event(&input, false, false, false).unwrap();
         assert_eq!(event.kind, EventKind::Checkpoint);
         assert_eq!(
             event.outcome.as_deref(),
@@ -1453,8 +1491,8 @@ mod tests {
             "cwd": "C:/work/demo",
             "prompt": "private prompt"
         });
-        let omitted = normalize_claude_event(&prompt, false, false).unwrap();
-        let captured = normalize_claude_event(&prompt, true, false).unwrap();
+        let omitted = normalize_claude_event(&prompt, false, false, false).unwrap();
+        let captured = normalize_claude_event(&prompt, true, false, false).unwrap();
         assert_eq!(omitted.kind, EventKind::UserMessage);
         assert_eq!(omitted.content, None);
         assert_eq!(captured.content.as_deref(), Some("private prompt"));
@@ -1465,8 +1503,8 @@ mod tests {
             "tool_name": "PowerShell",
             "tool_input": { "command": "Get-ChildItem" }
         });
-        let omitted = normalize_claude_event(&command, false, false).unwrap();
-        let captured = normalize_claude_event(&command, false, true).unwrap();
+        let omitted = normalize_claude_event(&command, false, false, false).unwrap();
+        let captured = normalize_claude_event(&command, false, true, false).unwrap();
         assert_eq!(omitted.kind, EventKind::ToolStarted);
         assert_eq!(omitted.command, None);
         assert_eq!(captured.command.as_deref(), Some("Get-ChildItem"));

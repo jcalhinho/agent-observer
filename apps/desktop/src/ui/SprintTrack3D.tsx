@@ -175,7 +175,8 @@ function CameraRig({ leaderX, reducedMotion }: { leaderX: number; reducedMotion:
     const aspect = size.width / Math.max(1, size.height);
     const tanHalf = Math.tan(THREE.MathUtils.degToRad(perspective.fov / 2));
     // Keep the whole 100 m (plus margins) in frame whatever the panel width.
-    const distance = Math.max(11, 13.2 / (tanHalf * aspect));
+    // Wide and short stages (the race takes at most half the window) need the height to fit too.
+    const distance = Math.max(11, 13.2 / (tanHalf * aspect), 9.2 / (2 * tanHalf));
     const sway = reducedMotion ? 0 : Math.sin(state.clock.elapsedTime * 0.15) * 0.3;
     const lookX = leaderX * 0.22 + sway;
     target.current.copy(CAMERA_DIRECTION).multiplyScalar(distance);

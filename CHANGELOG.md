@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-24
+
+### Added
+
+- **Ask.** A chat about the history: *"why were there errors?"*, *"which agent worked the most?"*. It
+  uses an agent you already have (same engine, same consent and same restrictions as the daily
+  story: no tools, empty folder, no session kept, nothing sent before you agree) on facts the app
+  selects for the chosen period. Answers cite sessions as `[s3]`, a click opens them in the history,
+  and they may end with suggested next steps to copy; the app never sends anything to an agent.
+- **Browse by day.** A period bar offers 15 min, 1 h, 24 h, All, or a calendar day (arrows and date
+  picker). It drives the charts, the history and Ask. A past day is read from the local database
+  (`load_analytics_events` takes an upper bound), the charts get a 24-hour axis.
+- **Keep error messages (opt-in).** A short, single-line, cleaned version (300 characters; keys,
+  tokens, passwords and your home folder removed) of the errors of failed tools, so Ask can explain
+  "why". Off by default, Claude Code only for now.
+
+### Changed
+
+- **New layout.** Every tab is in one bar at the top; each tab's drawer still slides in from an edge
+  (left: Agents, Repositories; right: Story, Ask; top: Connectors, Settings, Help) and the tab shows
+  which. The side and bottom rails are gone.
+- **The race takes at most half of the window** (a splitter shrinks it further). The other half is
+  the workbench: **charts and history side by side** for the chosen period, always visible. The
+  Sessions, Charts, Live feed and Needs a look tabs are replaced by it (the history has a "Needs a
+  look" filter).
+- The agent dock is a single row; the alert banner sits at the top left of the race.
+- The camera frames a wide, short race.
+
+### Removed
+
+- The bottom drawers and the left, right and bottom rails.
+- "Load older" in the sessions list (the history now follows the chosen period).
+
+### Security
+
+- Ask uses the same restricted agent run as the story; the facts sent never contain message text,
+  commands or folders, and error messages only if you turned that option on.
+
 ## [0.4.0] - 2026-10-23
 
 ### Changed

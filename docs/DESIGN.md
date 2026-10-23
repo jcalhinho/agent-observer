@@ -8,21 +8,29 @@ interface coherent; follow them when you add or change a screen.
 ## Structure
 
 ```
-            ┌───────────────── top rail: Connectors · Settings · Help ─────────────────┐
-  left rail │  Stage                                                                    │ right rail
-  Agents    │  ┌ bar: brand · working / need you · workspace · filter · 3D/2D · mini ┐  │ Story
-  Sessions  │  │                       the race                                      │  │ Charts
-  Repos     │  └ dock: one chip per agent ───────────────────────────────────────────┘  │
-            └───────────── bottom rail: Live feed · Needs a look ──────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────┐
+│ top bar:  AGENTS · REPOSITORIES │ STORY · ASK │ CONNECTORS · SETTINGS · HELP       │
+├───────────────────────────────────────────────────────────────────────────────────┤
+│ stage: bar (brand · working / need you · workspace · filter · 3D/2D · mini)        │
+│        the race                                                  (at most 50 %)    │
+│        dock: one chip per agent                                                    │
+├─────────────────────────────── splitter ──────────────────────────────────────────┤
+│ workbench: period bar (15 min · 1 h · 24 h · All │ ◀ date ▶)                       │
+│            charts                         │ history (sessions of the period)       │
+└───────────────────────────────────────────────────────────────────────────────────┘
+   drawers slide over all of it: left (Agents, Repositories), right (Story, Ask), top (Connectors…)
 ```
 
-- **The stage** (`Stage.tsx`) is always there. Nothing covers it unless you open a drawer.
-- **Four rails**, one per edge (`Deck.tsx`). A tab opens a **drawer** that slides in from that edge.
-  Drawers float over the stage; **pin** one and the stage makes room for it. `Esc` closes loose
-  drawers; the inner edge resizes (arrow keys too). State lives in `shell.ts` and is remembered.
-- Content of a drawer is a **panel** (`.panel`): one column, a sticky bar or section title on top.
-- Where a thing lives: *who and what now* → stage and dock; *detail of one agent, session or
-  repository* → left; *interpretation over time* → right; *raw stream* → bottom; *setup* → top.
+- **One bar of tabs** (`Deck.tsx`), grouped by edge. A tab opens a **drawer** that slides in from the edge
+  its small icon shows. Drawers float; **pin** one and the page makes room. `Esc` closes loose drawers; the
+  inner edge resizes (arrow keys too). State lives in `shell.ts` and is remembered.
+- **The stage** (`Stage.tsx`) is the race, with a bar and a dock. It never takes more than half of the
+  window (`STAGE_MAX`); a splitter lets the user shrink it.
+- **The workbench** (`Workbench.tsx`) is the other half: charts and history, side by side, for the period
+  in the `PeriodBar`. Below 900 px of width a switch shows one at a time.
+- A drawer's content is a **panel** (`.panel`): one column, a sticky bar or section title on top.
+- Where a thing lives: *who and what now* → stage and dock; *what happened over a period* → workbench;
+  *detail of one agent or repository, narrative, questions* → drawers; *setup* → top drawers.
 
 ## The race
 
@@ -42,16 +50,20 @@ share geometry, avoid mipmaps on label textures, and leave the pixel budget and 
    chip and card edge and says *Reply*, *Going in circles*… Alerts are the only red banners.
 4. **Never invent a value.** A number the agent does not report is "—" or "not reported";
    estimates say so ("≈", "estimated"). The story is written from facts only.
-5. **Both languages, always.** Every string is `t("français", "English")` where it is used
+5. **A period is chosen once.** The period bar drives the charts, the history and Ask, so they always
+   describe the same thing; a day can be stepped through, and a past day is read from the database, not
+   from live events.
+6. **Both languages, always.** Every string is `t("français", "English")` where it is used
    (`src/ui/i18n.ts`). The prompt sent for the story is English, and asks for the UI language.
-6. **Nothing leaves the machine unasked.** The story is the only feature that can; it is opt-in
-   per agent and shows exactly what is sent.
+7. **Nothing leaves the machine unasked.** The story and Ask are the only features that can; they are
+   opt-in per agent, show exactly what is sent, and never act on an agent for the user.
 
 ## Layout rules
 
-- **No scrolling navigation.** Rails, tabs, bars and selects wrap or truncate; they never show a
-  scrollbar. A tab strip that does not fit wraps onto another line.
-- **Sticky headers inside scrolling areas.** The drawer scrolls under its tab strip; inside it a
+- **No scrolling navigation.** The top bar, tab strips, bars and selects wrap or truncate; they never show
+  a scrollbar.
+- **Sticky headers inside scrolling areas.** A drawer scrolls under its tab strip and each workbench
+  column scrolls under the period bar; inside them a
   panel keeps its bar (`.panel-bar`) or title (`.panel > .section-header:first-child`) in view,
   tables keep `thead`, feeds keep `.event-head`, chart cards keep their `h3`.
 - **Container queries over media queries** for anything inside the stage or a drawer: they are
@@ -76,9 +88,8 @@ At the top of `src/ui/styles.css`.
 
 ## Components
 
-- **Rail tab** (`.rail-tab`): icon + small-caps label (vertical on the side rails) + optional
-  badge (a count; amber = needs you, red = needs a look). Active: white label and a 2 px bar toward
-  the stage.
+- **Top tab** (`.topbar-tab`): icon + small-caps label + optional badge (a count; amber = needs you,
+  red = needs a look) + the edge its drawer comes from. Active: white label and a 2 px underline.
 - **Drawer** (`.drawer`): tab strip (with pin and close) above a scrolling body. Slides 28 px and
   fades; honours `prefers-reduced-motion`.
 - **Dock chip** (`.dock-chip`): agent colour on the left edge, name and state, one line of what it

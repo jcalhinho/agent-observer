@@ -27,12 +27,44 @@ export type StoryFacts = {
 const MAX_SESSIONS = 12;
 const HOUR = 60 * 60_000;
 
-const folderName = (path: string | null | undefined) => path?.replaceAll("\\", "/").split("/").filter(Boolean).at(-1) ?? null;
+export const folderName = (path: string | null | undefined) => path?.replaceAll("\\", "/").split("/").filter(Boolean).at(-1) ?? null;
 /** The last two parts of a path: enough to recognise a file without sending the user's folders. */
-const shortPath = (path: string) => path.replaceAll("\\", "/").split("/").filter(Boolean).slice(-2).join("/");
-const clock = (time: number, locale: string) => new Date(time).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
-const isFailure = (event: SessionEvent) => event.kind === "tool_failed" || (event.kind === "checkpoint" && /error|fail|cancel/i.test(event.outcome ?? ""));
-const isWait = (event: SessionEvent) => event.kind === "checkpoint" && (event.outcome ?? "").startsWith("attention:");
+export const shortPath = (path: string) => path.replaceAll("\\", "/").split("/").filter(Boolean).slice(-2).join("/");
+export const clock = (time: number, locale: string) => new Date(time).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
+export const isFailure = (event: SessionEvent) => event.kind === "tool_failed" || (event.kind === "checkpoint" && /error|fail|cancel/i.test(event.outcome ?? ""));
+export const isWait = (event: SessionEvent) => event.kind === "checkpoint" && (event.outcome ?? "").startsWith("attention:");
+
+/** What happened in one session, in numbers and short facts (no text from the user or the agent). */
+export function sessionFact(own: SessionEvent[], locale: string) {
+  const summary = summarizeSession(own);
+  const first = Date.parse(own[0].occurred_at);
+  const last = Date.parse(own.at(-1)!.occurred_at);
+  const loop = detectLoop(own);
+  const notable: string[] = [];
+  if (loop) notable.push(`went in circles: ${loop.evidence}`);
+  const waits = own.filter(isWait).length;
+  if (waits) notable.push(`waited for the user ${waits} time${waits > 1 ? "s" : ""}`);
+  if (isFailure(own.at(-1)!)) notable.push("its last action failed");
+  return {
+    agent: agentName(own[0].provider),
+    project: folderName(own.find((event) => event.project_path)?.project_path),
+    start: clock(first, locale),
+    end: clock(last, locale),
+    minutes: Math.max(1, Math.round((last - first) / 60_000)),
+    turns: summary?.turns.count ?? 0,
+    toolCalls: own.filter((event) => event.kind === "tool_started").length,
+    failures: own.filter(isFailure).length,
+    filesChanged: summary?.files.filter((file) => file.changed).length ?? 0,
+    models: summary?.models.map((model) => model.name) ?? [],
+    tokensRead: summary?.tokens ? (summary.tokens.input ?? 0) + (summary.tokens.cacheRead ?? 0) + (summary.tokens.cacheWrite ?? 0) : null,
+    tokensWritten: summary?.tokens?.output ?? null,
+    notable,
+    events: own.length,
+    costUsd: summary?.cost ? Math.round(summary.cost.value * 100) / 100 : null,
+    costKnown: Boolean(summary?.cost && summary.cost.unpricedEvents === 0),
+    hasTokens: Boolean(summary?.tokens)
+  };
+}
 
 /** Everything worth telling about the last 24 hours, in numbers and short facts. */
 export function buildStoryFacts(allEvents: SessionEvent[], now: number, language: Lang): StoryFacts {
@@ -48,33 +80,10 @@ export function buildStoryFacts(allEvents: SessionEvent[], now: number, language
 
   let cost: number | null = 0;
   const sessions = [...bySession.values()].map((own) => {
-    const summary = summarizeSession(own);
-    const first = Date.parse(own[0].occurred_at);
-    const last = Date.parse(own.at(-1)!.occurred_at);
-    if (summary?.cost && summary.cost.unpricedEvents === 0) cost = (cost ?? 0) + summary.cost.value;
-    else if (summary?.tokens) cost = null;
-    const loop = detectLoop(own);
-    const notable: string[] = [];
-    if (loop) notable.push(`went in circles: ${loop.evidence}`);
-    const waits = own.filter(isWait).length;
-    if (waits) notable.push(`waited for the user ${waits} time${waits > 1 ? "s" : ""}`);
-    if (isFailure(own.at(-1)!)) notable.push("its last action failed");
-    return {
-      agent: agentName(own[0].provider),
-      project: folderName(own.find((event) => event.project_path)?.project_path),
-      start: clock(first, locale),
-      end: clock(last, locale),
-      minutes: Math.max(1, Math.round((last - first) / 60_000)),
-      turns: summary?.turns.count ?? 0,
-      toolCalls: own.filter((event) => event.kind === "tool_started").length,
-      failures: own.filter(isFailure).length,
-      filesChanged: summary?.files.filter((file) => file.changed).length ?? 0,
-      models: summary?.models.map((model) => model.name) ?? [],
-      tokensRead: summary?.tokens ? (summary.tokens.input ?? 0) + (summary.tokens.cacheRead ?? 0) + (summary.tokens.cacheWrite ?? 0) : null,
-      tokensWritten: summary?.tokens?.output ?? null,
-      notable,
-      events: own.length
-    };
+    const fact = sessionFact(own, locale);
+    if (fact.costKnown) cost = (cost ?? 0) + (fact.costUsd ?? 0);
+    else if (fact.hasTokens) cost = null;
+    return fact;
   }).sort((a, b) => b.events - a.events);
 
   const hourly = Array.from({ length: 24 }, (_, index) => {
@@ -112,7 +121,7 @@ export function buildStoryFacts(allEvents: SessionEvent[], now: number, language
     },
     busiestHours: busiest.map((hour) => `${clock(hour.start, locale)} (${hour.count} events)`),
     agents,
-    sessions: sessions.slice(0, MAX_SESSIONS).map(({ events: _events, ...session }) => session),
+    sessions: sessions.slice(0, MAX_SESSIONS).map(({ events: _events, costKnown: _known, costUsd: _cost, hasTokens: _tokens, ...session }) => session),
     moreSessions: Math.max(0, sessions.length - MAX_SESSIONS),
     failingTools: [...failing.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([tool, failures]) => ({ tool, failures })),
     files: [...files.entries()].sort((a, b) => b[1].edits * 3 + b[1].reads - (a[1].edits * 3 + a[1].reads)).slice(0, 8).map(([file, counts]) => ({ file, ...counts })),
@@ -172,17 +181,17 @@ export function storyDue(lastServedSlot: number, now: number, time: string): num
 // HTML, so a story can never inject markup into the page.
 // ---------------------------------------------------------------------------------------------
 
-export type Inline = { text: string; bold?: boolean; code?: boolean };
+export type Inline = { text: string; bold?: boolean; code?: boolean; /** A reference to a session of the facts: `[s3]`. */ ref?: string };
 export type Block = { type: "h1" | "h2" | "h3" | "p"; inline: Inline[] } | { type: "ul"; items: Inline[][] };
 
 export function parseInline(text: string): Inline[] {
   const parts: Inline[] = [];
-  const pattern = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\[s\d{1,2}\])/g;
   let last = 0;
   for (const match of text.matchAll(pattern)) {
     if (match.index! > last) parts.push({ text: text.slice(last, match.index) });
     const token = match[0];
-    parts.push(token.startsWith("**") ? { text: token.slice(2, -2), bold: true } : { text: token.slice(1, -1), code: true });
+    parts.push(token.startsWith("**") ? { text: token.slice(2, -2), bold: true } : token.startsWith("[s") ? { text: token.slice(1, -1), ref: token.slice(1, -1) } : { text: token.slice(1, -1), code: true });
     last = match.index! + token.length;
   }
   if (last < text.length) parts.push({ text: text.slice(last) });

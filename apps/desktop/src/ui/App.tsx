@@ -1,21 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Activity, AlertTriangle, BarChart3, Bot, CircleHelp, Feather, GitBranch, History, Plug, Radio, Settings2 } from "lucide-react";
+import { Bot, CircleHelp, Feather, GitBranch, MessageCircleQuestion, Plug, Settings2 } from "lucide-react";
 import type { AgentPulse } from "./agentPulse";
-import type { AnalyticsRange } from "./analytics";
+import { eventsInRange, isDayRange, isDayText, timeAxis, type AnalyticsRange } from "./analytics";
+import { AskPanel } from "./AskPanel";
 import { AgentsPanel } from "./AgentsPanel";
 import { ConnectorSetupDialog, type ConnectorSetup } from "./ConnectorDialog";
 import { ConnectorsPage } from "./ConnectorsPage";
 import { DailyReportPage } from "./DailyReportPage";
-import { Deck, type TabDef } from "./Deck";
-import { FeedPanel } from "./FeedPanel";
+import { Deck, STAGE_MAX, type TabDef } from "./Deck";
+import { Workbench } from "./Workbench";
 import { FocusToast } from "./FocusToast";
 import { HelpContent } from "./HelpPanel";
 import { t, useLang } from "./i18n";
 import { MiniView } from "./MiniView";
 import { enterMiniWindow, leaveMiniWindow, setMiniPinned } from "./miniWindow";
 import { NotificationCenter } from "./NotificationCenter";
-import { isBoolean, isString, oneOf, usePreference } from "./preferences";
+import { isBoolean, isNumber, isString, oneOf, usePreference } from "./preferences";
 import { agentName, setCustomProviders, useAgents, type CustomConnectorInfo } from "./providers";
 import { RepositoriesPage } from "./RepositoriesPage";
 import { SessionAnalytics } from "./SessionAnalytics";
@@ -36,7 +37,8 @@ import { useWorkspace } from "./useWorkspace";
 import { filterByRepository, pathKey, type RepositoryFilter } from "./workspace";
 import { RepositoryFilterSelect, WorkspaceSwitcher, useRepositoryActivity } from "./WorkspaceViews";
 
-const isRange = oneOf("15m", "1h", "24h", "all");
+const isRelative = oneOf("15m", "1h", "24h", "all");
+const isRange = (value: unknown): value is AnalyticsRange => isRelative(value) || isDayText(value);
 
 /** The number of agents that need you, on the tab that opens them. Ticks on its own. */
 function AttentionBadge({ events }: { events: Parameters<typeof useAgentPulses>[0] }) {
@@ -52,6 +54,8 @@ export function App() {
   const observer = useObserver();
   const [shell, dispatch] = useShell();
   const [range, setRange] = usePreference<AnalyticsRange>("analytics-range", "24h", isRange);
+  const [split, setSplit] = usePreference("stage-split", 0.46, isNumber);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [storedFilter, setRepositoryFilter] = usePreference<RepositoryFilter>("repository-filter", "all", isString);
   const [miniMode, setMiniMode] = usePreference("mini-mode", false, isBoolean);
   const [miniPinned, setMiniPinnedPreference] = usePreference("mini-pinned", true, isBoolean);
@@ -74,7 +78,6 @@ export function App() {
   const { activity: repositoryActivity, outside } = useRepositoryActivity(chartWindow.events, workspace);
   const sessionCount = useMemo(() => new Set(observer.events.map(sessionKey)).size, [observer.events]);
   const claudeHooks = useMemo(() => observer.events.some((event) => event.provider === "claude_code" && event.kind !== "model_usage" && event.kind !== "session_started"), [observer.events]);
-  const attentionEvents = useMemo(() => scope.agentEvents.filter((event) => event.kind === "tool_failed" || (event.kind === "checkpoint" && (/error|fail|cancel/i.test(event.outcome ?? "") || (event.outcome ?? "").startsWith("attention:")))), [scope.agentEvents]);
 
   const focus = useFocusAgent();
   const goToAgent = (pulse: AgentPulse) => {
@@ -109,12 +112,9 @@ export function App() {
 
   const tabs: TabDef[] = [
     { id: "agents", edge: "left", label: t("Agents", "Agents"), icon: Bot, badge: <AttentionBadge events={scope.agentEvents} />, tone: "warn", content: <AgentsPanel agentEvents={scope.agentEvents} repositoryName={repositoryName} onGoTo={goToAgent} focusKey={inspected} /> },
-    { id: "sessions", edge: "left", label: "Sessions", icon: History, badge: sessionCount || null, content: <SessionsTab observer={observer} repositoryOf={workspace.repositoryOf} /> },
     { id: "repositories", edge: "left", label: t("Dépôts", "Repositories"), icon: GitBranch, badge: workspace.repositories.length || null, content: <RepositoriesPage model={workspace} activity={repositoryActivity} events={chartWindow.events} onFilter={(next) => setRepositoryFilter(next)} /> },
     { id: "story", edge: "right", label: t("Histoire", "Story"), icon: Feather, content: <><StoryPanel events={agentWindow.events} /><DailyReportPage events={agentWindow.events} hasMore={observer.hasMore} /></> },
-    { id: "charts", edge: "right", label: t("Graphiques", "Charts"), icon: BarChart3, content: <SessionAnalytics events={scope.chartEvents} range={range} onRange={setRange} dataset={chartWindow} repositoryOf={workspace.repositories.length && filter === "all" ? workspace.repositoryOf : undefined} /> },
-    { id: "feed", edge: "bottom", label: t("Fil en direct", "Live feed"), icon: Radio, tone: "live", content: <FeedPanel events={scope.events} only="all" /> },
-    { id: "attention", edge: "bottom", label: t("À surveiller", "Needs a look"), icon: AlertTriangle, badge: attentionEvents.length || null, tone: attentionEvents.length ? "bad" : undefined, content: <FeedPanel events={scope.events} only="attention" /> },
+    { id: "ask", edge: "right", label: t("Demander", "Ask"), icon: MessageCircleQuestion, content: <AskPanel events={scope.chartEvents} range={range} onOpenSession={(key) => { setSelectedSession(key); dispatch({ type: "close", edge: "right" }); }} /> },
     { id: "connectors", edge: "top", label: t("Connecteurs", "Connectors"), icon: Plug, badge: claudeHooks ? null : "!", tone: claudeHooks ? undefined : "warn", content: <ConnectorsTab events={agentWindow.events} onConfigure={setConnectorSetup} /> },
     { id: "settings", edge: "top", label: t("Réglages", "Settings"), icon: Settings2, content: <SettingsPage onExport={observer.exportHistory} onClear={observer.clearHistory} onMini={goMini} /> },
     { id: "help", edge: "top", label: t("Aide", "Help"), icon: CircleHelp, content: <HelpContent /> }
@@ -134,18 +134,27 @@ export function App() {
     alerts={watcher}
   />;
 
+  const workbench = <Workbench
+    range={range}
+    onRange={setRange}
+    charts={<SessionAnalytics events={scope.chartEvents} range={range} dataset={chartWindow} repositoryOf={workspace.repositories.length && filter === "all" ? workspace.repositoryOf : undefined} />}
+    history={<HistoryTab events={scope.chartEvents} range={range} repositoryOf={workspace.repositoryOf} selected={selectedSession} onSelect={setSelectedSession} />}
+  />;
+
   return <>
-    <Deck stage={stage} tabs={tabs} state={shell} dispatch={dispatch} />
+    <Deck stage={stage} workbench={workbench} tabs={tabs} state={shell} dispatch={dispatch} split={Math.min(STAGE_MAX, split)} onSplit={setSplit} />
     {toast}
     {connectorSetup && <ConnectorSetupDialog key={connectorSetup.kind} connector={connectorSetup} onClose={() => setConnectorSetup(null)} />}
     <StoryScheduler events={agentWindow.events} />
   </>;
 }
 
-/** Pages that show relative times tick slowly on their own. */
-function SessionsTab({ observer, repositoryOf }: { observer: ReturnType<typeof useObserver>; repositoryOf: Parameters<typeof SessionsPage>[0]["repositoryOf"] }) {
+/** The history shows relative times: it ticks slowly on its own. */
+function HistoryTab({ events, range, repositoryOf, selected, onSelect }: { events: Parameters<typeof SessionsPage>[0]["events"]; range: AnalyticsRange; repositoryOf: Parameters<typeof SessionsPage>[0]["repositoryOf"]; selected: string | null; onSelect: (key: string) => void }) {
   const now = useNow(30_000);
-  return <SessionsPage events={observer.events} hasMore={observer.hasMore} loadingOlder={observer.loadingOlder} onLoadOlder={observer.loadOlder} repositoryOf={repositoryOf} now={now} />;
+  // A chosen day shows that day only, whatever else was loaded.
+  const shown = useMemo(() => (isDayRange(range) ? eventsInRange(events, timeAxis([], range, now)) : events), [events, range, now]);
+  return <SessionsPage events={shown} repositoryOf={repositoryOf} now={now} selected={selected} onSelect={onSelect} />;
 }
 
 function ConnectorsTab({ events, onConfigure }: Omit<Parameters<typeof ConnectorsPage>[0], "now">) {

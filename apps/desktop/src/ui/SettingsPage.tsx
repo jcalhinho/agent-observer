@@ -21,17 +21,29 @@ export function SettingsPage({ onExport, onClear, onMini }: { onExport: () => Pr
   const [retention, setRetention] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const [preview, setPreview] = useState(false);
+  const [keepErrors, setKeepErrors] = useState(false);
 
   useEffect(() => {
     // Every setup command reports the shared capture policy.
     invoke<CapturePolicy>("codex_setup").then(({ capture_prompts, capture_commands }) => setPolicy({ capture_prompts, capture_commands })).catch(() => { setPreview(true); setNotice(t("Aperçu : les réglages ne sont disponibles que dans l’application de bureau.", "Preview: settings are only available in the desktop app.")); });
     invoke<number>("retention_policy").then(setRetention).catch(() => undefined);
+    invoke<boolean>("capture_errors").then(setKeepErrors).catch(() => undefined);
   }, []);
 
   async function savePolicy(next: CapturePolicy) {
     try {
       await invoke("update_capture_policy", { capturePrompts: next.capture_prompts, captureCommands: next.capture_commands });
       setPolicy(next);
+      setNotice(t("Réglage enregistré.", "Setting saved."));
+    } catch {
+      setNotice(t("Impossible d’enregistrer ce réglage.", "Could not save this setting."));
+    }
+  }
+
+  async function saveErrors(value: boolean) {
+    try {
+      await invoke("update_capture_errors", { enabled: value });
+      setKeepErrors(value);
       setNotice(t("Réglage enregistré.", "Setting saved."));
     } catch {
       setNotice(t("Impossible d’enregistrer ce réglage.", "Could not save this setting."));
@@ -57,6 +69,7 @@ export function SettingsPage({ onExport, onClear, onMini }: { onExport: () => Pr
       <h3>{t("Ce qui est enregistré", "What is recorded")}</h3>
       <p>{t("Par défaut, l’app ne garde que le déroulé : quel agent, quel outil, quel fichier, quand, combien de tokens. Les réponses des agents, leurs raisonnements et les résultats des outils ne sont jamais enregistrés.", "By default the app only keeps the outline: which agent, which tool, which file, when, how many tokens. Agents’ answers, their reasoning and tool outputs are never recorded.")}</p>
       <Toggle checked={policy?.capture_prompts ?? false} disabled={!policy} onChange={(value) => policy && savePolicy({ ...policy, capture_prompts: value })} title={t("Enregistrer le texte de mes messages aux agents", "Record the text of my messages to agents")} hint={t("Utile pour relire une session, mais tes messages peuvent contenir du code privé ou des informations confidentielles.", "Useful to review a session, but your messages may contain private code or confidential information.")} />
+      <Toggle checked={keepErrors} disabled={!policy} onChange={(value) => void saveErrors(value)} title={t("Garder les messages d’erreur (courts et nettoyés)", "Keep error messages (short and cleaned)")} hint={t("Pour que « Demander » puisse expliquer pourquoi un outil a échoué. Chaque message est réduit à une ligne de 300 caractères, sans clés ni mots de passe repérables, et sans ton dossier personnel. Claude Code seulement pour l’instant.", "So “Ask” can explain why a tool failed. Each message is cut to one line of 300 characters, with recognisable keys and passwords and your home folder removed. Claude Code only for now.")} />
       <Toggle checked={policy?.capture_commands ?? false} disabled={!policy} onChange={(value) => policy && savePolicy({ ...policy, capture_commands: value })} title={t("Enregistrer les commandes lancées par les agents", "Record the commands agents run")} hint={t("Par exemple « npm test ». Une commande peut contenir un mot de passe ou un jeton : à activer en connaissance de cause.", "For example “npm test”. A command may contain a password or a token: enable knowingly.")} />
     </div>
 

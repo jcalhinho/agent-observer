@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { Copy, Download, Feather, Square, Trash2 } from "lucide-react";
 import { EmptyState } from "./Explain";
 import { locale, t } from "./i18n";
 import { Prose } from "./Prose";
+import { Consent } from "./Consent";
 import { cancelStory, pickAgent, previewStory, storySettings, StoryError, useStories, useStoryAgents, writeStory, type StoryAgent, type StoryRecord } from "./useStory";
 import type { SessionEvent } from "./types";
 
@@ -20,22 +21,6 @@ export function describeStoryError(error: unknown) {
     case "empty": return t("L’agent n’a rien répondu.", "The agent answered nothing.");
     default: return t(`L’agent a répondu par une erreur : ${detail || "inconnue"}`, `The agent answered with an error: ${detail || "unknown"}`);
   }
-}
-
-/** Says what will be sent and to whom, once per agent, before anything leaves the computer. */
-function Consent({ agent, events, onAllow, onCancel }: { agent: StoryAgent; events: SessionEvent[]; onAllow: () => void; onCancel: () => void }) {
-  const preview = useMemo(() => previewStory(events), [events]);
-  return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-    <section className="dialog" role="dialog" aria-modal="true" aria-labelledby="consent-title">
-      <header className="dialog-header"><h2 id="consent-title">{t(`Écrire l’histoire avec ${agent.name} ?`, `Write the story with ${agent.name}?`)}</h2></header>
-      <div className="dialog-body">
-        <p>{t(`L’app lance ${agent.name} (${originLabel(agent.origin)}${agent.version ? `, ${agent.version}` : ""}) une seule fois, sans aucun outil et dans un dossier vide, avec le résumé ci-dessous. Il est envoyé à son fournisseur, comme tout ce que tu lui écris, et consomme ton forfait ou tes crédits. Aucune clé n’est demandée.`, `The app runs ${agent.name} (${originLabel(agent.origin)}${agent.version ? `, ${agent.version}` : ""}) once, with no tools and in an empty folder, on the summary below. It goes to its provider like anything you type to it and uses your plan or credits. No key is asked for.`)}</p>
-        <p>{t("Ce résumé ne contient ni le texte de tes messages, ni tes commandes, ni les dossiers de ton disque : seulement des chiffres, des noms de projets, de modèles, d’outils et de fichiers.", "The summary holds neither the text of your messages, nor your commands, nor your disk folders: only numbers and the names of projects, models, tools and files.")}</p>
-        <details className="consent-facts"><summary>{t("Voir exactement ce qui est envoyé", "See exactly what is sent")}</summary><pre>{preview.prompt}</pre></details>
-        <div className="dialog-actions"><button className="button" onClick={onCancel}>{t("Annuler", "Cancel")}</button><button className="button primary" onClick={onAllow}>{t("Autoriser et écrire", "Allow and write")}</button></div>
-      </div>
-    </section>
-  </div>;
 }
 
 /** The story of the last 24 hours, written by an agent already installed here. */
@@ -111,6 +96,6 @@ export function StoryPanel({ events }: { events: SessionEvent[] }) {
         </span>
       </footer>
     </article> : agents?.length && !busy ? <EmptyState title={t("Pas encore d’histoire", "No story yet")}>{t(`Clique sur « Écrire l’histoire » : ${agent?.name ?? "ton agent"} racontera tes dernières 24 h à partir des faits ci-dessous. Chaque jour à 18 h si tu l’actives dans Réglages.`, `Click “Write the story”: ${agent?.name ?? "your agent"} will tell your last 24 hours from the facts below. Every day at 18:00 if you turn it on in Settings.`)}</EmptyState> : null}
-    {asking && <Consent agent={asking} events={events} onCancel={() => setAsking(null)} onAllow={() => { storySettings.consent(asking.provider); const target = asking; setAsking(null); void run(target); }} />}
+    {asking && <Consent agent={asking} preview={previewStory(events).prompt} onCancel={() => setAsking(null)} onAllow={() => { storySettings.consent(asking.provider); const target = asking; setAsking(null); void run(target); }} />}
   </section>;
 }

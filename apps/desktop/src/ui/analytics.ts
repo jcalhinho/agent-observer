@@ -2,16 +2,28 @@ import { locale, t } from "./i18n";
 import type { SessionEvent } from "./types";
 
 /** Time windows offered above the charts; "all" spans the loaded events. */
-export type AnalyticsRange = "15m" | "1h" | "24h" | "all";
+export type AnalyticsRange = "15m" | "1h" | "24h" | "all" | `day:${string}`;
 
 export const RANGES: AnalyticsRange[] = ["15m", "1h", "24h", "all"];
 
+/** A calendar day in local time, as a range: `day:2026-10-23`. */
+export const dayRange = (date: Date): AnalyticsRange => `day:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+export const isDayRange = (range: AnalyticsRange): range is `day:${string}` => range.startsWith("day:");
+/** Midnight to midnight of a day range, local time (the next midnight is exclusive). */
+export function dayWindow(range: `day:${string}`) {
+  const [year, month, day] = range.slice(4).split("-").map(Number);
+  return { start: new Date(year, month - 1, day).getTime(), end: new Date(year, month - 1, day + 1).getTime() };
+}
+export const isToday = (range: AnalyticsRange, now = Date.now()) => isDayRange(range) && range === dayRange(new Date(now));
+export const isDayText = (value: unknown): value is AnalyticsRange => typeof value === "string" && /^day:\d{4}-\d{2}-\d{2}$/.test(value);
+
 export function rangeLabel(range: AnalyticsRange) {
+  if (isDayRange(range)) return new Date(dayWindow(range).start).toLocaleDateString(locale(), { day: "numeric", month: "short" });
   return range === "all" ? t("Tout", "All") : range === "15m" ? "15 min" : range === "1h" ? "1 h" : "24 h";
 }
 
 const MINUTE = 60_000;
-const RANGE_SPECS: Record<Exclude<AnalyticsRange, "all">, { span: number; buckets: number }> = {
+const RANGE_SPECS: Record<"15m" | "1h" | "24h", { span: number; buckets: number }> = {
   "15m": { span: 15 * MINUTE, buckets: 30 },
   "1h": { span: 60 * MINUTE, buckets: 30 },
   "24h": { span: 24 * 60 * MINUTE, buckets: 24 }
@@ -21,6 +33,10 @@ export type TimeAxis = { start: number; end: number; bucketMs: number; buckets: 
 
 /** Bucket boundaries for a range; "all" stretches from the oldest loaded event to now. */
 export function timeAxis(events: SessionEvent[], range: AnalyticsRange, now: number): TimeAxis {
+  if (isDayRange(range)) {
+    const { start, end } = dayWindow(range);
+    return { start, end, bucketMs: (end - start) / 24, buckets: 24 };
+  }
   if (range !== "all") {
     const { span, buckets } = RANGE_SPECS[range];
     return { start: now - span, end: now, bucketMs: span / buckets, buckets };

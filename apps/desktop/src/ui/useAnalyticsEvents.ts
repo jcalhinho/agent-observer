@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { AnalyticsRange } from "./analytics";
+import { dayWindow, isDayRange, isToday, type AnalyticsRange } from "./analytics";
 import { isActiveProvider, normalizeEvent } from "./providers";
 import type { SessionEvent } from "./types";
 
-const RANGE_MS: Record<Exclude<AnalyticsRange, "all">, number> = { "15m": 15 * 60_000, "1h": 60 * 60_000, "24h": 24 * 60 * 60_000 };
+const RANGE_MS: Record<"15m" | "1h" | "24h", number> = { "15m": 15 * 60_000, "1h": 60 * 60_000, "24h": 24 * 60 * 60_000 };
 const REFRESH_MS = 30_000;
 
 type AnalyticsResponse = { events: SessionEvent[]; total: number; truncated: boolean };
@@ -33,8 +33,10 @@ export function useAnalyticsEvents(range: AnalyticsRange, liveEvents: SessionEve
 
   useEffect(() => {
     let active = true;
-    const since = range === "all" ? null : new Date(Date.now() - RANGE_MS[range]).toISOString();
-    invoke<AnalyticsResponse>("load_analytics_events", { since })
+    const window = isDayRange(range) ? dayWindow(range) : null;
+    const since = window ? new Date(window.start).toISOString() : range === "all" ? null : new Date(Date.now() - RANGE_MS[range as "15m" | "1h" | "24h"]).toISOString();
+    const until = window ? new Date(window.end).toISOString() : null;
+    invoke<AnalyticsResponse>("load_analytics_events", { since, until })
       .then((response) => { if (active) setStored({ ...response, events: response.events.map(normalizeEvent).filter((event) => isActiveProvider(event.provider)) }); })
       .catch(() => { if (active) setStored(null); });
     return () => { active = false; };
@@ -44,8 +46,10 @@ export function useAnalyticsEvents(range: AnalyticsRange, liveEvents: SessionEve
     if (!stored) return { events: liveEvents, total: liveEvents.length, truncated: false, source: "loaded" };
     // Live events received since the last database read are added on top.
     const known = new Set(stored.events.map((event) => event.event_id));
+    // A past day is complete in the database: nothing live belongs to it.
+    if (isDayRange(range) && !isToday(range)) return { events: stored.events, total: stored.total, truncated: stored.truncated, source: "database" };
     const newest = stored.events.length ? Date.parse(stored.events[0].occurred_at) : 0;
     const fresh = liveEvents.filter((event) => !known.has(event.event_id) && Date.parse(event.occurred_at) >= newest);
     return { events: fresh.length ? [...fresh, ...stored.events] : stored.events, total: stored.total + fresh.length, truncated: stored.truncated, source: "database" };
-  }, [stored, liveEvents]);
+  }, [stored, liveEvents, range]);
 }
