@@ -100,13 +100,41 @@ fn on_path(binary: &str) -> Option<PathBuf> {
     if !output.status.success() {
         return None;
     }
-    String::from_utf8_lossy(&output.stdout)
+    let text = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = text
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty())
-        // `command -v` can print an alias definition; a path starts with a separator or a drive.
-        .find(|line| Path::new(line).is_file())
-        .map(PathBuf::from)
+        .collect();
+    pick_program(&lines, cfg!(target_os = "windows"), &|path| path.is_file())
+}
+
+/// What Windows can start, best first. `where claude` also lists the extensionless shell script
+/// that npm installs for other shells: it is not a program, and starting it fails with
+/// "not a valid Win32 application" (error 193).
+const RUNNABLE: &[&str] = &["exe", "com", "cmd", "bat"];
+
+/// The program to run among the paths a lookup printed. `command -v` can print an alias
+/// definition instead of a path, so only lines that are existing files count.
+pub fn pick_program(
+    lines: &[&str],
+    windows: bool,
+    exists: &dyn Fn(&Path) -> bool,
+) -> Option<PathBuf> {
+    let candidates = lines.iter().map(Path::new).filter(|path| exists(path));
+    if !windows {
+        return candidates.map(Path::to_path_buf).next();
+    }
+    candidates
+        .filter_map(|path| {
+            let extension = path.extension()?.to_str()?.to_lowercase();
+            let rank = RUNNABLE
+                .iter()
+                .position(|runnable| *runnable == extension)?;
+            Some((rank, path))
+        })
+        .min_by_key(|(rank, _)| *rank)
+        .map(|(_, path)| path.to_path_buf())
 }
 
 /// Folders in `parent` whose name starts with `prefix`, newest name last.
@@ -422,7 +450,7 @@ pub fn run(
     }
     let mut child = command
         .spawn()
-        .map_err(|error| StoryError::new("failed", error.to_string()))?;
+        .map_err(|error| StoryError::new("failed", format!("{}: {error}", program.display())))?;
     let pid = child.id();
 
     if let (Some(text), Some(mut input)) = (plan.stdin.clone(), child.stdin.take()) {
@@ -597,6 +625,34 @@ mod tests {
                 "{provider}"
             );
         }
+    }
+
+    #[test]
+    fn picks_a_program_windows_can_start() {
+        let exists = |_: &Path| true;
+        // What `where claude` prints for an npm install: the shell script first, then the shim.
+        let npm = [
+            r"C:\Users\me\AppData\Roaming\npm\claude",
+            r"C:\Users\me\AppData\Roaming\npm\claude.cmd",
+        ];
+        assert_eq!(
+            pick_program(&npm, true, &exists),
+            Some(PathBuf::from(r"C:\Users\me\AppData\Roaming\npm\claude.cmd"))
+        );
+        // A real executable beats a shim.
+        let both = [r"C:\a\codex.cmd", r"C:\b\codex.exe", r"C:\c\codex"];
+        assert_eq!(
+            pick_program(&both, true, &exists),
+            Some(PathBuf::from(r"C:\b\codex.exe"))
+        );
+        // Only the extensionless script: nothing to run.
+        assert_eq!(pick_program(&[r"C:\a\gemini"], true, &exists), None);
+        // Other systems take the first existing path and skip alias definitions.
+        let lines = ["alias claude='x'", "/usr/local/bin/claude"];
+        assert_eq!(
+            pick_program(&lines, false, &|path| path.starts_with("/usr")),
+            Some(PathBuf::from("/usr/local/bin/claude"))
+        );
     }
 
     #[test]

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-23
+
+### Fixed
+
+- Windows: the daily story failed with "not a valid Win32 application (error 193)". The program
+  lookup picked the extensionless shell script npm installs next to `claude.cmd`; only files
+  Windows can start (`.exe`, `.com`, `.cmd`, `.bat`) are now chosen, best first. A failure to
+  start an agent now names the program it tried.
+
 ## [0.3.0] - 2026-10-23
 
 A new interface, built around the race and sliding drawers, and a story of the day written by an
