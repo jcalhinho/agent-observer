@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-24
+
+### Fixed
+- The race is centred again in a wide stage: the camera no longer drifts towards the leader, which
+  pushed the start line out of the frame.
+
 ## [0.6.0] - 2026-10-24
 
 ### Added

@@ -176,9 +176,10 @@ function CameraRig({ leaderX, reducedMotion }: { leaderX: number; reducedMotion:
     const tanHalf = Math.tan(THREE.MathUtils.degToRad(perspective.fov / 2));
     // Keep the whole 100 m (plus margins) in frame whatever the panel width.
     // Wide and short stages (the race takes at most half the window) need the height to fit too.
-    const distance = Math.max(11, 13.2 / (tanHalf * aspect), 9.2 / (2 * tanHalf));
+    const distance = Math.max(11, 14.2 / (tanHalf * aspect), 9.2 / (2 * tanHalf));
     const sway = reducedMotion ? 0 : Math.sin(state.clock.elapsedTime * 0.15) * 0.3;
-    const lookX = leaderX * 0.22 + sway;
+    // Almost centred: a strong drift towards the leader pushed the start line out of the frame.
+    const lookX = leaderX * 0.03 + sway;
     target.current.copy(CAMERA_DIRECTION).multiplyScalar(distance);
     target.current.x += lookX;
     const blend = reducedMotion ? 1 : 1 - Math.exp(-Math.min(delta, 0.05) * 2);
