@@ -13,7 +13,7 @@ OpenCode and Qwen Code work on your machine, live.
 
 [Download](#install) · [Features](#features) · [Privacy](#privacy) · [Build from source](#build-from-source) · [Contributing](CONTRIBUTING.md) · [Français](README.fr.md)
 
-<img src="docs/media/deck.png" alt="Agent Observer: a bar of tabs, the 3D race with its dock of agents, charts and history below, and the Story drawer open on the right" width="900">
+<img src="docs/media/deck.png" alt="Agent Observer: a bar of tabs on top, the 3D race with its dock of agents, then charts and history side by side" width="900">
 
 </div>
 
@@ -108,6 +108,11 @@ failures, waits, loops, costs); the answer cites the sessions it relies on as `[
 the history — and may end with **suggested next steps** you can copy to an agent. The app never sends
 anything to an agent for you.
 
+Each session in the facts lists the **files its agent edited** (so an answer can name them) and, for the main
+sessions, the **subjects of the Git commits made while it ran** (read locally). That is how a question like
+*"was this a fix or a feature?"* can be answered — as an inference: no agent records it, and a commit made during
+a session is not proven to be the agent's.
+
 Error messages are **not recorded** by default, so "why" can only be inferred. **Settings › What is recorded ›
 Keep error messages** records a short (300 characters), single-line, cleaned version (keys, tokens, passwords
 and your home folder removed) of the errors of failed tools — Claude Code, Codex, Gemini CLI, Qwen Code and OpenCode, for failures from now on.
@@ -123,7 +128,7 @@ a time you choose (**18:00** by default). If the app was closed at that time, it
 <img src="docs/media/story.png" alt="The Story drawer: a short story of the day with a timeline, per-agent paragraphs and things worth a look" width="900">
 
 **How Ask and the story stay private.** The app computes a summary of facts (numbers and the names of projects,
-models, tools and files — never the text of your messages, your commands or your folders). The agent is run
+models, tools, files and commit subjects — never the text of your messages, your commands or your folders). The agent is run
 **once per request, with every tool switched off, in an empty folder, with no session kept**, and told to use
 only those facts. Nothing is sent before you agree, once per agent, and you can read the exact summary first.
 No key is needed and nothing extra is installed: it uses your plan.
@@ -170,8 +175,8 @@ now. GitHub Copilot, Cline, Roo Code, Continue and Aider are **not** connected y
 ## Privacy
 
 Everything stays on your computer. The app makes no network request of its own: it only
-receives hooks on `127.0.0.1`. The single exception is the **daily story**, which is off until you
-allow it for an agent: the app then runs that agent (already installed, with its own login)
+receives hooks on `127.0.0.1`. The only exceptions are the **daily story** and **Ask**, which are off until you
+allow them for an agent: the app then runs that agent (already installed, with its own login)
 once, with no tools, in an empty folder, on a summary of numbers and names; the agent sends it
 to its provider like anything you type to it. You can read the exact summary before agreeing.
 

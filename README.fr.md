@@ -13,7 +13,7 @@ Gemini CLI, OpenCode et Qwen Code sur ta machine, en direct.
 
 [Télécharger](#installation) · [Fonctionnalités](#fonctionnalités) · [Confidentialité](#confidentialité) · [Compiler](#compiler-depuis-les-sources) · [Contribuer](CONTRIBUTING.md) · [English](README.md)
 
-<img src="docs/media/deck.png" alt="Agent Observer : une barre d’onglets, la course 3D avec son bandeau d’agents, graphiques et historique dessous, et le tiroir Histoire ouvert à droite" width="900">
+<img src="docs/media/deck.png" alt="Agent Observer : une barre d’onglets en haut, la course 3D avec son bandeau d’agents, puis graphiques et historique côte à côte" width="900">
 
 </div>
 
@@ -112,6 +112,11 @@ les faits (sessions, échecs, attentes, boucles, coûts) ; la réponse cite les 
 s’appuie sous la forme `[s3]` — un clic les ouvre dans l’historique — et peut finir par des **pistes** à copier
 vers un agent. L’app n’envoie jamais rien à un agent à ta place.
 
+Chaque session des faits liste les **fichiers que son agent a modifiés** (la réponse peut donc les nommer) et,
+pour les sessions principales, les **sujets des commits Git faits pendant qu’elle tournait** (lus en local).
+C’est ce qui permet de répondre à *« était-ce un correctif ou une fonctionnalité ? »* — comme une déduction :
+aucun agent ne l’enregistre, et un commit fait pendant une session n’est pas forcément celui de l’agent.
+
 Les messages d’erreur ne sont **pas enregistrés** par défaut : le « pourquoi » ne peut donc qu’être déduit.
 **Réglages › Ce qui est enregistré › Garder les messages d’erreur** garde une version courte (300 caractères),
 sur une ligne et nettoyée (clés, jetons, mots de passe et dossier personnel retirés) des erreurs des outils en
@@ -129,7 +134,7 @@ lancement suivant.
 <img src="docs/media/story.png" alt="Le tiroir Histoire : une courte histoire du jour avec chronologie, un paragraphe par agent et les points à regarder" width="900">
 
 **Comment Demander et l’histoire restent privés.** L’app calcule un résumé de faits (des chiffres et des noms de
-projets, de modèles, d’outils et de fichiers — jamais le texte de tes messages, tes commandes ni tes dossiers).
+projets, de modèles, d’outils, de fichiers et de sujets de commits — jamais le texte de tes messages, tes commandes ni tes dossiers).
 L’agent est lancé **une fois par demande, sans aucun outil, dans un dossier vide, sans garder de session**, avec
 la consigne de n’utiliser que ces faits. Rien n’est envoyé avant ton accord, une fois par agent, et tu peux lire
 le résumé exact avant. Aucune clé, rien à installer : c’est ton forfait qui est utilisé.
@@ -177,8 +182,8 @@ connectés — voir [ajouter un agent](#ajouter-ton-agent).
 ## Confidentialité
 
 Tout reste sur ton ordinateur. L’app ne fait aucune requête réseau de son propre chef : elle ne
-fait que recevoir des hooks sur `127.0.0.1`. La seule exception est l’**histoire du jour**,
-désactivée tant que tu ne l’autorises pas pour un agent : l’app lance alors cet agent (déjà
+fait que recevoir des hooks sur `127.0.0.1`. Les seules exceptions sont l’**histoire du jour** et **Demander**,
+désactivées tant que tu ne les autorises pas pour un agent : l’app lance alors cet agent (déjà
 installé, avec sa propre connexion) une seule fois, sans outil, dans un dossier vide, sur un
 résumé de chiffres et de noms ; l’agent l’envoie à son fournisseur comme tout ce que tu lui
 écris. Tu peux lire le résumé exact avant d’accepter.

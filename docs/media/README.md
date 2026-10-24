@@ -4,7 +4,7 @@ Images used by the READMEs. Keep file names stable: the READMEs link to them.
 
 | File | What it shows | Used in |
 | --- | --- | --- |
-| `deck.png` | The whole interface with the Story drawer open on the right (1600 × 960). | README hero |
+| `deck.png` | The whole window with no drawer: tabs on top, race and dock, charts and history (1634 × 1043, French UI, real sessions). | README hero |
 | `overview.png` | The window with no drawer: race and dock, charts and history. | Features › The window |
 | `day.png` | A past day chosen in the period bar. | Features › Charts and history |
 | `agents.png` | The Agents drawer on the left. | Features › Drawers |

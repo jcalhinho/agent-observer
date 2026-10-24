@@ -56,5 +56,5 @@ Out of scope:
 - Private content is dropped by the connectors before anything is written to disk.
 - No telemetry and no network request of its own. The only exceptions are the daily story and Ask, off by
   default and allowed per agent: the app runs an agent you already have, once, with its tools
-  disabled, in an empty folder, on a summary of numbers and names (never message text, commands
-  or folders). That agent talks to its own provider as it always does.
+  disabled, in an empty folder, on a summary of numbers and names — including the files an agent edited and the subjects of nearby Git
+  commits — (never message text, commands or folders). That agent talks to its own provider as it always does.

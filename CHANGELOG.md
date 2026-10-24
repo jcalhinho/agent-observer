@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-24
+
+### Changed
+- Race: the name tags now sit behind the runners instead of over them, so heads stay visible.
+- README: new hero image (the whole window), and the docs describe the files and commit subjects Ask uses.
+
 ## [0.6.1] - 2026-10-24
 
 ### Fixed

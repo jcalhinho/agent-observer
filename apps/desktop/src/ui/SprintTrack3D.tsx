@@ -720,8 +720,9 @@ function NameTag({ name, model, color, icon, renderOrder }: { name: string; mode
     return result;
   }, [name, model, color, icon]);
   useEffect(() => () => texture.dispose(), [texture]);
-  return <sprite position={[0, 1.36, 0]} scale={[1.5, 0.47, 1]} renderOrder={5 + renderOrder}>
-    <spriteMaterial map={texture} transparent depthTest={false} />
+  // Behind the runner and depth-tested: the body hides part of the tag, never the head.
+  return <sprite position={[0, 1.5, -0.55]} scale={[1.5, 0.47, 1]} renderOrder={5 + renderOrder}>
+    <spriteMaterial map={texture} transparent depthWrite={false} />
   </sprite>;
 }
 
