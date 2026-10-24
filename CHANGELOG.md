@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-24
+
+### Added
+- **Antigravity: the selected model, by name.** Antigravity only writes an internal code
+  (`MODEL_PLACEHOLDER_M319`). The app now asks Antigravity's own local language server (`127.0.0.1`,
+  read-only, with the token that app was started with, read from the process list and never stored or
+  logged) for the names that go with the codes, e.g. "Gemini 3.8 Flash (Medium)". Only model names are
+  kept. The model shows on the race, the cards and the summaries.
+- **Cost for Antigravity** at API rates, when the model is priced (Gemini, Claude). GPT-OSS has no
+  published price in the table yet: its cost stays unknown.
+- Menu-style model names ("Claude Sonnet 4.6 (Thinking)") match the price table.
+
+### Limits
+- The model is the one selected when a step is seen: Antigravity does not record it per step.
+
 ## [0.7.0] - 2026-10-24
 
 ### Added

@@ -161,7 +161,7 @@ read, never written, and Git changes are **never attributed to an agent** withou
 | --- | --- | --- |
 | **Claude Code** | Official [HTTP hooks](https://docs.claude.com/en/docs/claude-code/hooks) posted to the local collector, plus token usage read from new lines of its transcripts (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respected). | Copy the settings fragment shown in the **Connectors** tab into `~/.claude/settings.json`. The app never edits it for you. |
 | **Codex** | Appended JSONL rollout records in `~/.codex/sessions` (`CODEX_HOME` respected). | Nothing. |
-| **Antigravity** | Its local files in `~/.gemini/antigravity`, opened **read-only**: the list of conversations (project, state, activity) and, for recent sessions, a step-by-step transcript (tokens, tools, failures). Older conversations are encrypted by Antigravity and only appear through the list. The model is not recorded by Antigravity, so no dollar cost. | Nothing. |
+| **Antigravity** | Its local files in `~/.gemini/antigravity`, opened **read-only**: the list of conversations (project, state, activity) and, for recent sessions, a step-by-step transcript (tokens, tools, failures). Older conversations are encrypted by Antigravity and only appear through the list. Antigravity only records a code for the selected model, so the app asks Antigravity's own local server (`127.0.0.1`, read-only, see [Privacy](#privacy)) for its name; the model is the one selected when a step was seen. Cost is estimated at API rates when the model is priced. | Nothing. |
 | **OpenCode** | Its local SQLite database (`~/.local/share/opencode/opencode*.db`, `OPENCODE_DB` / `OPENCODE_DATA_DIR` respected), opened **read-only**. | Nothing. |
 | **Qwen Code** | Appended JSONL chat records in `~/.qwen/projects/<project>/chats`. | Nothing. |
 
@@ -179,6 +179,8 @@ receives hooks on `127.0.0.1`. The only exceptions are the **daily story** and *
 allow them for an agent: the app then runs that agent (already installed, with its own login)
 once, with no tools, in an empty folder, on a summary of numbers and names; the agent sends it
 to its provider like anything you type to it. You can read the exact summary before agreeing.
+
+**One local request to Antigravity.** Its files hold only an internal code for the selected model, so, to show its name (and estimate a cost), the app asks Antigravity's own language server on `127.0.0.1` (read-only), using the token that app was started with, read from the process list and kept in memory for that one request. Only model names are kept from the answer. Nothing happens if Antigravity is not running.
 
 **Recorded by default** — the *shape* of the work: which agent, which session, which tool,
 which file path, when, how long, success or failure, model name and the token counts the

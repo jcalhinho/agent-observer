@@ -167,7 +167,7 @@ dépôts sont lus, jamais modifiés, et un changement Git n’est **jamais attri
 | --- | --- | --- |
 | **Claude Code** | [Hooks HTTP](https://docs.claude.com/en/docs/claude-code/hooks) officiels envoyés au collecteur local, et consommation de tokens lue dans les nouvelles lignes de ses transcriptions (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respecté). | Copier le fragment affiché dans l’onglet **Connecteurs** dans `~/.claude/settings.json`. L’app ne le modifie jamais à ta place. |
 | **Codex** | Les enregistrements JSONL ajoutés dans `~/.codex/sessions` (`CODEX_HOME` respecté). | Rien. |
-| **Antigravity** | Ses fichiers locaux dans `~/.gemini/antigravity`, ouverts en **lecture seule** : la liste des conversations (projet, état, activité) et, pour les sessions récentes, un transcript étape par étape (tokens, outils, échecs). Les anciennes conversations sont chiffrées par Antigravity et n’apparaissent que dans la liste. Le modèle n’est pas enregistré par Antigravity, donc pas de coût en dollars. | Rien. |
+| **Antigravity** | Ses fichiers locaux dans `~/.gemini/antigravity`, ouverts en **lecture seule** : la liste des conversations (projet, état, activité) et, pour les sessions récentes, un transcript étape par étape (tokens, outils, échecs). Les anciennes conversations sont chiffrées par Antigravity et n’apparaissent que dans la liste. Antigravity n’enregistre qu’un code pour le modèle sélectionné : l’app demande donc son nom au serveur local d’Antigravity (`127.0.0.1`, lecture seule, voir [Confidentialité](#confidentialité)) ; le modèle est celui sélectionné au moment où une étape a été vue. Le coût est estimé au tarif API quand le modèle a un prix connu. | Rien. |
 | **OpenCode** | Sa base SQLite locale (`~/.local/share/opencode/opencode*.db`, `OPENCODE_DB` / `OPENCODE_DATA_DIR` respectés), ouverte en **lecture seule**. | Rien. |
 | **Qwen Code** | Les enregistrements JSONL ajoutés dans `~/.qwen/projects/<projet>/chats`. | Rien. |
 
@@ -187,6 +187,8 @@ désactivées tant que tu ne les autorises pas pour un agent : l’app lance alo
 installé, avec sa propre connexion) une seule fois, sans outil, dans un dossier vide, sur un
 résumé de chiffres et de noms ; l’agent l’envoie à son fournisseur comme tout ce que tu lui
 écris. Tu peux lire le résumé exact avant d’accepter.
+
+**Une requête locale vers Antigravity.** Ses fichiers ne contiennent qu’un code interne pour le modèle sélectionné : pour afficher son nom (et estimer un coût), l’app interroge le serveur de langage d’Antigravity sur `127.0.0.1` (lecture seule), avec le jeton avec lequel cette app a été lancée, lu dans la liste des processus et gardé en mémoire pour cette seule requête. Seuls les noms de modèles sont conservés. Rien ne se passe si Antigravity ne tourne pas.
 
 **Enregistré par défaut** — le *déroulé* du travail : quel agent, quelle session, quel outil,
 quel chemin de fichier, quand, combien de temps, succès ou échec, nom du modèle et nombres de

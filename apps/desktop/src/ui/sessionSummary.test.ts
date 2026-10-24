@@ -204,6 +204,11 @@ describe("price table lookup", () => {
   it("normalizes provider prefixes and snapshot dates but never fuzzy-matches", () => {
     expect(normalizeModelId("anthropic/Claude-Sonnet-4-6")).toBe("claude-sonnet-4-6");
     expect(normalizeModelId("claude-haiku-4-5-20251001")).toBe("claude-haiku-4-5");
+    // Menu labels (Antigravity) name the same models as their ids.
+    expect(normalizeModelId("Gemini 3.8 Flash (Medium)")).toBe("gemini-3.8-flash");
+    expect(normalizeModelId("Claude Sonnet 4.6 (Thinking)")).toBe("claude-sonnet-4-6");
+    expect(findModelPrice("Claude Opus 4.6 (Thinking)")?.label).toBe("Claude Opus 4.6");
+    expect(findModelPrice("GPT-OSS 120B (Medium)")).toBeNull();
     expect(findModelPrice("claude-opus-5-5")?.tiers[0].inputPerMTok).toBe(4);
     expect(findModelPrice("claude-opus-5-5-preview")).toBeNull();
     expect(findModelPrice("claude-opus")).toBeNull();

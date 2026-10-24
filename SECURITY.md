@@ -54,6 +54,11 @@ Out of scope:
   bearer token on every request.
 - Agent databases are opened read-only; agent settings are never edited by the app.
 - Private content is dropped by the connectors before anything is written to disk.
+- One local request to Antigravity: to name the model selected there (its files only hold an internal
+  code), the app asks Antigravity's own language server on `127.0.0.1`, read-only, with the token that app
+  was started with (read from the process list, kept in memory for the request, never logged, stored or
+  sent anywhere). Only model names are kept from the answer; account and plan fields are dropped unread.
+  Nothing happens if Antigravity is not running.
 - No telemetry and no network request of its own. The only exceptions are the daily story and Ask, off by
   default and allowed per agent: the app runs an agent you already have, once, with its tools
   disabled, in an empty folder, on a summary of numbers and names — including the files an agent edited and the subjects of nearby Git

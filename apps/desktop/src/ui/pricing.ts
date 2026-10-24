@@ -225,8 +225,13 @@ export const MODEL_PRICES: ModelPrice[] = [
  * never borrows the price of `gpt-5-mini` or the reverse.
  */
 export function normalizeModelId(model: string) {
-  const bare = model.trim().toLowerCase().split("/").at(-1) ?? "";
-  return bare.replace(/[-@]\d{8}$/, "");
+  const bare = (model.trim().toLowerCase().split("/").at(-1) ?? "")
+    // A menu label ("Gemini 3.8 Flash (Medium)") names the same model as its id: drop the effort or
+    // thinking suffix and join the words; Claude ids write "4.6" as "4-6".
+    .replace(/\s*\((?:minimal|low|medium|high|thinking)\)\s*$/, "")
+    .replace(/\s+/g, "-");
+  const id = bare.startsWith("claude-") ? bare.replace(/(\d)\.(\d)/g, "$1-$2") : bare;
+  return id.replace(/[-@]\d{8}$/, "");
 }
 
 /** Price in force for `model` at `at` (ISO timestamp, default now), honouring dated price changes. */

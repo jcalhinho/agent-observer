@@ -97,6 +97,7 @@ impl AntigravityMonitor {
 
     pub fn poll(&mut self, capture_prompts: bool, capture_commands: bool) -> Vec<SessionEvent> {
         let mut events = Vec::new();
+        let model = crate::antigravity_models::selected_model(&self.root);
         let rows = read_rows(&self.root.join("conversation_summaries.db"));
         let with_transcript = transcript_files(&self.root);
         for row in rows {
@@ -119,14 +120,14 @@ impl AntigravityMonitor {
             if previous.as_ref().map(|seen| &seen.user_input) != Some(&row.user_input)
                 && let Some(at) = parse_time(&row.user_input)
             {
-                let mut event = event(&row.id, &project, EventKind::UserMessage);
+                let mut event = event(&row.id, &project, &model, EventKind::UserMessage);
                 event.occurred_at = at;
                 events.push(event);
             }
             if row.status.contains("IDLE")
                 && let Some(at) = parse_time(&row.modified)
             {
-                let mut event = event(&row.id, &project, EventKind::Checkpoint);
+                let mut event = event(&row.id, &project, &model, EventKind::Checkpoint);
                 event.occurred_at = at;
                 event.outcome = Some("turn-complete".to_owned());
                 events.push(event);
@@ -156,6 +157,7 @@ impl AntigravityMonitor {
                         events.extend(project_step(
                             &id,
                             &project,
+                            &model,
                             &record,
                             transcript,
                             capture_prompts,
@@ -318,6 +320,7 @@ fn read_appended_lines(path: &Path, transcript: &mut Transcript) -> Vec<String> 
 fn project_step(
     id: &str,
     project: &Option<String>,
+    model: &Option<String>,
     record: &Value,
     transcript: &mut Transcript,
     capture_prompts: bool,
@@ -330,7 +333,7 @@ fn project_step(
         .map(|time| time.with_timezone(&Utc))
         .unwrap_or_else(Utc::now);
     let stamped = |kind| {
-        let mut event = event(id, project, kind);
+        let mut event = event(id, project, model, kind);
         event.occurred_at = at;
         event
     };
@@ -417,9 +420,19 @@ fn project_step(
     events
 }
 
-fn event(id: &str, project: &Option<String>, kind: EventKind) -> SessionEvent {
+fn event(
+    id: &str,
+    project: &Option<String>,
+    model: &Option<String>,
+    kind: EventKind,
+) -> SessionEvent {
     let mut event = SessionEvent::new(id, Provider::Antigravity, kind);
     event.project_path = project.clone();
+    // The model selected in the app when the step was seen: Antigravity does not record it per step.
+    event.model = model.as_ref().map(|name| Sourced {
+        value: name.clone(),
+        origin: DataOrigin::Derived,
+    });
     event
 }
 
@@ -448,6 +461,7 @@ mod tests {
         project_step(
             "c1",
             &Some("/work/demo".into()),
+            &Some("Gemini 3.8 Flash (Medium)".into()),
             &record,
             transcript,
             false,
@@ -487,6 +501,10 @@ mod tests {
         assert_eq!(events[1].command, None);
         assert_eq!(events[2].file_path.as_deref(), Some("/work/demo/a.rs"));
         assert_eq!(events[2].project_path.as_deref(), Some("/work/demo"));
+        assert_eq!(
+            events[1].model.as_ref().map(|model| model.value.as_str()),
+            Some("Gemini 3.8 Flash (Medium)")
+        );
         assert_eq!(transcript.calls.len(), 2);
     }
 

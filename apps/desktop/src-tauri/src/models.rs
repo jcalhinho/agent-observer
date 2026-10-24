@@ -122,6 +122,11 @@ pub fn configured_models() -> Vec<ConfiguredModel> {
         opencode_model(state.as_ref(), config.as_ref()),
         "OpenCode",
     );
+    add(
+        "antigravity",
+        crate::antigravity_models::selected_model(&crate::antigravity_sessions::data_root()),
+        "Antigravity",
+    );
     found
 }
 

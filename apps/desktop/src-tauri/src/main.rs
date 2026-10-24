@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod antigravity_models;
 mod antigravity_sessions;
 mod claude_transcripts;
 mod codex_rollout;

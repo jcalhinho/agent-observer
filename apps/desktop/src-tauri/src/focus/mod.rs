@@ -576,6 +576,67 @@ pub fn pid_for_local_port(port: u16) -> Option<u32> {
     }
 }
 
+/// TCP ports a process is listening on (loopback or not), to find the local server of an app.
+pub fn listening_ports(pid: u32) -> Vec<u16> {
+    #[cfg(target_os = "windows")]
+    {
+        let Ok(output) = std::process::Command::new("netstat")
+            .quiet()
+            .args(["-ano", "-p", "TCP"])
+            .output()
+        else {
+            return Vec::new();
+        };
+        parse_netstat_listening(&String::from_utf8_lossy(&output.stdout), pid)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let Ok(output) = std::process::Command::new("lsof")
+            .quiet()
+            .args([
+                "-nP",
+                "-a",
+                "-p",
+                &pid.to_string(),
+                "-iTCP",
+                "-sTCP:LISTEN",
+                "-Fn",
+            ])
+            .output()
+        else {
+            return Vec::new();
+        };
+        parse_lsof_listening(&String::from_utf8_lossy(&output.stdout))
+    }
+}
+
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+fn parse_netstat_listening(text: &str, pid: u32) -> Vec<u16> {
+    text.lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            (parts.len() >= 5
+                && parts[3] == "LISTENING"
+                && parts[4].parse::<u32>().ok() == Some(pid))
+            .then(|| parts[1].rsplit(':').next()?.parse::<u16>().ok())
+            .flatten()
+        })
+        .collect()
+}
+
+#[cfg_attr(target_os = "windows", allow(dead_code))]
+fn parse_lsof_listening(text: &str) -> Vec<u16> {
+    text.lines()
+        .filter_map(|line| {
+            line.strip_prefix('n')?
+                .rsplit(':')
+                .next()?
+                .parse::<u16>()
+                .ok()
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -821,5 +882,15 @@ mod tests {
             find_agent_process(&processes, "gemini_cli", Some("c:/work/api")),
             Some(5)
         );
+    }
+
+    #[test]
+    fn reads_listening_ports_from_lsof_and_netstat() {
+        assert_eq!(
+            parse_lsof_listening("p64451\nn127.0.0.1:53673\nn*:8080\nn[::1]:9000\n"),
+            [53673, 8080, 9000]
+        );
+        let netstat = "  TCP    127.0.0.1:53674    0.0.0.0:0    LISTENING    64451\n  TCP    127.0.0.1:50000    127.0.0.1:53674    ESTABLISHED    64451\n  TCP    0.0.0.0:135    0.0.0.0:0    LISTENING    900\n";
+        assert_eq!(parse_netstat_listening(netstat, 64451), [53674]);
     }
 }
