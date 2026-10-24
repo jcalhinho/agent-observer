@@ -7,13 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-10-24
+
+### Changed
+- **One face for every runner** (round eyes, brows, nose, smile): only the clothes (shirt and cap) tell the
+  agents apart. 0.11.1 gave each agent its own face; that was not what was wanted.
+
 ## [0.11.1] - 2026-10-24
 
 ### Changed
-- **Every runner has its own face**: skin tone, eyes (round, wide, dot, sleepy), eyebrows, nose, mouth
-  (smile, grin, flat, "o", smirk) and, for some, glasses, freckles and hair (ponytail, bun, side tufts).
-  The pink cheeks are gone. A custom connector gets a stable face drawn from its id.
-- The cap's visor sits higher so it no longer hides the eyes.
+- The pink cheeks are gone, runners have a face (eyes, brows, nose, mouth) and the cap's visor sits higher
+  so it no longer hides the eyes. (Each agent had its own face in this version; see 0.11.2.)
 
 ### Removed
 - **The coloured trail behind the runners** (the token flow): nothing told what it meant. The tokens per
