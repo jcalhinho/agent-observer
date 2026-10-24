@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-24
+
+### Fixed
+- **Story and Ask with OpenCode used the wrong model.** Run without `--model`, OpenCode took the model of
+  its config file, which may be one the user's key does not serve ("Invalid model name passed in
+  model=…"). The app now passes the model the user picked last in OpenCode (`provider/model`, from its
+  `state/opencode/model.json`, falling back to its config). The same lookup feeds the "selected" model shown
+  on the cards. It follows `XDG_STATE_HOME` / `XDG_CONFIG_HOME` and the same default folders on macOS,
+  Windows and Linux.
+
 ## [0.9.0] - 2026-10-24
 
 ### Added

@@ -364,7 +364,14 @@ pub fn plan(provider: &str, prompt: &str, folder: &Path) -> Option<Plan> {
         "opencode" => {
             let file = folder.join("prompt.md");
             std::fs::write(&file, prompt).ok()?;
-            let mut args = strings(&["run", "-f"]);
+            let mut args = strings(&["run"]);
+            // Without it, OpenCode uses the model of its config file, which may not be the one the
+            // user picked last (or one their key does not serve).
+            if let Some(model) = crate::models::opencode_model_ref() {
+                args.push("--model".into());
+                args.push(model);
+            }
+            args.push("-f".into());
             args.push(file.display().to_string());
             args.push(INSTRUCTION.into());
             Plan {

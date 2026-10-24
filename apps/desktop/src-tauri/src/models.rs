@@ -46,22 +46,67 @@ fn codex_model(toml: &str) -> Option<String> {
 }
 
 /// The model last picked in OpenCode (`state/opencode/model.json`: `recent[0]`), else its config.
-fn opencode_model(state: Option<&Value>, config: Option<&Value>) -> Option<String> {
+/// Returns `(provider, model)`; the provider is missing when only a bare name is configured.
+fn opencode_choice(
+    state: Option<&Value>,
+    config: Option<&Value>,
+) -> Option<(Option<String>, String)> {
     let recent = state
         .and_then(|state| state.get("recent"))
         .and_then(Value::as_array)
         .and_then(|recent| recent.first());
     if let Some(entry) = recent
-        && let Some(model) = entry.get("modelID").and_then(Value::as_str)
+        && let Some(model) = entry.get("modelID").and_then(Value::as_str).and_then(clean)
     {
-        return clean(model);
+        let provider = entry
+            .get("providerID")
+            .and_then(Value::as_str)
+            .and_then(clean);
+        return Some((provider, model));
     }
     let configured = config?.get("model")?.as_str()?;
-    clean(
-        configured
-            .split_once('/')
-            .map_or(configured, |(_, model)| model),
-    )
+    match configured.split_once('/') {
+        Some((provider, model)) => Some((clean(provider), clean(model)?)),
+        None => Some((None, clean(configured)?)),
+    }
+}
+
+fn opencode_model(state: Option<&Value>, config: Option<&Value>) -> Option<String> {
+    opencode_choice(state, config).map(|(_, model)| model)
+}
+
+/// `$VAR/opencode/<file>` when the XDG variable is set, else `~/<default>/opencode/<file>`; OpenCode
+/// uses the same locations on every system, Windows included. The first one that exists is read.
+fn opencode_file(variable: &str, default: &[&str], names: &[&str]) -> Option<Value> {
+    let mut folders: Vec<PathBuf> = Vec::new();
+    if let Some(base) = env::var_os(variable).filter(|base| !base.is_empty()) {
+        folders.push(PathBuf::from(base));
+    }
+    if let Some(home) = home() {
+        folders.push(default.iter().fold(home, |path, part| path.join(part)));
+    }
+    folders
+        .iter()
+        .flat_map(|folder| {
+            names
+                .iter()
+                .map(move |name| folder.join("opencode").join(name))
+        })
+        .find_map(json)
+}
+
+/// `provider/model` for `opencode run --model`: what the user picked last in OpenCode, which is not
+/// always what its config file says (an agent run without it can fail on a model the key does not
+/// serve).
+pub fn opencode_model_ref() -> Option<String> {
+    let state = opencode_file("XDG_STATE_HOME", &[".local", "state"], &["model.json"]);
+    let config = opencode_file(
+        "XDG_CONFIG_HOME",
+        &[".config"],
+        &["opencode.json", "opencode.jsonc"],
+    );
+    opencode_choice(state.as_ref(), config.as_ref())
+        .and_then(|(provider, model)| provider.map(|provider| format!("{provider}/{model}")))
 }
 
 fn qwen_model(settings: &Value) -> Option<String> {
@@ -158,6 +203,18 @@ mod tests {
             Some("glm-5.3-flash")
         );
         assert_eq!(opencode_model(None, None), None);
+        assert_eq!(
+            opencode_choice(Some(&state), None),
+            Some((Some("sgp".to_owned()), "claude-qwen".to_owned()))
+        );
+        assert_eq!(
+            opencode_choice(None, Some(&config)),
+            Some((Some("sgp".to_owned()), "glm-5.3-flash".to_owned()))
+        );
+        assert_eq!(
+            opencode_choice(None, Some(&json!({ "model": "big-pickle" }))),
+            Some((None, "big-pickle".to_owned()))
+        );
     }
 
     #[test]
