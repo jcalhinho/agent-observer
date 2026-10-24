@@ -29,12 +29,13 @@ pub enum Provider {
     Continue,
     Aider,
     QwenCode,
+    Antigravity,
     /// An agent sending its events through the open HTTP API; `SessionEvent.agent` names it.
     Custom,
 }
 
 impl Provider {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 13] = [
         Self::ClaudeCode,
         Self::Codex,
         Self::Cursor,
@@ -46,6 +47,7 @@ impl Provider {
         Self::Continue,
         Self::Aider,
         Self::QwenCode,
+        Self::Antigravity,
         Self::Custom,
     ];
 
@@ -62,6 +64,7 @@ impl Provider {
             Self::Continue => "continue",
             Self::Aider => "aider",
             Self::QwenCode => "qwen_code",
+            Self::Antigravity => "antigravity",
             Self::Custom => "custom",
         }
     }

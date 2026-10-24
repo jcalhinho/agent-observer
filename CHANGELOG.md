@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-24
+
+### Added
+- **Antigravity connector.** Reads `~/.gemini/antigravity` read-only: every conversation (project, state,
+  last activity) and, for recent sessions, the step-by-step transcript (tokens, tool calls, failures and,
+  with "Keep error messages", their cleaned message). "Go to agent" opens the Antigravity app. Nothing
+  recorded from before the app started; message text and file contents are never stored.
+- **The model each agent is set to use** (Claude Code, Codex, Qwen Code, OpenCode) is read from the
+  agent's own settings and shown, marked "selected", when no session has reported a model yet.
+  OpenCode uses the model picked last in its interface, not only its config file.
+
+### Changed
+- **Gemini CLI is no longer shown**: Antigravity replaces it in the race, charts and connectors. Its
+  connector stays in the code and its past events stay in the database; Gemini CLI can still write
+  the story or answer Ask when it is the installed agent.
+
 ## [0.6.2] - 2026-10-24
 
 ### Changed

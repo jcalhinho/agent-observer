@@ -4,7 +4,7 @@
 
 **See what your coding agents are doing — and which one needs you — without sending anything anywhere.**
 
-A local desktop app for macOS and Windows that watches Claude Code, Codex, Gemini CLI,
+A local desktop app for macOS and Windows that watches Claude Code, Codex, Antigravity,
 OpenCode and Qwen Code work on your machine, live.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
@@ -115,7 +115,7 @@ a session is not proven to be the agent's.
 
 Error messages are **not recorded** by default, so "why" can only be inferred. **Settings › What is recorded ›
 Keep error messages** records a short (300 characters), single-line, cleaned version (keys, tokens, passwords
-and your home folder removed) of the errors of failed tools — Claude Code, Codex, Gemini CLI, Qwen Code and OpenCode, for failures from now on.
+and your home folder removed) of the errors of failed tools — Claude Code, Codex, Antigravity, Qwen Code and OpenCode, for failures from now on.
 
 <img src="docs/media/ask.png" alt="The Ask drawer: example questions, an input at the bottom, and the history under the race" width="900">
 
@@ -161,7 +161,7 @@ read, never written, and Git changes are **never attributed to an agent** withou
 | --- | --- | --- |
 | **Claude Code** | Official [HTTP hooks](https://docs.claude.com/en/docs/claude-code/hooks) posted to the local collector, plus token usage read from new lines of its transcripts (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respected). | Copy the settings fragment shown in the **Connectors** tab into `~/.claude/settings.json`. The app never edits it for you. |
 | **Codex** | Appended JSONL rollout records in `~/.codex/sessions` (`CODEX_HOME` respected). | Nothing. |
-| **Gemini CLI** | Local chat records in `~/.gemini/tmp` (`GEMINI_CLI_HOME` respected). | Nothing. |
+| **Antigravity** | Its local files in `~/.gemini/antigravity`, opened **read-only**: the list of conversations (project, state, activity) and, for recent sessions, a step-by-step transcript (tokens, tools, failures). Older conversations are encrypted by Antigravity and only appear through the list. The model is not recorded by Antigravity, so no dollar cost. | Nothing. |
 | **OpenCode** | Its local SQLite database (`~/.local/share/opencode/opencode*.db`, `OPENCODE_DB` / `OPENCODE_DATA_DIR` respected), opened **read-only**. | Nothing. |
 | **Qwen Code** | Appended JSONL chat records in `~/.qwen/projects/<project>/chats`. | Nothing. |
 

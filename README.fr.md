@@ -5,7 +5,7 @@
 **Voir ce que font tes agents de code — et lequel a besoin de toi — sans rien envoyer nulle part.**
 
 Une app de bureau locale pour macOS et Windows qui regarde travailler Claude Code, Codex,
-Gemini CLI, OpenCode et Qwen Code sur ta machine, en direct.
+Antigravity, OpenCode et Qwen Code sur ta machine, en direct.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Dernière version](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
@@ -120,7 +120,7 @@ aucun agent ne l’enregistre, et un commit fait pendant une session n’est pas
 Les messages d’erreur ne sont **pas enregistrés** par défaut : le « pourquoi » ne peut donc qu’être déduit.
 **Réglages › Ce qui est enregistré › Garder les messages d’erreur** garde une version courte (300 caractères),
 sur une ligne et nettoyée (clés, jetons, mots de passe et dossier personnel retirés) des erreurs des outils en
-échec — Claude Code, Codex, Gemini CLI, Qwen Code et OpenCode, pour les prochains échecs.
+échec — Claude Code, Codex, Antigravity, Qwen Code et OpenCode, pour les prochains échecs.
 
 <img src="docs/media/ask.png" alt="Le tiroir Demander : questions d’exemple, une zone de saisie en bas, et l’historique sous la course" width="900">
 
@@ -167,7 +167,7 @@ dépôts sont lus, jamais modifiés, et un changement Git n’est **jamais attri
 | --- | --- | --- |
 | **Claude Code** | [Hooks HTTP](https://docs.claude.com/en/docs/claude-code/hooks) officiels envoyés au collecteur local, et consommation de tokens lue dans les nouvelles lignes de ses transcriptions (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respecté). | Copier le fragment affiché dans l’onglet **Connecteurs** dans `~/.claude/settings.json`. L’app ne le modifie jamais à ta place. |
 | **Codex** | Les enregistrements JSONL ajoutés dans `~/.codex/sessions` (`CODEX_HOME` respecté). | Rien. |
-| **Gemini CLI** | Les journaux de conversation locaux dans `~/.gemini/tmp` (`GEMINI_CLI_HOME` respecté). | Rien. |
+| **Antigravity** | Ses fichiers locaux dans `~/.gemini/antigravity`, ouverts en **lecture seule** : la liste des conversations (projet, état, activité) et, pour les sessions récentes, un transcript étape par étape (tokens, outils, échecs). Les anciennes conversations sont chiffrées par Antigravity et n’apparaissent que dans la liste. Le modèle n’est pas enregistré par Antigravity, donc pas de coût en dollars. | Rien. |
 | **OpenCode** | Sa base SQLite locale (`~/.local/share/opencode/opencode*.db`, `OPENCODE_DB` / `OPENCODE_DATA_DIR` respectés), ouverte en **lecture seule**. | Rien. |
 | **Qwen Code** | Les enregistrements JSONL ajoutés dans `~/.qwen/projects/<projet>/chats`. | Rien. |
 

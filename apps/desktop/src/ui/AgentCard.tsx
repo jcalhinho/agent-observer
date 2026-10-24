@@ -1,3 +1,4 @@
+import { useConfiguredModels } from "./useConfiguredModels";
 import type { CSSProperties, KeyboardEvent, MouseEvent } from "react";
 import { ArrowUpRight } from "lucide-react";
 import type { AgentPulse, PulseStatus } from "./agentPulse";
@@ -52,7 +53,9 @@ export function AgentCard({ pulse, now, repository, compact = false, onGoTo }: {
   const sparkMax = Math.max(1, ...pulse.spark);
   const folder = pulse.project?.project_path?.replaceAll("\\", "/").split("/").filter(Boolean).at(-1);
   const place = repository ?? (folder ? t(`${folder} (hors workspace)`, `${folder} (outside the workspace)`) : t("dépôt inconnu", "unknown repository"));
-  const model = session ? (session.models?.length ? session.models : [session.model]).filter(Boolean).join(" · ") : "";
+  const configured = useConfiguredModels()[provider.eventKey];
+  const reported = session ? (session.models?.length ? session.models : [session.model]).filter(Boolean).join(" · ") : "";
+  const model = reported || (configured ? t(`${configured} (choisi)`, `${configured} (selected)`) : "");
   const note = pulse.status === "looping" && pulse.loop ? t(`Boucle détectée : ${pulse.loop.evidence}.`, `Loop detected: ${pulse.loop.evidence}.`) : pulse.status === "blocked" ? t(`${pulse.failureStreak} échecs d’affilée`, `${pulse.failureStreak} failures in a row`) : null;
   const needsYou = pulse.status === "waiting" || pulse.status === "stalled";
 

@@ -1,3 +1,4 @@
+import { useConfiguredModels } from "./useConfiguredModels";
 import { lazy, Suspense, useEffect, useState, type CSSProperties } from "react";
 import type { AgentPulse } from "./agentPulse";
 import { statusInfo } from "./AgentCard";
@@ -29,6 +30,7 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo, mode }: { ev
   const reducedMotion = usePrefersReducedMotion();
   const [quality] = usePreference<RaceQuality>("race-quality", "auto", isRaceQuality);
   const agents = useAgents();
+  const configured = useConfiguredModels();
   const lanes = agents.map((provider) => {
     const state = deriveRaceState(provider.eventKey, events, now);
     const pulse = pulses.get(provider.eventKey);
@@ -40,13 +42,13 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo, mode }: { ev
 
   return mode === "3d"
     ? <div className="race-stage"><Suspense fallback={<div className="race-loading">{t("Chargement du stade…", "Loading the stadium…")}</div>}>
-        <SprintTrack3D reducedMotion={reducedMotion} quality={quality} lanes={lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse }) => ({ id: provider.id, name: provider.name, model: pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? null, color: provider.color, status: state.status, progress: state.progress, cue, cueKey: isLiveEvent && state.latest ? state.latest.event_id : null, bubble, mood: pulse?.status ?? "never", onSelect: pulse?.session && onGoTo ? () => onGoTo(pulse) : undefined }))} />
+        <SprintTrack3D reducedMotion={reducedMotion} quality={quality} lanes={lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse }) => ({ id: provider.id, name: provider.name, model: pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? configured[provider.eventKey] ?? null, color: provider.color, status: state.status, progress: state.progress, cue, cueKey: isLiveEvent && state.latest ? state.latest.event_id : null, bubble, mood: pulse?.status ?? "never", onSelect: pulse?.session && onGoTo ? () => onGoTo(pulse) : undefined }))} />
       </Suspense></div>
     : <div className="race-lanes">
         {lanes.map(({ provider, state, isLiveEvent, cue, bubble, pulse, label }) => {
           const moving = state.status === "running" || state.status === "recent";
           return <div className={`race-lane ${moving ? "moving" : ""}`} key={provider.id} style={{ "--agent-color": provider.color, "--progress": `${state.progress}%` } as CSSProperties}>
-            <div className="race-lane-name"><ProviderMark provider={provider} small /><span>{provider.name}<small>{pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? t("modèle non fourni", "model not reported")}</small></span><small>{label}</small></div>
+            <div className="race-lane-name"><ProviderMark provider={provider} small /><span>{provider.name}<small>{pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? configured[provider.eventKey] ?? t("modèle non fourni", "model not reported")}</small></span><small>{label}</small></div>
             <div className="race-lane-track">
               <span className="race-finish" aria-hidden="true" />
               {state.latest && <div className={`runner ${cue} ${isLiveEvent ? "new-event" : ""} ${moving ? "moving" : ""}`} key={state.latest.event_id}>

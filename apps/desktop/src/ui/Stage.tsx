@@ -79,7 +79,7 @@ export function Stage({ events, agentEvents, liveEventIds, collectorState, repos
 
     {!seen.length && <div className="stage-empty">
       <b>{t("En attente d’un agent", "Waiting for an agent")}</b>
-      <p>{t("Lance une session avec Claude Code, Codex, Gemini CLI, OpenCode ou Qwen Code : son coureur et sa carte apparaîtront ici en quelques secondes.", "Start a session with Claude Code, Codex, Gemini CLI, OpenCode or Qwen Code: its runner and card will show up here within seconds.")}</p>
+      <p>{t("Lance une session avec Claude Code, Codex, Antigravity, OpenCode ou Qwen Code : son coureur et sa carte apparaîtront ici en quelques secondes.", "Start a session with Claude Code, Codex, Antigravity, OpenCode or Qwen Code: its runner and card will show up here within seconds.")}</p>
       <button className="button" onClick={onOpenConnectors}>{t("Voir les connecteurs", "See connectors")}</button>
     </div>}
 

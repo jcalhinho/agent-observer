@@ -141,7 +141,7 @@ function countFailures(events: SummaryEvent[]): SessionSummary["failures"] {
 }
 
 /** Tools that write to a file (Claude Edit/Write, Codex apply_patch, Gemini/Qwen replace/write_file…). */
-const EDIT_TOOLS = /^(edit|multiedit|write|notebookedit|apply_patch|patch|replace|write_file|create|create_file|str_replace\w*|smart_edit)$/i;
+const EDIT_TOOLS = /^(edit|multiedit|write|notebookedit|apply_patch|patch|replace|write_file|write_to_file|replace_file_content|multi_replace_file_content|edit_file|create|create_file|str_replace\w*|smart_edit)$/i;
 
 /** A write to a file: an explicit change event, or the start of an editing tool. */
 export function isEdit(event: { kind: string; tool_name?: string | null }) {

@@ -14,12 +14,14 @@ pub fn keep_messages(enabled: bool) {
 
 /// What a connector records for a failed action: the cleaned message if the user asked for it.
 pub fn failure_outcome(message: Option<&str>) -> String {
-    if KEEP_MESSAGES.load(Ordering::Relaxed) {
-        if let Some(message) = message {
-            let cleaned = redact_error(message);
-            if !cleaned.is_empty() {
-                return format!("error: {cleaned}");
-            }
+    outcome(KEEP_MESSAGES.load(Ordering::Relaxed), message)
+}
+
+fn outcome(keep: bool, message: Option<&str>) -> String {
+    if keep && let Some(message) = message {
+        let cleaned = redact_error(message);
+        if !cleaned.is_empty() {
+            return format!("error: {cleaned}");
         }
     }
     "failed".to_owned()
@@ -174,11 +176,8 @@ mod tests {
 
     #[test]
     fn connectors_record_a_message_only_when_asked() {
-        keep_messages(false);
-        assert_eq!(failure_outcome(Some("boom")), "failed");
-        keep_messages(true);
-        assert_eq!(failure_outcome(Some("boom  now")), "error: boom now");
-        assert_eq!(failure_outcome(None), "failed");
-        keep_messages(false);
+        assert_eq!(outcome(false, Some("boom")), "failed");
+        assert_eq!(outcome(true, Some("boom  now")), "error: boom now");
+        assert_eq!(outcome(true, None), "failed");
     }
 }

@@ -1,10 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod antigravity_sessions;
 mod claude_transcripts;
 mod codex_rollout;
 mod focus;
 mod gemini_sessions;
 mod ingest;
+mod models;
 mod no_window;
 mod opencode_sessions;
 mod qwen_sessions;
@@ -76,6 +78,14 @@ struct CodexSetup {
 #[derive(Serialize)]
 struct GeminiSetup {
     sessions_dir: String,
+    available: bool,
+    capture_prompts: bool,
+    capture_commands: bool,
+}
+
+#[derive(Serialize)]
+struct AntigravitySetup {
+    data_dir: String,
     available: bool,
     capture_prompts: bool,
     capture_commands: bool,
@@ -186,6 +196,22 @@ fn gemini_setup(state: tauri::State<'_, CollectorState>) -> GeminiSetup {
     GeminiSetup {
         sessions_dir: sessions_dir.display().to_string(),
         available: sessions_dir.is_dir(),
+        capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
+        capture_commands: state.capture_commands.load(Ordering::Relaxed),
+    }
+}
+
+#[tauri::command]
+fn configured_models() -> Vec<models::ConfiguredModel> {
+    models::configured_models()
+}
+
+#[tauri::command]
+fn antigravity_setup(state: tauri::State<'_, CollectorState>) -> AntigravitySetup {
+    let data_dir = antigravity_sessions::data_root();
+    AntigravitySetup {
+        data_dir: data_dir.display().to_string(),
+        available: data_dir.join("conversation_summaries.db").is_file(),
         capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
         capture_commands: state.capture_commands.load(Ordering::Relaxed),
     }
@@ -1304,6 +1330,15 @@ fn main() {
                     persist_event(&gemini_state, event);
                 },
             );
+            let antigravity_state = state.clone();
+            antigravity_sessions::spawn(
+                antigravity_sessions::data_root(),
+                state.capture_prompts.clone(),
+                state.capture_commands.clone(),
+                move |event| {
+                    persist_event(&antigravity_state, event);
+                },
+            );
             let qwen_state = state.clone();
             qwen_sessions::spawn(
                 qwen_sessions::projects_root(),
@@ -1337,6 +1372,8 @@ fn main() {
             claude_setup,
             codex_setup,
             gemini_setup,
+            antigravity_setup,
+            configured_models,
             opencode_setup,
             qwen_setup,
             cursor_setup,

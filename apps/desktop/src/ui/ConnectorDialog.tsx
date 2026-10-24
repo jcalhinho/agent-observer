@@ -8,8 +8,9 @@ type ClaudeSetup = { endpoint: string; token: string; settings_fragment: string 
 type CodexSetup = { sessions_dir: string; available: boolean };
 type GeminiSetup = { sessions_dir: string; available: boolean };
 type OpenCodeSetup = { data_dir: string; database_paths: string[]; available: boolean };
+type AntigravitySetup = { data_dir: string; available: boolean };
 type QwenSetup = { projects_dir: string; available: boolean };
-type SetupByKind = { claude: ClaudeSetup; codex: CodexSetup; gemini: GeminiSetup; opencode: OpenCodeSetup; qwen: QwenSetup };
+type SetupByKind = { claude: ClaudeSetup; codex: CodexSetup; gemini: GeminiSetup; opencode: OpenCodeSetup; qwen: QwenSetup; antigravity: AntigravitySetup };
 
 export type ConnectorSetup = { [K in ConnectorKind]: { kind: K; setup: SetupByKind[K] } }[ConnectorKind];
 
@@ -18,7 +19,8 @@ const SETUP_COMMANDS: Record<ConnectorKind, string> = {
   codex: "codex_setup",
   gemini: "gemini_setup",
   opencode: "opencode_setup",
-  qwen: "qwen_setup"
+  qwen: "qwen_setup",
+  antigravity: "antigravity_setup"
 };
 
 export async function loadConnectorSetup(kind: ConnectorKind): Promise<ConnectorSetup> {
@@ -32,6 +34,7 @@ export function connectorSource(connector: ConnectorSetup): { path: string; foun
     case "claude": return null;
     case "codex": return { path: connector.setup.sessions_dir, found: connector.setup.available };
     case "gemini": return { path: connector.setup.sessions_dir, found: connector.setup.available };
+    case "antigravity": return { path: connector.setup.data_dir, found: connector.setup.available };
     case "qwen": return { path: connector.setup.projects_dir, found: connector.setup.available };
     case "opencode": return { path: connector.setup.database_paths.join(" · ") || connector.setup.data_dir, found: connector.setup.available };
   }
@@ -40,6 +43,7 @@ export function connectorSource(connector: ConnectorSetup): { path: string; foun
 function readOnlyCopy(kind: Exclude<ConnectorKind, "claude">): { name: string; how: string; tokens: string } {
   switch (kind) {
     case "codex": return { name: "Codex", how: t("L’app lit les journaux de session que Codex écrit sur ton disque, au fur et à mesure.", "The app reads the session logs Codex writes to your disk, as they are written."), tokens: t("Codex fournit les tokens de chaque requête au modèle.", "Codex reports the tokens of each model request.") };
+    case "antigravity": return { name: "Antigravity", how: t("L’app lit en lecture seule les fichiers locaux d’Antigravity : la liste de ses conversations et, pour les sessions récentes, le détail de chaque étape. Les messages et le contenu des fichiers ne sont jamais enregistrés.", "The app reads Antigravity’s local files, read-only: its list of conversations and, for recent sessions, the detail of each step. Messages and file contents are never recorded."), tokens: t("Antigravity fournit les tokens de chaque étape, mais pas le modèle choisi : pas de coût en dollars.", "Antigravity reports the tokens of each step, but not the model chosen: no dollar cost.") };
     case "gemini": return { name: "Gemini CLI", how: t("L’app lit les enregistrements de conversation que Gemini CLI écrit pour chaque projet.", "The app reads the conversation records Gemini CLI writes for each project."), tokens: t("Gemini CLI fournit les tokens et la durée de chaque réponse.", "Gemini CLI reports the tokens and duration of each answer.") };
     case "qwen": return { name: "Qwen Code", how: t("L’app lit les journaux de conversation que Qwen Code écrit pour chaque projet.", "The app reads the conversation logs Qwen Code writes for each project."), tokens: t("Qwen Code fournit les tokens, le modèle et la durée de chaque requête.", "Qwen Code reports the tokens, model and duration of each request.") };
     case "opencode": return { name: "OpenCode", how: t("L’app lit la base de données d’OpenCode en lecture seule.", "The app reads OpenCode’s database, read-only."), tokens: t("OpenCode fournit les tokens de chaque réponse.", "OpenCode reports the tokens of each answer.") };

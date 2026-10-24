@@ -12,6 +12,7 @@ function how(key: string) {
   switch (key) {
     case "claude_code": return t("Hooks Claude Code (actions en direct) + journal de session (tokens).", "Claude Code hooks (live actions) + session log (tokens).");
     case "codex": return t("Journaux de session Codex, lus au fil de l’eau.", "Codex session logs, read as they are written.");
+    case "antigravity": return t("Fichiers locaux d’Antigravity (conversations et étapes).", "Antigravity local files (conversations and steps).");
     case "gemini_cli": return t("Enregistrements de conversation Gemini CLI.", "Gemini CLI conversation records.");
     case "qwen_code": return t("Journaux de conversation Qwen Code.", "Qwen Code conversation logs.");
     case "opencode": return t("Base de données OpenCode, en lecture seule.", "OpenCode database, read-only.");

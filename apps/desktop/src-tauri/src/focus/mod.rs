@@ -361,6 +361,7 @@ fn desktop_app(provider: &str) -> Option<std::path::PathBuf> {
             "claude_code" => "Claude",
             "codex" => "Codex",
             "opencode" => "OpenCode",
+            "antigravity" => "Antigravity",
             _ => return None,
         };
         let mut folders = vec![std::path::PathBuf::from("/Applications")];
@@ -379,6 +380,7 @@ fn desktop_app(provider: &str) -> Option<std::path::PathBuf> {
                 "Programs\\Claude\\Claude.exe",
             ],
             "codex" => &["Programs\\Codex\\Codex.exe"],
+            "antigravity" => &["Programs\\Antigravity\\Antigravity.exe"],
             _ => &[],
         };
         candidates

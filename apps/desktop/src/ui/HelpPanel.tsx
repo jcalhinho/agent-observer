@@ -4,7 +4,7 @@ import { t } from "./i18n";
 
 function glossary(): Array<[string, string]> {
   return [
-    [t("Agent", "Agent"), t("Un assistant de code (Claude Code, Codex, Gemini CLI, OpenCode, Qwen Code…) qui lit et modifie ton projet à ta demande.", "A coding assistant (Claude Code, Codex, Gemini CLI, OpenCode, Qwen Code…) that reads and edits your project on request.")],
+    [t("Agent", "Agent"), t("Un assistant de code (Claude Code, Codex, Antigravity, OpenCode, Qwen Code…) qui lit et modifie ton projet à ta demande.", "A coding assistant (Claude Code, Codex, Gemini CLI, OpenCode, Qwen Code…) that reads and edits your project on request.")],
     [t("Session", "Session"), t("Une conversation avec un agent, du premier message à la fermeture.", "One conversation with an agent, from the first message to closing it.")],
     [t("Tour", "Turn"), t("Un aller-retour : ton message, puis tout le travail que l’agent fait pour y répondre.", "One round trip: your message, then all the work the agent does to answer it.")],
     [t("Outil", "Tool"), t("Une action de l’agent : lire un fichier, le modifier, chercher dans le code, lancer une commande…", "An action of the agent: read a file, edit it, search the code, run a command…")],
