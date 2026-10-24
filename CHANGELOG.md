@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-10-24
+
+### Changed
+- **Gemini CLI is no longer read at all.** It was hidden in 0.7.0 but its connector kept collecting and
+  storing its events. It is not started any more; its past events stay in the database (the only way to remove them is
+  "Erase history" in Settings, which deletes every recorded event, not only Gemini's).
+
 ## [0.9.2] - 2026-10-24
 
 ### Fixed

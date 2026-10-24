@@ -6,6 +6,8 @@ mod claude_transcripts;
 mod codex_rollout;
 mod copilot_sessions;
 mod focus;
+// Kept, not started: see the comment where the connectors are spawned.
+#[allow(dead_code)]
 mod gemini_sessions;
 mod ingest;
 mod models;
@@ -1342,15 +1344,7 @@ fn main() {
                     persist_event(&codex_state, event);
                 },
             );
-            let gemini_state = state.clone();
-            gemini_sessions::spawn(
-                gemini_sessions::sessions_root(),
-                state.capture_prompts.clone(),
-                state.capture_commands.clone(),
-                move |event| {
-                    persist_event(&gemini_state, event);
-                },
-            );
+            // Gemini CLI is not observed any more (Antigravity replaces it): nothing of it is read.
             let copilot_state = state.clone();
             copilot_sessions::spawn(
                 copilot_sessions::sessions_root(),
