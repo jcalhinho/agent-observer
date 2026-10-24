@@ -16,16 +16,12 @@ describe("lane insights", () => {
     expect(laneInsights("codex", events, NOW).sessionMinutes).toBe(0);
   });
 
-  it("measures the token flow over the last five minutes, on a log scale", () => {
+  it("measures the token flow over the last five minutes", () => {
     const burst = (ago: number, tokens: number) => event("model_usage", ago, { input_tokens: { value: tokens }, output_tokens: { value: 0 } });
     const quiet = laneInsights("claude_code", [event("user_message", 1), burst(20, 9_000_000)], NOW);
     expect(quiet.tokensPerMinute).toBe(0);
-    expect(quiet.trail).toBe(0);
     const some = laneInsights("claude_code", [burst(2, 5_000)], NOW);
     expect(some.tokensPerMinute).toBe(1000);
-    expect(some.trail).toBeGreaterThan(0.5);
-    const flood = laneInsights("claude_code", [burst(1, 50_000_000)], NOW);
-    expect(flood.trail).toBe(1);
   });
 
   it("counts recent failures, capped, and ignores old ones", () => {

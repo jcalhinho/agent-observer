@@ -31,8 +31,6 @@ export type RaceLane = {
   laps: number;
   /** Estimated USD cost of the session, when known. */
   cost: number | null;
-  /** 0..1: length of the token trail behind the runner. */
-  trail: number;
   /** Failed tools in the last 15 minutes: hurdles on the lane (a blocked agent has a wall). */
   hurdles: number;
   celebration: Celebration;
@@ -55,7 +53,6 @@ const RUNNER_SCALE = 1.3;
 const CONFETTI_COUNT = 28;
 const CONFETTI_COLORS = ["#ff6b6b", "#ffd166", "#06d6a0", "#4cc9f0", "#b388ff", "#ff9f1c"];
 const CROWD_COLORS = ["#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#f78c6b", "#c77dff", "#f4f1de"];
-const SKIN = "#f1c7a1";
 const SHORTS = "#2f3542";
 const HILLS: Array<[number, number, number, string]> = [
   [-20, -22, 7, "#6cbf73"],
@@ -787,11 +784,8 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
   const confetti = useRef<THREE.Group>(null);
   const sparks = useRef<THREE.Group>(null);
   const blob = useRef<THREE.Mesh>(null);
-  const trailMesh = useRef<THREE.Mesh>(null);
   const beam = useRef<THREE.Group>(null);
   const loopRing = useRef<THREE.Mesh>(null);
-  const trailGeometry = useMemo(() => new THREE.CapsuleGeometry(0.055, 1, 4, 10).rotateZ(Math.PI / 2), []);
-  useEffect(() => () => trailGeometry.dispose(), [trailGeometry]);
   const motion = useRef({
     x: progressToX(lane.progress),
     phase: seeded(z + 4) * Math.PI * 2,
@@ -807,6 +801,8 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
     sparkVelocities: Array.from({ length: SPARK_COUNT }, () => new THREE.Vector3())
   });
   const capColor = lane.capColor;
+  const face = useMemo(() => faceFor(lane.id), [lane.id]);
+  const skin = face.skin;
 
   useEffect(() => {
     const state = motion.current;
@@ -903,13 +899,7 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
       const lift = 1 / (1 + y * 3);
       blob.current.scale.set(0.34 * RUNNER_SCALE * lift, 0.24 * RUNNER_SCALE * lift, 1);
     }
-    // Token trail behind the runner, spotlight on a runner that needs you or is focused, ring where it loops.
-    if (trailMesh.current) {
-      const length = lane.trail * 3.2;
-      trailMesh.current.visible = moving && length > 0.05;
-      trailMesh.current.scale.set(Math.max(0.001, length), 1, 1);
-      trailMesh.current.position.set(state.x + offsetX - 0.28 - length / 2, 0.4 + y * 0.5, z + offsetZ);
-    }
+    // Spotlight on a runner that needs you or is focused, ring where it loops.
     if (beam.current) {
       const lit = NEEDS_YOU.includes(lane.mood) || lane.focused;
       beam.current.visible = lit;
@@ -960,7 +950,7 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
             </mesh>
             <mesh position={[0, -0.33, 0]}>
               <capsuleGeometry args={[0.05, 0.2, 4, 10]} />
-              <Low color={SKIN} />
+              <Low color={skin} />
             </mesh>
             <mesh position={[0.04, -0.52, 0]} scale={[1.5, 0.8, 1]}>
               <sphereGeometry args={[0.065, 14, 10]} />
@@ -979,29 +969,18 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
           </mesh>
           <mesh position={[0, 0.64, 0]}>
             <sphereGeometry args={[0.165, 24, 16]} />
-            <Low color={SKIN} />
+            <Low color={skin} />
           </mesh>
           {/* A cap that is a soft dome with a rounded peak, and a little face */}
           <mesh position={[0, 0.665, 0]}>
             <sphereGeometry args={[0.172, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.46]} />
             <Low color={capColor} />
           </mesh>
-          <mesh position={[0.15, 0.665, 0]} scale={[1.1, 0.28, 1]}>
+          <mesh position={[0.15, 0.70, 0]} scale={[1.1, 0.26, 1]}>
             <sphereGeometry args={[0.1, 14, 8]} />
             <Low color={capColor} />
           </mesh>
-          {[-1, 1].map((side) => (
-            <group key={side}>
-              <mesh position={[0.152, 0.635, side * 0.06]}>
-                <sphereGeometry args={[0.022, 10, 8]} />
-                <meshBasicMaterial color="#2b2f3a" />
-              </mesh>
-              <mesh position={[0.15, 0.595, side * 0.1]} scale={[0.5, 0.8, 1.2]}>
-                <sphereGeometry args={[0.03, 10, 8]} />
-                <meshBasicMaterial color="#ff9db0" />
-              </mesh>
-            </group>
-          ))}
+          <Face face={face} />
           {[-1, 1].map((side) => (
             <group key={side} ref={side < 0 ? leftArm : rightArm} position={[0, 0.4, side * 0.21]}>
               <mesh position={[0, -0.04, 0]}>
@@ -1010,16 +989,12 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
               </mesh>
               <mesh position={[0, -0.19, 0]}>
                 <capsuleGeometry args={[0.04, 0.16, 4, 10]} />
-                <Low color={SKIN} />
+                <Low color={skin} />
               </mesh>
             </group>
           ))}
         </group>
       </group>
-      {/* Token trail: longer when the agent burns more tokens */}
-      <mesh ref={trailMesh} geometry={trailGeometry} visible={false}>
-        <meshBasicMaterial color={lane.color} transparent opacity={0.4} depthWrite={false} />
-      </mesh>
       {/* Spotlight for a runner that needs you (or that you focus) */}
       <group ref={beam} visible={false}>
         <mesh position={[0, 1.55, 0]}>
@@ -1058,6 +1033,186 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
         ))}
       </group>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Faces: every agent has its own
+// ---------------------------------------------------------------------------------------------
+
+type Eyes = "round" | "dot" | "sleepy" | "wide";
+type Mouth = "smile" | "grin" | "flat" | "o" | "smirk";
+type Hair = "none" | "ponytail" | "bun" | "sides";
+export type FaceConfig = { skin: string; hair: string; eyes: Eyes; brows: number; nose: number; mouth: Mouth; glasses: boolean; freckles: boolean; hairStyle: Hair };
+
+const SKIN_TONES = ["#f1c7a1", "#e8b894", "#c68a63", "#a56a45", "#f6d6bd", "#8d5a3c"];
+const HAIR_TONES = ["#3a2a22", "#6b4423", "#c9a227", "#1f1f26", "#8a3b2a", "#9aa0aa"];
+const EYES: Eyes[] = ["round", "dot", "sleepy", "wide"];
+const MOUTHS: Mouth[] = ["smile", "grin", "flat", "o", "smirk"];
+const HAIRS: Hair[] = ["none", "ponytail", "bun", "sides"];
+
+/** The agents the app knows get a fixed, distinct face; any other (a custom connector) gets one from its id. */
+export const FACES: Record<string, FaceConfig> = {
+  claude_code: { skin: SKIN_TONES[1], hair: HAIR_TONES[1], eyes: "round", brows: 0.18, nose: 1, mouth: "smile", glasses: false, freckles: false, hairStyle: "sides" },
+  antigravity: { skin: SKIN_TONES[4], hair: HAIR_TONES[5], eyes: "dot", brows: -0.12, nose: 0.8, mouth: "flat", glasses: true, freckles: false, hairStyle: "none" },
+  codex: { skin: SKIN_TONES[5], hair: HAIR_TONES[3], eyes: "wide", brows: 0.3, nose: 1.25, mouth: "grin", glasses: false, freckles: false, hairStyle: "none" },
+  qwen: { skin: SKIN_TONES[2], hair: HAIR_TONES[0], eyes: "sleepy", brows: -0.2, nose: 0.9, mouth: "smirk", glasses: false, freckles: true, hairStyle: "bun" },
+  opencode: { skin: SKIN_TONES[0], hair: HAIR_TONES[4], eyes: "round", brows: 0.05, nose: 0.7, mouth: "o", glasses: false, freckles: true, hairStyle: "ponytail" },
+  copilot: { skin: SKIN_TONES[3], hair: HAIR_TONES[2], eyes: "wide", brows: -0.28, nose: 1.1, mouth: "smile", glasses: true, freckles: false, hairStyle: "sides" }
+};
+
+export function faceFor(id: string): FaceConfig {
+  const known = FACES[id];
+  if (known) return known;
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  const pick = <T,>(items: T[], shift: number) => items[(hash >>> shift) % items.length];
+  return { skin: pick(SKIN_TONES, 0), hair: pick(HAIR_TONES, 3), eyes: pick(EYES, 6), brows: ((hash >>> 9) % 7 - 3) * 0.1, nose: 0.7 + ((hash >>> 12) % 6) * 0.1, mouth: pick(MOUTHS, 15), glasses: (hash >>> 18) % 3 === 0, freckles: (hash >>> 20) % 3 === 0, hairStyle: pick(HAIRS, 22) };
+}
+
+const DARK = "#2b2f3a";
+const BROW = "#3a2c25";
+
+/** Eyes, brows, nose, mouth and, for some, glasses, freckles and hair. The head is a sphere of radius 0.165 centred on (0, 0.64, 0), facing +x. */
+export function Face({ face }: { face: FaceConfig }) {
+  const spacing = face.eyes === "wide" ? 0.066 : 0.058;
+  const shade = useMemo(() => `#${new THREE.Color(face.skin).multiplyScalar(0.86).getHexString()}`, [face.skin]);
+  return (
+    <group>
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          {face.eyes === "dot" && (
+            <mesh position={[0.153, 0.622, side * spacing]}>
+              <sphereGeometry args={[0.021, 10, 8]} />
+              <meshBasicMaterial color={DARK} />
+            </mesh>
+          )}
+          {(face.eyes === "round" || face.eyes === "wide") && (
+            <>
+              <mesh position={[0.15, 0.622, side * spacing]} scale={[0.55, 1, 1]}>
+                <sphereGeometry args={[face.eyes === "wide" ? 0.036 : 0.03, 12, 10]} />
+                <meshBasicMaterial color="#ffffff" />
+              </mesh>
+              <mesh position={[0.162, 0.622, side * spacing]}>
+                <sphereGeometry args={[face.eyes === "wide" ? 0.02 : 0.016, 10, 8]} />
+                <meshBasicMaterial color={DARK} />
+              </mesh>
+            </>
+          )}
+          {face.eyes === "sleepy" && (
+            <mesh position={[0.155, 0.618, side * spacing]} scale={[0.35, 0.3, 1.7]}>
+              <sphereGeometry args={[0.025, 10, 8]} />
+              <meshBasicMaterial color={DARK} />
+            </mesh>
+          )}
+          <mesh position={[0.15, 0.665, side * spacing]} rotation={[Math.PI / 2 + side * face.brows, 0, 0]}>
+            <capsuleGeometry args={[0.008, 0.04, 3, 6]} />
+            <meshBasicMaterial color={BROW} />
+          </mesh>
+          {face.glasses && (
+            <mesh position={[0.163, 0.622, side * spacing]} rotation={[0, Math.PI / 2, 0]}>
+              <torusGeometry args={[0.042, 0.0055, 6, 20]} />
+              <meshBasicMaterial color={DARK} />
+            </mesh>
+          )}
+          {face.freckles && [0, 1, 2].map((dot) => (
+            <mesh key={dot} position={[0.158 - dot * 0.002, 0.578 - (dot % 2) * 0.012, side * (0.075 + dot * 0.012)]}>
+              <sphereGeometry args={[0.0065, 6, 5]} />
+              <meshBasicMaterial color={shade} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+      {face.glasses && (
+        <mesh position={[0.165, 0.625, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <capsuleGeometry args={[0.0045, 0.03, 3, 6]} />
+          <meshBasicMaterial color={DARK} />
+        </mesh>
+      )}
+      <mesh position={[0.17, 0.592, 0]} scale={[0.9, 1, 0.9]}>
+        <sphereGeometry args={[0.02 * face.nose, 10, 8]} />
+        <Low color={shade} />
+      </mesh>
+      <Mouth mouth={face.mouth} />
+      <Hair style={face.hairStyle} color={face.hair} />
+    </group>
+  );
+}
+
+function Mouth({ mouth }: { mouth: Mouth }) {
+  // Drawn in the plane of the face: rotated a quarter turn so it looks along +x.
+  return (
+    <group position={[0.153, 0.548, 0]} rotation={[0, Math.PI / 2, 0]}>
+      {mouth === "smile" && (
+        <mesh rotation={[0, 0, Math.PI]}>
+          <torusGeometry args={[0.03, 0.006, 6, 16, Math.PI]} />
+          <meshBasicMaterial color="#7a3b3b" />
+        </mesh>
+      )}
+      {mouth === "grin" && (
+        <>
+          <mesh position={[0, 0.006, 0]}>
+            <circleGeometry args={[0.034, 18, Math.PI, Math.PI]} />
+            <meshBasicMaterial color="#6b2a33" side={THREE.DoubleSide} />
+          </mesh>
+          <mesh position={[0, 0.003, 0.001]}>
+            <circleGeometry args={[0.027, 14, Math.PI * 1.1, Math.PI * 0.8]} />
+            <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} />
+          </mesh>
+        </>
+      )}
+      {mouth === "flat" && (
+        <mesh rotation={[0, 0, Math.PI / 2]}>
+          <capsuleGeometry args={[0.0065, 0.04, 3, 6]} />
+          <meshBasicMaterial color="#7a3b3b" />
+        </mesh>
+      )}
+      {mouth === "o" && (
+        <mesh>
+          <circleGeometry args={[0.014, 14]} />
+          <meshBasicMaterial color="#6b2a33" side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      {mouth === "smirk" && (
+        <mesh position={[0.012, 0.004, 0]} rotation={[0, 0, Math.PI + 0.25]}>
+          <torusGeometry args={[0.026, 0.006, 6, 14, Math.PI * 0.75]} />
+          <meshBasicMaterial color="#7a3b3b" />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+/** What shows under the cap: tufts at the sides, a ponytail, a bun. */
+function Hair({ style, color }: { style: Hair; color: string }) {
+  if (style === "none") return null;
+  return (
+    <group>
+      {style === "sides" && [-1, 1].map((side) => (
+        <mesh key={side} position={[-0.03, 0.63, side * 0.14]} scale={[0.9, 1.15, 0.7]}>
+          <sphereGeometry args={[0.06, 10, 8]} />
+          <Low color={color} />
+        </mesh>
+      ))}
+      {style === "ponytail" && (
+        <>
+          <mesh position={[-0.15, 0.64, 0]} scale={[0.8, 1.1, 1.1]}>
+            <sphereGeometry args={[0.07, 12, 10]} />
+            <Low color={color} />
+          </mesh>
+          <mesh position={[-0.2, 0.55, 0]} rotation={[0, 0, 0.35]}>
+            <capsuleGeometry args={[0.028, 0.14, 4, 8]} />
+            <Low color={color} />
+          </mesh>
+        </>
+      )}
+      {style === "bun" && (
+        <mesh position={[-0.07, 0.8, 0]}>
+          <sphereGeometry args={[0.058, 12, 10]} />
+          <Low color={color} />
+        </mesh>
+      )}
+    </group>
   );
 }
 

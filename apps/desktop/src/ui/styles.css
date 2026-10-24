@@ -722,7 +722,6 @@ button.cite:hover { border-color: var(--signal); color: var(--signal); }
 .race-stage[data-daypart="dusk"] { background: linear-gradient(180deg, #5a4fa3 0%, #e07a8a 55%, #ffc58a 100%); }
 .race-stage[data-daypart="night"] { background: linear-gradient(180deg, #0e1530 0%, #1b2650 55%, #2c3a6b 100%); }
 .stage-track { transition: filter .6s; }
-.race-legend .legend-trail { background: linear-gradient(90deg, transparent, var(--accent)); width: 14px; border-radius: 4px; }
 .race-legend .legend-hurdle { background: #ff7d7d; width: 12px; height: 5px; border-radius: 3px; }
 .race-legend .legend-flag { background: var(--good); border-radius: 2px 6px 6px 2px; }
 .race-legend .legend-cap { background: conic-gradient(#e07b4f 0 25%, #4f8df0 0 50%, #2fb585 0 75%, #8c7cf0 0); }

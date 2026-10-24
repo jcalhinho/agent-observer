@@ -32,8 +32,6 @@ export type LaneInsights = {
   laps: number;
   /** Tokens per minute over the last five minutes. */
   tokensPerMinute: number;
-  /** 0..1, how long the token trail behind the runner is (logarithmic: a flood is not 100x longer). */
-  trail: number;
   /** Failed tools in the last 15 minutes, capped for drawing. */
   recentFailures: number;
   /** Completed turns in a row with no failed tool, ending with the latest. */
@@ -50,7 +48,7 @@ export function celebrationFor(streak: number, laps: number): Celebration {
 
 export function laneInsights(provider: string, events: InsightEvent[], now: number): LaneInsights {
   const own = events.filter((event) => event.provider === provider).sort((a, b) => at(a) - at(b));
-  if (!own.length) return { sessionMinutes: 0, laps: 0, tokensPerMinute: 0, trail: 0, recentFailures: 0, streak: 0, celebration: "none" };
+  if (!own.length) return { sessionMinutes: 0, laps: 0, tokensPerMinute: 0, recentFailures: 0, streak: 0, celebration: "none" };
 
   const latestSession = own[own.length - 1].session_id;
   const session = own.filter((event) => event.session_id === latestSession);
@@ -66,7 +64,6 @@ export function laneInsights(provider: string, events: InsightEvent[], now: numb
     if (age <= FAILURE_WINDOW_MS && event.kind === "tool_failed") failures += 1;
   }
   const tokensPerMinute = tokens / (TOKEN_WINDOW_MS / 60_000);
-  const trail = Math.min(1, Math.log10(1 + tokensPerMinute) / 4.5);
 
   // Turns end at a completed checkpoint; a turn counts when none of its tools failed.
   let streak = 0;
@@ -81,7 +78,7 @@ export function laneInsights(provider: string, events: InsightEvent[], now: numb
   }
   for (let index = turns.length - 1; index >= 0 && turns[index]; index -= 1) streak += 1;
 
-  return { sessionMinutes, laps, tokensPerMinute, trail, recentFailures: Math.min(MAX_HURDLES, failures), streak, celebration: celebrationFor(streak, laps) };
+  return { sessionMinutes, laps, tokensPerMinute, recentFailures: Math.min(MAX_HURDLES, failures), streak, celebration: celebrationFor(streak, laps) };
 }
 
 // ---------------------------------------------------------------------------------------------

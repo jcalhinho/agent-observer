@@ -44,9 +44,8 @@ export type LaneView = {
 
 /**
  * The race: each agent is a runner that moves forward when it acts, trips on a failed tool and
- * crosses the line when a turn ends. It also shows how long a session has lasted (flags), how many
- * tokens flow (a trail), the failures of the last minutes (hurdles), the family of the model (the
- * cap) and the time of day. A click on a runner brings the camera close and opens its card. It fills
+ * crosses the line when a turn ends. It also shows how long a session has lasted (flags), the
+ * failures of the last minutes (hurdles), the family of the model (the cap) and the time of day. A click on a runner brings the camera close and opens its card. It fills
  * whatever room the stage gives it; bubbles repeat the action shown on the agent cards.
  */
 export function SprintTrack({ events, pulses, liveEventIds, onGoTo, mode, replay, onReplayEnd }: { events: SessionEvent[]; pulses: Map<string, AgentPulse>; liveEventIds: Record<string, string>; onGoTo?: (pulse: AgentPulse) => void; mode: TrackMode; replay: Replay | null; onReplayEnd: () => void }) {
@@ -90,7 +89,7 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo, mode, replay
     status: lane.state.status, progress: lane.state.progress, cue: lane.cue, cueKey: lane.cueKey, bubble: lane.bubble,
     mood: lane.pulse?.status ?? "never", onSelect: lane.state.latest ? () => toggleFocus(lane.provider.id) : undefined,
     capColor: lane.capColor, statusLabel: lane.label, sessionMinutes: lane.insights.sessionMinutes, laps: lane.insights.laps,
-    cost: lane.pulse?.session?.cost ?? null, trail: lane.insights.trail, hurdles: lane.insights.recentFailures,
+    cost: lane.pulse?.session?.cost ?? null, hurdles: lane.insights.recentFailures,
     celebration: lane.insights.celebration, focused: lane.provider.id === focusId
   }));
 
@@ -171,7 +170,6 @@ export function RaceLegend() {
     <li><i className="legend-finish" />{t("franchit la ligne : tour terminé", "crosses the line: turn finished")}</li>
     <li><i className="legend-loop" />{t("tourne en rond : boucle", "runs in circles: loop")}</li>
     <li><i className="legend-wait" />{t("lève la main : t’attend, un projecteur l’éclaire", "raises a hand: waiting for you, under a spotlight")}</li>
-    <li><i className="legend-trail" />{t("traînée : tokens consommés ces 5 dernières minutes", "trail: tokens used in the last 5 minutes")}</li>
     <li><i className="legend-hurdle" />{t("haies devant lui : outils en échec (15 min) ; un mur = bloqué", "hurdles ahead: failed tools (15 min); a wall = blocked")}</li>
     <li><i className="legend-flag" />{t("drapeaux au départ : un par tranche de 30 min de session", "flags at the start: one per 30 minutes of session")}</li>
     <li><i className="legend-cap" />{t("casquette : famille du modèle (grise si inconnu)", "cap: family of the model (grey when unknown)")}</li>

@@ -57,7 +57,6 @@ The scene carries more than movement, all computed from what the agents report:
 
 | You see | It means |
 | --- | --- |
-| A **trail** behind the runner | Tokens used in the last 5 minutes (log scale: a flood is not 100 times longer). |
 | **Hurdles** ahead of it | One per failed tool of the last 15 minutes; a blocked agent has a wall of two bars. |
 | **Flags** behind the start line | One per 30 minutes of the session. |
 | The colour of the **cap** | The family of the model in use (Claude, Gemini, GPT, Qwen, GLM, DeepSeek, Copilot; grey when unknown). |

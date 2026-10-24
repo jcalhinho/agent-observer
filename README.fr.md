@@ -58,7 +58,6 @@ La scène porte plus que le mouvement, tout est calculé d’après ce que les a
 
 | Tu vois | Ça veut dire |
 | --- | --- |
-| Une **traînée** derrière le coureur | Les tokens des 5 dernières minutes (échelle logarithmique : un déluge n’est pas 100 fois plus long). |
 | Des **haies** devant lui | Une par outil en échec sur les 15 dernières minutes ; un agent bloqué a un mur de deux barres. |
 | Des **drapeaux** derrière la ligne de départ | Un par tranche de 30 minutes de session. |
 | La couleur de la **casquette** | La famille du modèle utilisé (Claude, Gemini, GPT, Qwen, GLM, DeepSeek, Copilot ; grise si inconnue). |
