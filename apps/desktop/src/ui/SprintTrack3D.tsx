@@ -31,8 +31,8 @@ export type RaceLane = {
   laps: number;
   /** Estimated USD cost of the session, when known. */
   cost: number | null;
-  /** Failed tools in the last 15 minutes: hurdles on the lane (a blocked agent has a wall). */
-  hurdles: number;
+  /** Where on the track (0..100) a tool failed during the turn in progress: a hurdle stays on each spot. */
+  hurdleMarks: number[];
   celebration: Celebration;
   focused: boolean;
 };
@@ -680,7 +680,7 @@ function Scoreboard({ lanes }: { lanes: RaceLane[] }) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Hurdles (recent failures) and lap flags (session time)
+// Hurdles (failures of the turn in progress) and lap flags (session time)
 // ---------------------------------------------------------------------------------------------
 
 /** Instanced meshes whose number of instances changes: `capacity` is the most they can hold. */
@@ -707,23 +707,23 @@ function useCounted(items: Array<{ position: [number, number, number]; scale?: [
 type Item = { position: [number, number, number]; scale?: [number, number, number]; color: string };
 
 /**
- * One soft hurdle per failed tool of the last 15 minutes, ahead of the runner; a blocked agent has
- * a wall of two bars. They disappear as the failures get old.
+ * A hurdle stays on the spot of each tool failure of the turn in progress (the runner has gone past
+ * it, or tripped on it); a blocked agent has a wall of two bars. When the turn ends they go.
  */
 function Hurdles({ lanes }: { lanes: RaceLane[] }) {
   const capacity = Math.max(1, lanes.length * MAX_HURDLES * 2);
-  const bar = useMemo(() => new THREE.CapsuleGeometry(0.035, 0.5, 4, 8).rotateX(Math.PI / 2), []);
-  useEffect(() => () => bar.dispose(), [bar]);
+  const bar = useMemo(() => new THREE.CapsuleGeometry(0.05, 0.62, 4, 10).rotateX(Math.PI / 2), []);
+  const post = useMemo(() => new THREE.CapsuleGeometry(0.04, 0.3, 4, 8), []);
+  useEffect(() => () => { bar.dispose(); post.dispose(); }, [bar, post]);
   const bars: Item[] = [];
   const posts: Item[] = [];
   lanes.forEach((lane, index) => {
     const z = laneZ(index, lanes.length);
     const wall = lane.mood === "blocked";
-    for (let k = 0; k < lane.hurdles; k += 1) {
-      const x = Math.min(FINISH_X - 0.7, progressToX(lane.progress) + 1.3 + k * 0.62);
-      const levels = wall ? [0.2, 0.42] : [0.2];
-      levels.forEach((y) => bars.push({ position: [x, y, z], scale: [1.4, 1.4, 1.4], color: "#ff6f6f" }));
-      [-1, 1].forEach((side) => posts.push({ position: [x, wall ? 0.24 : 0.12, z + side * 0.36], scale: [1.4, wall ? 2.2 : 1.1, 1.4], color: "#ffffff" }));
+    for (const mark of lane.hurdleMarks) {
+      const x = progressToX(mark);
+      [0.38, ...(wall ? [0.66] : [])].forEach((y) => bars.push({ position: [x, y, z], color: "#ff5d5d" }));
+      [-1, 1].forEach((side) => posts.push({ position: [x, wall ? 0.34 : 0.2, z + side * 0.37], scale: [1, wall ? 1.8 : 1, 1], color: "#ffffff" }));
     }
   });
   const barMesh = useCounted(bars, capacity);
@@ -733,8 +733,7 @@ function Hurdles({ lanes }: { lanes: RaceLane[] }) {
       <instancedMesh key={`b${capacity}`} ref={barMesh} args={[bar, undefined, capacity]}>
         <meshLambertMaterial />
       </instancedMesh>
-      <instancedMesh key={`p${capacity}`} ref={postMesh} args={[undefined, undefined, capacity]}>
-        <capsuleGeometry args={[0.03, 0.2, 4, 8]} />
+      <instancedMesh key={`p${capacity}`} ref={postMesh} args={[post, undefined, capacity]}>
         <meshLambertMaterial />
       </instancedMesh>
     </group>

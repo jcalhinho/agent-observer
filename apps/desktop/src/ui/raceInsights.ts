@@ -1,4 +1,4 @@
-import { isTurnComplete } from "./race";
+import { isTurnComplete, progressAt } from "./race";
 
 /*
  * What the race shows beyond "who moves": session time, token flow, recent failures, clean streaks,
@@ -32,8 +32,10 @@ export type LaneInsights = {
   laps: number;
   /** Tokens per minute over the last five minutes. */
   tokensPerMinute: number;
-  /** Failed tools in the last 15 minutes, capped for drawing. */
+  /** Failed tools in the last 15 minutes, capped. */
   recentFailures: number;
+  /** Where on the track (0..100) each tool failed during the turn in progress, in the last 10 minutes: the hurdles. */
+  failureMarks: number[];
   /** Completed turns in a row with no failed tool, ending with the latest. */
   streak: number;
   celebration: Celebration;
@@ -46,9 +48,9 @@ export function celebrationFor(streak: number, laps: number): Celebration {
   return streak >= CONFETTI_STREAK ? "confetti" : "none";
 }
 
-export function laneInsights(provider: string, events: InsightEvent[], now: number): LaneInsights {
+export function laneInsights(provider: string, events: InsightEvent[], now: number, turnStartedAt: number | null = null): LaneInsights {
   const own = events.filter((event) => event.provider === provider).sort((a, b) => at(a) - at(b));
-  if (!own.length) return { sessionMinutes: 0, laps: 0, tokensPerMinute: 0, recentFailures: 0, streak: 0, celebration: "none" };
+  if (!own.length) return { sessionMinutes: 0, laps: 0, tokensPerMinute: 0, recentFailures: 0, failureMarks: [], streak: 0, celebration: "none" };
 
   const latestSession = own[own.length - 1].session_id;
   const session = own.filter((event) => event.session_id === latestSession);
@@ -78,7 +80,24 @@ export function laneInsights(provider: string, events: InsightEvent[], now: numb
   }
   for (let index = turns.length - 1; index >= 0 && turns[index]; index -= 1) streak += 1;
 
-  return { sessionMinutes, laps, tokensPerMinute, recentFailures: Math.min(MAX_HURDLES, failures), streak, celebration: celebrationFor(streak, laps) };
+  return { sessionMinutes, laps, tokensPerMinute, recentFailures: Math.min(MAX_HURDLES, failures), failureMarks: failureMarks(session, now, turnStartedAt), streak, celebration: celebrationFor(streak, laps) };
+}
+
+const MARK_WINDOW_MS = 10 * 60_000;
+
+/**
+ * Where the runner was on the track when each tool failed, for the turn in progress only: a hurdle is
+ * left on the spot of the failure, and the turn ending (or ten minutes passing) takes it away.
+ */
+function failureMarks(session: InsightEvent[], now: number, turnStartedAt: number | null): number[] {
+  if (turnStartedAt === null) return [];
+  const inTurn = session.filter((event) => at(event) >= turnStartedAt && at(event) <= now);
+  const marks: number[] = [];
+  inTurn.forEach((event, index) => {
+    if (event.kind !== "tool_failed" || now - at(event) > MARK_WINDOW_MS) return;
+    marks.push(progressAt(index + 1, Math.max(0, (at(event) - turnStartedAt) / 1000)));
+  });
+  return marks.slice(-MAX_HURDLES);
 }
 
 // ---------------------------------------------------------------------------------------------

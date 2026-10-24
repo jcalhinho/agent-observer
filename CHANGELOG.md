@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-10-25
+
+### Fixed
+- **Hurdles made no sense**: they sat ahead of the runner, moved with it and stayed as long as there had
+  been a failure in the last 15 minutes. A hurdle is now left on the spot of each tool failure of the turn in
+  progress, does not move, and goes when the turn ends. They are also about three times bigger.
+
 ## [0.11.2] - 2026-10-24
 
 ### Changed

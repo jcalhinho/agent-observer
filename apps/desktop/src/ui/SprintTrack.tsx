@@ -79,7 +79,7 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo, mode, replay
     const cue: RaceLane["cue"] = state.latest?.kind === "tool_failed" ? "fall" : state.latest?.kind === "session_ended" || (state.latest?.kind === "checkpoint" && isTurnComplete(provider.eventKey, state.latest)) ? "finish" : "leap";
     const model = pulse?.session?.models?.join(" · ") ?? pulse?.session?.model ?? configured[provider.eventKey] ?? null;
     const family = modelFamily(pulse?.session?.model ?? pulse?.session?.models?.[0] ?? configured[provider.eventKey]);
-    return { provider, state, pulse, cue, cueKey: live && state.latest ? state.latest.event_id : null, bubble, label: statusInfo(pulse?.status ?? "never").label, model, capColor: FAMILIES[family].color, familyLabel: FAMILIES[family].label, insights: laneInsights(provider.eventKey, shown, raceNow) };
+    return { provider, state, pulse, cue, cueKey: live && state.latest ? state.latest.event_id : null, bubble, label: statusInfo(pulse?.status ?? "never").label, model, capColor: FAMILIES[family].color, familyLabel: FAMILIES[family].label, insights: laneInsights(provider.eventKey, shown, raceNow, state.startedAt) };
   });
   const focused = lanes.find((lane) => lane.provider.id === focusId) ?? null;
 
@@ -89,7 +89,7 @@ export function SprintTrack({ events, pulses, liveEventIds, onGoTo, mode, replay
     status: lane.state.status, progress: lane.state.progress, cue: lane.cue, cueKey: lane.cueKey, bubble: lane.bubble,
     mood: lane.pulse?.status ?? "never", onSelect: lane.state.latest ? () => toggleFocus(lane.provider.id) : undefined,
     capColor: lane.capColor, statusLabel: lane.label, sessionMinutes: lane.insights.sessionMinutes, laps: lane.insights.laps,
-    cost: lane.pulse?.session?.cost ?? null, hurdles: lane.insights.recentFailures,
+    cost: lane.pulse?.session?.cost ?? null, hurdleMarks: lane.insights.failureMarks,
     celebration: lane.insights.celebration, focused: lane.provider.id === focusId
   }));
 
@@ -170,7 +170,7 @@ export function RaceLegend() {
     <li><i className="legend-finish" />{t("franchit la ligne : tour terminé", "crosses the line: turn finished")}</li>
     <li><i className="legend-loop" />{t("tourne en rond : boucle", "runs in circles: loop")}</li>
     <li><i className="legend-wait" />{t("lève la main : t’attend, un projecteur l’éclaire", "raises a hand: waiting for you, under a spotlight")}</li>
-    <li><i className="legend-hurdle" />{t("haies devant lui : outils en échec (15 min) ; un mur = bloqué", "hurdles ahead: failed tools (15 min); a wall = blocked")}</li>
+    <li><i className="legend-hurdle" />{t("haie sur la piste : un outil a échoué là, pendant le tour en cours ; un mur = bloqué", "hurdle on the track: a tool failed there, during the turn in progress; a wall = blocked")}</li>
     <li><i className="legend-flag" />{t("drapeaux au départ : un par tranche de 30 min de session", "flags at the start: one per 30 minutes of session")}</li>
     <li><i className="legend-cap" />{t("casquette : famille du modèle (grise si inconnu)", "cap: family of the model (grey when unknown)")}</li>
     <li><i className="legend-party" />{t("confettis : 3 tours propres de suite ; feu d’artifice : 6, ou 3 après 30 min", "confetti: 3 clean turns in a row; fireworks: 6, or 3 after 30 min")}</li>

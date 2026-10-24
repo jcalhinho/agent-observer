@@ -54,15 +54,18 @@ export function deriveRaceState(provider: string, events: RaceEvent[], now: numb
     const lastAt = new Date(latest.occurred_at).getTime();
     if (status === "recent" && lastAt < now - 45_000) status = "idle";
     const elapsedSeconds = startedAt === null ? 0 : Math.max(0, (now - startedAt) / 1000);
-    const progress = status === "finished" ? 100 : status === "running" || status === "recent"
-      ? Math.min(92, Math.round(7 + (activityCount - 1) * 5 + elapsedSeconds * 0.55))
-      : 0;
+    const progress = status === "finished" ? 100 : status === "running" || status === "recent" ? progressAt(activityCount, elapsedSeconds) : 0;
     candidates.push({ status, latest, progress, activityCount, startedAt });
   }
   const active = candidates.filter((candidate) => candidate.status === "running" || candidate.status === "recent").sort((a, b) => (b.latest?.occurred_at || "").localeCompare(a.latest?.occurred_at || ""))[0];
   if (active) return active;
   const latest = candidates.sort((a, b) => (b.latest?.occurred_at || "").localeCompare(a.latest?.occurred_at || ""))[0];
   return latest || { status: "ready", latest: null, progress: 0, activityCount: 0, startedAt: null };
+}
+
+/** How far along the track an open turn is, from how many events it has had and for how long. */
+export function progressAt(activityCount: number, elapsedSeconds: number) {
+  return Math.min(92, Math.round(7 + (activityCount - 1) * 5 + elapsedSeconds * 0.55));
 }
 
 export function isTurnStart(provider: string, event: RaceEvent) {

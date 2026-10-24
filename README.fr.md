@@ -58,7 +58,7 @@ La scène porte plus que le mouvement, tout est calculé d’après ce que les a
 
 | Tu vois | Ça veut dire |
 | --- | --- |
-| Des **haies** devant lui | Une par outil en échec sur les 15 dernières minutes ; un agent bloqué a un mur de deux barres. |
+| Des **haies** sur la piste | Une là où un outil a échoué pendant le tour en cours ; un agent bloqué a un mur de deux barres. Elles disparaissent à la fin du tour. |
 | Des **drapeaux** derrière la ligne de départ | Un par tranche de 30 minutes de session. |
 | La couleur de la **casquette** | La famille du modèle utilisé (Claude, Gemini, GPT, Qwen, GLM, DeepSeek, Copilot ; grise si inconnue). |
 | Un **projecteur** et quelques secondes de caméra | Un agent qui commence à avoir besoin de toi. La caméra se rapproche, puis le plan large revient. |

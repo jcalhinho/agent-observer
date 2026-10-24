@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveRaceState, type RaceEvent } from "./race";
+import { deriveRaceState, progressAt, type RaceEvent } from "./race";
 
 const baseTime = Date.parse("2026-10-20T12:00:00.000Z");
 
@@ -53,5 +53,13 @@ describe("provider race state", () => {
     const message = event("gemini_cli", "user_message", 0);
     expect(deriveRaceState("gemini_cli", [message], baseTime + 10_000).status).toBe("recent");
     expect(deriveRaceState("gemini_cli", [message], baseTime + 46_000).status).toBe("idle");
+  });
+
+  it("places a turn on the track with the same formula everywhere", () => {
+    const events = [event("claude_code", "user_message", 0), event("claude_code", "tool_started", 3), event("claude_code", "tool_finished", 6)];
+    const state = deriveRaceState("claude_code", events, baseTime + 20_000);
+    expect(state.progress).toBe(progressAt(state.activityCount, 20));
+    expect(progressAt(1, 0)).toBe(7);
+    expect(progressAt(500, 9999)).toBe(92);
   });
 });

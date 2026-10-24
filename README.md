@@ -57,7 +57,7 @@ The scene carries more than movement, all computed from what the agents report:
 
 | You see | It means |
 | --- | --- |
-| **Hurdles** ahead of it | One per failed tool of the last 15 minutes; a blocked agent has a wall of two bars. |
+| **Hurdles** on the track | One where a tool failed during the turn in progress; a blocked agent has a wall of two bars. They go when the turn ends. |
 | **Flags** behind the start line | One per 30 minutes of the session. |
 | The colour of the **cap** | The family of the model in use (Claude, Gemini, GPT, Qwen, GLM, DeepSeek, Copilot; grey when unknown). |
 | A **spotlight** and a few seconds of camera | An agent that starts needing you. The camera leans in, then the wide shot returns. |

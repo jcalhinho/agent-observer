@@ -30,6 +30,21 @@ describe("lane insights", () => {
     expect(laneInsights("claude_code", [event("tool_failed", 40)], NOW).recentFailures).toBe(0);
   });
 
+  it("leaves a hurdle where each tool failed during the turn in progress, and none outside it", () => {
+    const turnStart = NOW - 5 * 60_000;
+    const events = [
+      event("tool_failed", 20), // an earlier turn
+      event("user_message", 5), event("tool_started", 4.5), event("tool_failed", 4), event("tool_started", 3), event("tool_failed", 2)
+    ];
+    const marks = laneInsights("claude_code", events, NOW, turnStart).failureMarks;
+    expect(marks).toHaveLength(2);
+    expect(marks[1]).toBeGreaterThan(marks[0]);
+    expect(marks.every((mark) => mark > 0 && mark <= 92)).toBe(true);
+    // The marks do not move with time at a fixed point of the turn, and vanish when no turn is open.
+    expect(laneInsights("claude_code", events, NOW, null).failureMarks).toEqual([]);
+    expect(laneInsights("claude_code", [event("user_message", 30), event("tool_failed", 29)], NOW, NOW - 30 * 60_000).failureMarks).toEqual([]);
+  });
+
   it("counts clean completed turns in a row, broken by a failure", () => {
     const turn = (end: number, failed = false) => [...(failed ? [event("tool_failed", end + 1)] : []), event("checkpoint", end, { outcome: "turn-complete" })];
     expect(laneInsights("claude_code", [...turn(50), ...turn(40), ...turn(30)], NOW).streak).toBe(3);
