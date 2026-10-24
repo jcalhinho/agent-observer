@@ -156,10 +156,21 @@ L’agent est lancé **une fois par demande, sans aucun outil, dans un dossier v
 la consigne de n’utiliser que ces faits. Rien n’est envoyé avant ton accord, une fois par agent, et tu peux lire
 le résumé exact avant. Aucune clé, rien à installer : c’est ton forfait qui est utilisé.
 
+### Fenêtre de contexte
+
+Chaque carte d’agent montre **à quel point sa fenêtre de contexte est pleine** : la taille de la dernière requête
+(nouveaux tokens plus ceux lus ou écrits dans le cache) face à la taille de la fenêtre du modèle, par exemple
+`91 % · 909K / 1M`. La barre devient ambre à partir de 80 % et rouge à partir de 95 % ; la carte d’un coureur
+en focus ajoute l’évolution sur la session, la part servie par le cache et le nombre de **compactages** (quand le
+contexte chute brutalement). La fenêtre vient de l’agent quand il la donne (Codex, GitHub Copilot), sinon d’une
+petite table de modèles documentés ; pour un modèle absent des deux, la carte indique combien de tokens la requête
+contenait, sans pourcentage, plutôt qu’une valeur devinée. Ce dont le contexte est fait (messages, outils, MCP…)
+n’est écrit sur le disque par aucun agent : ce n’est donc pas affiché.
+
 ### Notifications et alertes
 
 Une notification système quand un agent t’attend, demande une validation, devient silencieux, enchaîne les
-erreurs ou tourne en rond ; un clic dessus t’amène à l’agent. Les boucles et les erreurs affichent aussi une
+erreurs, tourne en rond ou a sa fenêtre de contexte au-delà de 80 % ; un clic dessus t’amène à l’agent. Les boucles et les erreurs affichent aussi une
 bannière rouge sur la course. Chaque type se coupe dans Réglages.
 
 ### Mode mini

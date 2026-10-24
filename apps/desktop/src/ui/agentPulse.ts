@@ -1,5 +1,6 @@
 import { narrateEvent, type Narration } from "./activity-copy";
 import { WRITE_TOOL } from "./analytics";
+import { contextUsage, type ContextUsage } from "./contextUsage";
 import { detectLoop, type LoopFinding } from "./loopDetector";
 import { summarizeSession } from "./sessionSummary";
 import type { SessionEvent } from "./types";
@@ -45,6 +46,8 @@ export type AgentPulse = {
   project: { project_path: string | null; file_path: string | null; project_hash: string | null } | null;
   /** Events per minute over the last 15 minutes, oldest first. */
   spark: number[];
+  /** How full the context window is, when the agent reports the size of its requests. */
+  context: ContextUsage | null;
 };
 
 const WORKING_WINDOW_MS = 45_000;
@@ -71,7 +74,7 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
     const age = now - Date.parse(event.occurred_at);
     if (age >= 0 && age < SPARK_MINUTES * 60_000) spark[SPARK_MINUTES - 1 - Math.floor(age / 60_000)] += 1;
   }
-  if (!own.length) return { key, status: "never", lastEventAt: null, current: null, recent: [], turnStartedAt: null, failureStreak: 0, loop: null, session: null, project: null, spark };
+  if (!own.length) return { key, status: "never", lastEventAt: null, current: null, recent: [], turnStartedAt: null, failureStreak: 0, loop: null, session: null, project: null, spark, context: null };
 
   const latest = own[0];
   const lastEventAt = Date.parse(latest.occurred_at);
@@ -135,7 +138,8 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
       models: summary.models.map((model) => model.name)
     },
     project: { project_path: latest.project_path, file_path: latest.file_path, project_hash: latest.project_hash ?? null },
-    spark
+    spark,
+    context: contextUsage(own)
   };
 }
 

@@ -1,8 +1,9 @@
 import type { AgentPulse, PulseStatus } from "./agentPulse";
+import { formatCompact } from "./analytics";
 import { t } from "./i18n";
 
 /** What a notification is about; "loop" and "error" are alerts, shown and sounded differently. */
-export type NoticeKind = "waiting" | "permission" | "stalled" | "error" | "loop";
+export type NoticeKind = "waiting" | "permission" | "stalled" | "error" | "loop" | "context";
 
 export type Notice = {
   /** One notice per agent session and situation: the same situation never notifies twice. */
@@ -20,7 +21,8 @@ export function noticeKinds(): Array<{ kind: NoticeKind; label: string; hint: st
     { kind: "error", label: t("Erreurs", "Errors"), hint: t("Plusieurs actions échouent d’affilée, ou un tour se termine en erreur.", "Several actions fail in a row, or a turn ends in error."), alert: true },
     { kind: "permission", label: t("Validation demandée", "Approval requested"), hint: t("Claude Code attend ton accord pour continuer.", "Claude Code needs your approval to continue."), alert: false },
     { kind: "waiting", label: t("Un agent t’attend", "An agent is waiting for you"), hint: t("Il a fini son tour et attend ton prochain message.", "It finished its turn and waits for your next message."), alert: false },
-    { kind: "stalled", label: t("Un agent est silencieux", "An agent went silent"), hint: t("Tour en cours mais plus rien depuis 2 minutes.", "A turn is open but nothing happened for 2 minutes."), alert: false }
+    { kind: "stalled", label: t("Un agent est silencieux", "An agent went silent"), hint: t("Tour en cours mais plus rien depuis 2 minutes.", "A turn is open but nothing happened for 2 minutes."), alert: false },
+    { kind: "context", label: t("Contexte presque plein", "Context almost full"), hint: t("La fenêtre de contexte d’un agent dépasse 80 % : il va bientôt oublier ou compacter.", "An agent’s context window is past 80%: it will soon forget or compact."), alert: false },
   ];
 }
 
@@ -35,6 +37,11 @@ function situation(pulse: AgentPulse): { kind: NoticeKind; detail: string } | nu
   if (permission) return { kind: "permission", detail: pulse.current!.detail ?? t("il attend ton accord", "it needs your approval") };
   if (pulse.status === "waiting") return { kind: "waiting", detail: pulse.current?.text ?? t("tour terminé", "turn finished") };
   if (pulse.status === "stalled") return { kind: "stalled", detail: pulse.current ? t(`dernière action : ${pulse.current.text}`, `last action: ${pulse.current.text}`) : t("plus aucune activité", "no more activity") };
+  // Last, so it never hides what is more urgent: a nearly full window is worth a word, not an alarm.
+  const context = pulse.context;
+  if (context && context.window && (context.state === "warn" || context.state === "full")) {
+    return { kind: "context", detail: t(`${Math.round(context.percent ?? 0)} % de la fenêtre (${formatCompact(context.used)} / ${formatCompact(context.window)})`, `${Math.round(context.percent ?? 0)}% of the window (${formatCompact(context.used)} / ${formatCompact(context.window)})`) };
+  }
   return null;
 }
 
@@ -43,7 +50,8 @@ const TITLES: Record<NoticeKind, (name: string) => string> = {
   error: (name) => t(`⚠ ${name} rencontre des erreurs`, `⚠ ${name} keeps failing`),
   permission: (name) => t(`${name} attend ta validation`, `${name} needs your approval`),
   waiting: (name) => t(`${name} t’attend`, `${name} is waiting for you`),
-  stalled: (name) => t(`${name} est silencieux`, `${name} went silent`)
+  stalled: (name) => t(`${name} est silencieux`, `${name} went silent`),
+  context: (name) => t(`${name} : contexte presque plein`, `${name}: context almost full`)
 };
 
 /**

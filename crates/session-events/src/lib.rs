@@ -136,6 +136,10 @@ pub struct SessionEvent {
     /// Prompt tokens written to the provider's cache.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cache_write_tokens: Option<Sourced<u64>>,
+    /// Size of the model's context window in tokens, when the agent reports it. Absent otherwise
+    /// (and in events recorded before this field existed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_window: Option<Sourced<u64>>,
     pub duration_ms: Option<Sourced<u64>>,
     pub outcome: Option<String>,
     /// Human-readable content is optional so installations can collect
@@ -163,6 +167,7 @@ impl SessionEvent {
             output_tokens: None,
             cache_read_tokens: None,
             cache_write_tokens: None,
+            context_window: None,
             duration_ms: None,
             outcome: None,
             content: None,

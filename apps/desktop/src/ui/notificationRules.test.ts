@@ -10,9 +10,11 @@ function pulse(status: AgentPulse["status"], extra: Partial<AgentPulse> = {}): A
   return {
     key: "codex", status, lastEventAt: now - 5_000, current: { id: "e1", at: now - 5_000, text: "Tour terminé", detail: null, tone: "success" }, recent: [],
     turnStartedAt: null, failureStreak: 0, loop: null, session: { id: "s1", turns: 1, toolCalls: 3, failures: 0, inputTokens: null, outputTokens: null, filesChanged: 0, cost: null, model: null },
-    project: { project_path: "/w", file_path: null, project_hash: null }, spark: [], ...extra
+    project: { project_path: "/w", file_path: null, project_hash: null }, spark: [], context: null, ...extra
   };
 }
+
+const nearlyFull = { used: 850_000, window: 1_000_000, percent: 85, cachedShare: 0.9, state: "warn" as const, series: [], compactions: 0, model: "m", windowSource: "reported" as const };
 
 beforeAll(() => setLang("fr"));
 
@@ -43,5 +45,18 @@ describe("notification rules", () => {
   it("tells a permission request apart from a finished turn", () => {
     const asking = pulse("waiting", { current: { id: "e2", at: now, text: "Attend ta validation", detail: "Claude needs your permission to use Bash", tone: "info", marker: "needs-approval" } });
     expect(notices([asking], new Map(), names, now).send[0]).toMatchObject({ kind: "permission", title: "Codex attend ta validation" });
+  });
+
+  it("warns once per session when the context window is nearly full, and gives way to what is more urgent", () => {
+    const first = notices([pulse("working", { context: nearlyFull })], new Map(), names, now);
+    expect(first.send.map((notice) => notice.title)).toEqual(["Codex : contexte presque plein"]);
+    expect(first.send[0].alert).toBe(false);
+    expect(first.send[0].body).toContain("85 %");
+    expect(notices([pulse("working", { context: nearlyFull })], first.next, names, now).send).toEqual([]);
+    // Waiting for the user is announced, not the window.
+    expect(notices([pulse("waiting", { context: nearlyFull })], new Map(), names, now).send.map((notice) => notice.kind)).toEqual(["waiting"]);
+    // Below 80 %, or with a window of unknown size, nothing.
+    expect(notices([pulse("working", { context: { ...nearlyFull, state: "ok", percent: 50 } })], new Map(), names, now).send).toEqual([]);
+    expect(notices([pulse("working", { context: { ...nearlyFull, window: null, percent: null, state: "unknown" } })], new Map(), names, now).send).toEqual([]);
   });
 });

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { X } from "lucide-react";
 import { since, statusInfo } from "./AgentCard";
+import { ContextMeter } from "./ContextMeter";
 import { agentPulse, type AgentPulse } from "./agentPulse";
 import { formatCompact } from "./analytics";
 import { locale, t } from "./i18n";
@@ -156,6 +157,7 @@ export function FocusCard({ lane, now, onGoTo, onClose }: { lane: LaneView; now:
       <div><dt>{t("Échecs (15 min)", "Failures (15 min)")}</dt><dd>{insights.recentFailures}</dd></div>
       <div><dt>{t("Tours propres", "Clean turns")}</dt><dd>{insights.streak}</dd></div>
     </dl>
+    {pulse?.context && <ContextMeter usage={pulse.context} trend />}
     {pulse && pulse.recent.length > 0 && <ul className="focus-recent">{pulse.recent.slice(0, 4).map((action) => <li key={action.id}><span>{action.text}</span><small>{since(action.at, now)}</small></li>)}</ul>}
     {onGoTo && pulse?.session && <button className="button small primary" onClick={() => onGoTo(pulse)}>{t("Aller à l’agent", "Go to the agent")}</button>}
   </aside>;

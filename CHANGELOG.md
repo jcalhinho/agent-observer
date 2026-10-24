@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-24
+
+### Added
+- **Context window meter** on every agent card, and with a trend on the focus card of a runner: the size of
+  the latest request (new tokens + cache reads and writes) against the model's window, amber from 80 %, red
+  from 95 %, with the share served from the cache and the number of compactions. Works for all six agents.
+- The event schema has an optional `context_window` (also accepted by the open API). Codex
+  (`model_context_window`) and GitHub Copilot (`maxPromptTokens`) report it; for the others a table of
+  documented windows is used (Gemini, Claude 3/4/5, Qwen3-Coder, GPT-OSS). A model in neither gets no
+  percentage, never a guess. If a request outgrows its table window, the smallest window that holds it is
+  shown and the tooltip says so.
+- **A notification when a context window passes 80 %** (once per session; below any more urgent situation),
+  with its own switch in Settings.
+
+### Limits
+- Events recorded before this version carry no window: Codex and Copilot show a percentage from their next
+  request on.
+- What the context is made of (messages, system tools, MCP tools, skills) is computed by Claude Code's own
+  `/context` and never written to disk, so it is not shown.
+
 ## [0.10.0] - 2026-10-24
 
 ### Added

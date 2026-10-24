@@ -46,6 +46,7 @@ The body is one event, or an array of up to 500 events (1 MB max).
 | `outcome` | string | no | Free status, e.g. `error`. A checkpoint whose outcome contains `error` is a failed turn. |
 | `input_tokens`, `output_tokens` | integer | no | Tokens reported by the model provider. `input_tokens` is uncached input. |
 | `cache_read_tokens`, `cache_write_tokens` | integer | no | Cached prompt tokens, reported apart. |
+| `context_window` | integer | no | Size of the model's context window in tokens, when the agent knows it. With the tokens above it gives the share of the window in use. |
 | `duration_ms` | integer | no | Duration of the action or turn. |
 
 Unknown fields are rejected, so a typo is reported instead of being silently ignored.

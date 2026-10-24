@@ -1,3 +1,4 @@
+import { ContextMeter } from "./ContextMeter";
 import { useConfiguredModels } from "./useConfiguredModels";
 import type { CSSProperties, KeyboardEvent, MouseEvent } from "react";
 import { ArrowUpRight } from "lucide-react";
@@ -92,6 +93,7 @@ export function AgentCard({ pulse, now, repository, compact = false, onGoTo }: {
         ? <Stat label={subscription ? t("Valeur", "Value") : t("Coût", "Cost")} value={"≈ " + session.cost.toLocaleString(locale(), { style: "currency", currency: "USD", maximumFractionDigits: 2 })} explanation={subscription ? t("Ce que ces tokens coûteraient au tarif API. Tu es au forfait : ce n’est pas ce que tu paies.", "What these tokens would cost at API prices. You are on a subscription: this is not what you pay.") : t("Estimation à partir des prix publics du modèle et des tokens fournis. Ce n’est pas une facture : forfaits et remises ne sont pas connus.", "Estimate from the model’s public prices and the reported tokens. Not an invoice: plans and discounts are unknown.")} />
         : <Stat label={t("Fichiers", "Files")} value={String(session.filesChanged)} explanation={t("Fichiers différents que l’agent a modifiés pendant sa session (d’après les outils qu’il a utilisés).", "Distinct files the agent edited in its session (from the tools it used).")} />}
     </dl>}
+    {session && pulse.context && <ContextMeter usage={pulse.context} />}
 
     <div className="agent-spark" role="img" aria-label={t("Activité minute par minute sur les 15 dernières minutes", "Activity per minute over the last 15 minutes")} title={t("Activité · 15 dernières minutes", "Activity · last 15 minutes")}>{pulse.spark.map((value, index) => <i key={index} style={{ height: `${value ? Math.max(18, (value / sparkMax) * 100) : 8}%` }} className={value ? "" : "empty"} />)}</div>
   </article>;

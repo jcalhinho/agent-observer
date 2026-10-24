@@ -359,6 +359,12 @@ fn project_record(
                 let mut event = event(context, EventKind::ModelUsage);
                 event.occurred_at = timestamp.unwrap_or_else(Utc::now);
                 project_token_usage(usage, &mut event);
+                // Codex says how large the window of the model in use is.
+                event.context_window = payload
+                    .get("info")
+                    .and_then(|info| info.get("model_context_window"))
+                    .and_then(Value::as_u64)
+                    .map(provider_value);
                 event.model = context.model.as_deref().map(provider_string);
                 (event.input_tokens.is_some() || event.output_tokens.is_some()).then_some(event)
             }
@@ -626,6 +632,26 @@ mod tests {
             Some("gpt-test")
         );
         assert_eq!(event.input_tokens.unwrap().origin, DataOrigin::Provider);
+    }
+
+    #[test]
+    fn the_window_of_the_model_comes_with_its_usage() {
+        let mut context = SessionContext {
+            id: "codex-session".into(),
+            ..SessionContext::default()
+        };
+        let record = json!({
+            "type": "event_msg",
+            "payload": { "type": "token_count", "info": {
+                "model_context_window": 258400,
+                "last_token_usage": { "input_tokens": 100, "output_tokens": 5 }
+            } }
+        });
+        let event = project_record(&record, &mut context, false, false).unwrap();
+        assert_eq!(
+            event.context_window.map(|window| window.value),
+            Some(258_400)
+        );
     }
 
     #[test]

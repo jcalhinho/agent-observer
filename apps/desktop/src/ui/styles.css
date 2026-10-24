@@ -754,3 +754,19 @@ button.cite:hover { border-color: var(--signal); color: var(--signal); }
 .focus-recent li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .focus-recent small { flex: none; color: var(--faint); }
 @container stage (max-width: 720px) { .focus-card { top: auto; bottom: 90px; } }
+
+/* ---- Context window meter ---- */
+.ctx-meter { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 8px; margin-top: 8px; color: var(--muted); font-size: 11.5px; }
+.ctx-label { color: var(--faint); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
+.ctx-track { position: relative; display: block; height: 5px; overflow: hidden; border-radius: 5px; background: #ffffff1c; }
+.ctx-track > i { display: block; height: 100%; border-radius: 5px; background: var(--good); transition: width .4s; }
+.ctx-track > b { position: absolute; top: 0; bottom: 0; width: 1px; background: #ffffff44; }
+.ctx-value { color: var(--text-2); font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ctx-value small { color: var(--faint); font-family: inherit; }
+.ctx-meter.state-warn .ctx-track > i { background: var(--warn); }
+.ctx-meter.state-warn .ctx-value { color: var(--warn); }
+.ctx-meter.state-full .ctx-track > i { background: var(--bad); }
+.ctx-meter.state-full .ctx-value { color: var(--bad); }
+.ctx-meter.state-unknown .ctx-track { display: none; }
+.ctx-trend { grid-column: 1 / -1; width: 100%; height: 34px; }
+.ctx-trend polyline { fill: none; stroke: var(--agent-color, var(--accent)); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }

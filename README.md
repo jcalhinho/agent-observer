@@ -150,10 +150,21 @@ models, tools, files and commit subjects — never the text of your messages, yo
 only those facts. Nothing is sent before you agree, once per agent, and you can read the exact summary first.
 No key is needed and nothing extra is installed: it uses your plan.
 
+### Context window
+
+Each agent card shows **how full the context window is**: the size of the latest request (new tokens plus
+those read from or written to the cache) against the size of the model's window, for example
+`91 % · 909K / 1M`. The bar turns amber from 80 % and red from 95 %; the card of a focused runner adds the
+trend over the session, the share served from the cache and the number of **compactions** (when the context
+falls sharply). The window comes from the agent when it reports it (Codex, GitHub Copilot) and otherwise from
+a small table of documented models; for a model that is in neither, the card says how many tokens the request
+held and shows no percentage rather than a guess. What the context is made of (messages, tools, MCP…) is not
+written to disk by any agent, so it is not shown.
+
 ### Notifications and alerts
 
-A system notification when an agent waits for you, asks for approval, goes silent, keeps failing or goes round
-in circles; clicking it takes you to the agent. Loops and errors also raise a red banner over the race. Every
+A system notification when an agent waits for you, asks for approval, goes silent, keeps failing, goes round
+in circles or has its context window past 80 %; clicking it takes you to the agent. Loops and errors also raise a red banner over the race. Every
 kind can be switched off in Settings.
 
 ### Mini mode

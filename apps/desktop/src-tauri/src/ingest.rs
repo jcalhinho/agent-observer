@@ -56,6 +56,8 @@ pub struct IncomingEvent {
     #[serde(default)]
     pub cache_write_tokens: Option<u64>,
     #[serde(default)]
+    pub context_window: Option<u64>,
+    #[serde(default)]
     pub duration_ms: Option<u64>,
 }
 
@@ -218,6 +220,7 @@ fn to_event(
     event.output_tokens = incoming.output_tokens.map(sourced);
     event.cache_read_tokens = incoming.cache_read_tokens.map(sourced);
     event.cache_write_tokens = incoming.cache_write_tokens.map(sourced);
+    event.context_window = incoming.context_window.map(sourced);
     event.duration_ms = incoming.duration_ms.map(sourced);
     Ok(event)
 }

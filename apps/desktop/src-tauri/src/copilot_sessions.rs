@@ -402,6 +402,7 @@ fn project_record(
             record.cache_write_tokens = cache_write.map(provider_value);
             record.output_tokens = count("outputTokens").map(provider_value);
             record.duration_ms = count("duration").map(provider_value);
+            record.context_window = count("maxPromptTokens").map(provider_value);
             vec![record]
         }
         _ => Vec::new(),
@@ -469,7 +470,7 @@ mod tests {
                 json!({ "type": "user.message", "timestamp": "2026-10-24T11:53:25.136Z", "data": { "content": "hi" } }),
                 json!({ "type": "session.usage_record", "timestamp": "2026-10-24T11:53:41.505Z",
                         "data": { "usage": { "model": "mai-code-1.1-flash", "inputTokens": 17849, "outputTokens": 119,
-                                              "cacheReadTokens": 5760, "duration": 900 } } }),
+                                              "cacheReadTokens": 5760, "duration": 900, "maxPromptTokens": 272000 } } }),
                 json!({ "type": "assistant.message", "timestamp": "2026-10-24T11:53:41.514Z",
                         "data": { "model": "mai-code-1.1-flash", "content": "secret", "toolRequests": [] } }),
             ],
@@ -499,6 +500,10 @@ mod tests {
         assert_eq!(
             events[2].cache_read_tokens.as_ref().map(|v| v.value),
             Some(5760)
+        );
+        assert_eq!(
+            events[2].context_window.as_ref().map(|v| v.value),
+            Some(272_000)
         );
     }
 
