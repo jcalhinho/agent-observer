@@ -4,7 +4,8 @@ import { SectionHeader } from "./Explain";
 import { currentLang, locale, setLang, t, type Lang } from "./i18n";
 import { noticeKinds, type NoticeKind } from "./notificationRules";
 import { useSubscription } from "./costPreferences";
-import { isRaceQuality } from "./SprintTrack";
+import { isDaypartSetting, isRaceQuality } from "./SprintTrack";
+import type { DaypartSetting } from "./raceInsights";
 import type { RaceQuality } from "./SprintTrack3D";
 import { DEFAULT_STORY_TIME, isClock, latestSlot } from "./story";
 import { pickAgent, storySettings, useStoryAgents } from "./useStory";
@@ -110,6 +111,7 @@ export function SettingsPage({ onExport, onClear, onMini }: { onExport: () => Pr
       <h3>{t("Affichage", "Display")}</h3>
       <LanguageSetting />
       <RaceQualitySetting />
+      <RaceDaypartSetting />
       <LaunchHostSetting />
       <div className="setting-row">
         <span><b>{t("Mode mini", "Mini mode")}</b><small>{t("Réduit l’app à une colonne dans un coin de l’écran, toujours visible, avec une carte par agent.", "Shrinks the app to an always-visible column in a corner of the screen, one card per agent.")}</small></span>
@@ -160,6 +162,21 @@ function RaceQualitySetting() {
       <option value="light">{t("Léger", "Light")}</option>
       <option value="auto">{t("Automatique", "Automatic")}</option>
       <option value="smooth">{t("Fluide", "Smooth")}</option>
+    </select>
+  </label>;
+}
+
+/** The sky of the race follows the local time of day, or stays at one moment. */
+function RaceDaypartSetting() {
+  const [daypart, setDaypart] = usePreference<DaypartSetting>("race-daypart", "auto", isDaypartSetting);
+  return <label className="setting-row">
+    <span><b>{t("Ciel de la course", "Race sky")}</b><small>{t("Suit l’heure de ton ordinateur (aube, jour, soir avec projecteurs, nuit étoilée), ou reste à un moment fixe.", "Follows your computer’s time (dawn, day, dusk with floodlights, starry night), or stays at one fixed moment.")}</small></span>
+    <select value={daypart} onChange={(event) => setDaypart(event.target.value as DaypartSetting)}>
+      <option value="auto">{t("Selon l’heure", "By the time")}</option>
+      <option value="dawn">{t("Aube", "Dawn")}</option>
+      <option value="day">{t("Jour", "Day")}</option>
+      <option value="dusk">{t("Soir", "Dusk")}</option>
+      <option value="night">{t("Nuit", "Night")}</option>
     </select>
   </label>;
 }

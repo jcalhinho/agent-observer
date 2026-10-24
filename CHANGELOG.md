@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-24
+
+### Added
+- **The race shows more, in ten ways.** A token **trail** behind each runner; **hurdles** for the failures
+  of the last 15 minutes (a wall when blocked); **flags** at the start for each 30 minutes of session; a
+  **cap colour** by model family; a **spotlight** and a few seconds of camera on an agent that starts
+  needing you; **confetti** for 3 clean turns in a row and **fireworks** for 6 (or 3 after 30 minutes),
+  nothing for an ordinary turn; a **scoreboard** above the stands; a **sky** that follows the time of day
+  (dawn, day, dusk with floodlights, starry night; **Settings › Display › Race sky**); a **replay** of the
+  last hour in 30 seconds (▶ in the top bar); a **focus** on a runner (click it): the camera comes close and a
+  card shows its session, token flow, failures and last actions.
+- The legend explains each of them.
+
+### Changed
+- Clicking a runner now focuses it instead of going to the agent; *Go to the agent* is on the card and on the
+  dock chips.
+
+### Fixed
+- **The race could lose its WebGL context.** The check for WebGL support ran on every refresh of the stage,
+  opening a new WebGL context each second; browsers drop the oldest ones past a handful, which was the race's
+  own. It is now asked once (and gives the context back). This probably explains flicker and heavy GPU use.
+
 ## [0.9.3] - 2026-10-24
 
 ### Changed

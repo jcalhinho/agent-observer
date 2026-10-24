@@ -1,6 +1,6 @@
 [package]
 name = "repowatcher-agent-observer"
-version = "0.9.3"
+version = "0.10.0"
 description = "Local observability for coding-agent sessions"
 edition.workspace = true
 license.workspace = true

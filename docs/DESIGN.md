@@ -40,6 +40,12 @@ shadow maps; round blob shadows under characters). Keep it cheap: instance anyth
 share geometry, avoid mipmaps on label textures, and leave the pixel budget and frame cap to the
 `Governor` in `SprintTrack3D.tsx` (quality levels *light*, *auto*, *smooth*).
 
+What the scene shows beyond movement (trail, hurdles, flags, cap colour, spotlight, celebrations, board,
+sky) is computed in `raceInsights.ts` (pure, tested) and only drawn by `SprintTrack3D.tsx`. Repeated
+pieces that change in number (hurdles, flags) are instanced with `useCounted`; per-frame code never
+allocates. Probe WebGL once (`supportsWebGL` caches): each probe opens a context and the browser drops
+the oldest past a handful.
+
 ## Principles
 
 1. **One screen, one answer.** The stage and the dock answer "who needs me" without opening

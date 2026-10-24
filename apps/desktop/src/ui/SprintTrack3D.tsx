@@ -5,6 +5,7 @@ import * as THREE from "three";
 import type { Narration } from "./activity-copy";
 import type { PulseStatus } from "./agentPulse";
 import type { RaceStatus } from "./race";
+import { formatMinutes, LIGHTING, MAX_HURDLES, type Celebration, type Daypart } from "./raceInsights";
 
 export type RaceLane = {
   id: string;
@@ -20,8 +21,22 @@ export type RaceLane = {
   bubble?: Narration | null;
   /** Agent status: decides what the runner does (run, circle, wave, sit, stoop). */
   mood: PulseStatus;
-  /** Clicking the runner goes to the agent. */
+  /** Clicking the runner focuses it (the camera comes close and a card opens). */
   onSelect?: () => void;
+  /** Colour of the cap: the family of the model in use (grey when unknown). */
+  capColor: string;
+  statusLabel: string;
+  /** Work span of the latest session, in minutes, and the laps (30 minutes each) it makes. */
+  sessionMinutes: number;
+  laps: number;
+  /** Estimated USD cost of the session, when known. */
+  cost: number | null;
+  /** 0..1: length of the token trail behind the runner. */
+  trail: number;
+  /** Failed tools in the last 15 minutes: hurdles on the lane (a blocked agent has a wall). */
+  hurdles: number;
+  celebration: Celebration;
+  focused: boolean;
 };
 
 const NEEDS_YOU: PulseStatus[] = ["looping", "blocked", "stalled", "waiting"];
@@ -118,12 +133,16 @@ function useInstances(items: Array<{ position: [number, number, number]; scale?:
   return mesh;
 }
 
-export default function SprintTrack3D({ lanes, reducedMotion, quality = "auto" }: { lanes: RaceLane[]; reducedMotion: boolean; quality?: RaceQuality }) {
+export default function SprintTrack3D({ lanes, reducedMotion, quality = "auto", daypart, focusId, onBlur }: { lanes: RaceLane[]; reducedMotion: boolean; quality?: RaceQuality; daypart: Daypart; focusId: string | null; onBlur: () => void }) {
   const active = lanes.filter((lane) => lane.status === "running" || lane.status === "recent");
   const bubbleRows = assignBubbleRows(lanes);
-  // The camera drifts towards the agent that needs you, otherwise towards the leader.
+  // The camera drifts a little towards the leader; when an agent starts needing you it leans in
+  // for a few seconds, and when you focus a runner it comes close to it.
   const needy = lanes.find((lane) => NEEDS_YOU.includes(lane.mood));
-  const leaderX = needy ? progressToX(needy.progress) : active.length ? progressToX(Math.max(...active.map((lane) => lane.progress))) : 0;
+  const leaderX = active.length ? progressToX(Math.max(...active.map((lane) => lane.progress))) : 0;
+  const focusIndex = focusId ? lanes.findIndex((lane) => lane.id === focusId) : -1;
+  const focus = focusIndex >= 0 ? { x: progressToX(lanes[focusIndex].progress), z: laneZ(focusIndex, lanes.length) } : null;
+  const light = LIGHTING[daypart];
   return (
     <Canvas
       className="sprint-canvas"
@@ -132,13 +151,17 @@ export default function SprintTrack3D({ lanes, reducedMotion, quality = "auto" }
       dpr={1}
       camera={{ fov: 30, position: [0, 7, 12], near: 0.1, far: 140 }}
       gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
+      onPointerMissed={onBlur}
       aria-label={t("Piste 3D de la course des agents", "3D track of the agents’ race")}
     >
       <Governor quality={quality} />
-      <CameraRig leaderX={leaderX} reducedMotion={reducedMotion} />
-      <hemisphereLight args={["#eaf6ff", "#8cc67a", 1.7]} />
-      <directionalLight position={[-7, 13, 9]} intensity={1.35} color="#fff3dc" />
-      <Stadium lanes={lanes} excitement={active.length} reducedMotion={reducedMotion} />
+      <CameraRig leaderX={leaderX} reducedMotion={reducedMotion} spotlight={needy ? { key: `${needy.id}:${needy.mood}`, x: progressToX(needy.progress) } : null} focus={focus} />
+      <hemisphereLight args={[light.hemiSky, light.hemiGround, light.hemi]} />
+      <directionalLight position={[-7, 13, 9]} intensity={light.sunIntensity} color={light.sun} />
+      <Stadium lanes={lanes} excitement={active.length} reducedMotion={reducedMotion} daypart={daypart} />
+      <Scoreboard lanes={lanes} />
+      <Hurdles lanes={lanes} />
+      <LapFlags lanes={lanes} />
       {lanes.map((lane, index) => (
         <Runner key={lane.id} lane={lane} z={laneZ(index, lanes.length)} bubbleRow={bubbleRows.get(lane.id) ?? 0} renderOrder={index} reducedMotion={reducedMotion} />
       ))}
@@ -166,25 +189,52 @@ function assignBubbleRows(lanes: RaceLane[]) {
 /** Near the finish the bubble opens to the left of the runner so it stays inside the stage. */
 const bubbleFlipped = (progress: number) => progress > 60;
 
-function CameraRig({ leaderX, reducedMotion }: { leaderX: number; reducedMotion: boolean }) {
+const SPOTLIGHT_SECONDS = 5;
+
+function CameraRig({ leaderX, reducedMotion, spotlight, focus }: { leaderX: number; reducedMotion: boolean; spotlight: { key: string; x: number } | null; focus: { x: number; z: number } | null }) {
   const { camera, size } = useThree();
   const target = useRef(new THREE.Vector3());
   const look = useRef(new THREE.Vector3(0, 1.35, -0.5));
+  const zoom = useRef(1);
+  const lean = useRef({ key: null as string | null, until: 0 });
   useFrame((state, delta) => {
     const perspective = camera as THREE.PerspectiveCamera;
+    const time = state.clock.elapsedTime;
     const aspect = size.width / Math.max(1, size.height);
     const tanHalf = Math.tan(THREE.MathUtils.degToRad(perspective.fov / 2));
     // Keep the whole 100 m (plus margins) in frame whatever the panel width.
     // Wide and short stages (the race takes at most half the window) need the height to fit too.
-    const distance = Math.max(11, 14.2 / (tanHalf * aspect), 9.2 / (2 * tanHalf));
-    const sway = reducedMotion ? 0 : Math.sin(state.clock.elapsedTime * 0.15) * 0.3;
-    // Almost centred: a strong drift towards the leader pushed the start line out of the frame.
-    const lookX = leaderX * 0.03 + sway;
+    const wide = Math.max(11, 14.2 / (tanHalf * aspect), 9.2 / (2 * tanHalf));
+    const sway = reducedMotion ? 0 : Math.sin(time * 0.15) * 0.3;
+    // A runner that starts needing you gets a few seconds of attention, then the wide shot returns.
+    if ((spotlight?.key ?? null) !== lean.current.key) {
+      lean.current = { key: spotlight?.key ?? null, until: spotlight ? time + SPOTLIGHT_SECONDS : 0 };
+    }
+    const leaning = Boolean(spotlight) && time < lean.current.until && !focus;
+    // Almost centred in the wide shot: a strong drift towards the leader pushed the start line out of the frame.
+    let lookX = leaderX * 0.03 + sway;
+    let lookZ = -0.5;
+    let lookY = 1.35;
+    let wanted = 1;
+    if (focus) {
+      lookX = focus.x;
+      lookZ = focus.z;
+      lookY = 0.95;
+      wanted = 0.42;
+    } else if (leaning && spotlight) {
+      lookX = THREE.MathUtils.clamp(spotlight.x * 0.4, -4, 4);
+      wanted = 0.86;
+    }
+    const blend = reducedMotion ? 1 : 1 - Math.exp(-Math.min(delta, 0.05) * 2);
+    zoom.current += (wanted - zoom.current) * blend;
+    const distance = Math.max(5.5, wide * zoom.current);
     target.current.copy(CAMERA_DIRECTION).multiplyScalar(distance);
     target.current.x += lookX;
-    const blend = reducedMotion ? 1 : 1 - Math.exp(-Math.min(delta, 0.05) * 2);
+    target.current.z += lookZ;
     perspective.position.lerp(target.current, blend);
     look.current.x += (lookX - look.current.x) * blend;
+    look.current.y += (lookY - look.current.y) * blend;
+    look.current.z += (lookZ - look.current.z) * blend;
     perspective.lookAt(look.current);
   });
   return null;
@@ -236,7 +286,7 @@ const STAND_HALF_ANGLE = 0.2;
 const STAND_CENTER_Z = STAND_RADIUS + STAND_FRONT;
 const STAND_ROW_GAP = 0.7;
 
-function Stadium({ lanes, excitement, reducedMotion }: { lanes: RaceLane[]; excitement: number; reducedMotion: boolean }) {
+function Stadium({ lanes, excitement, reducedMotion, daypart }: { lanes: RaceLane[]; excitement: number; reducedMotion: boolean; daypart: Daypart }) {
   const count = lanes.length;
   const halfWidth = (count * LANE_WIDTH) / 2;
   const trackLength = FINISH_X - START_X + 5;
@@ -350,11 +400,9 @@ function Stadium({ lanes, excitement, reducedMotion }: { lanes: RaceLane[]; exci
           <Low color={color} />
         </mesh>
       ))}
-      <mesh position={[-16, 11, -30]}>
-        <sphereGeometry args={[2.2, 20, 14]} />
-        <meshBasicMaterial color="#ffd66b" />
-      </mesh>
-      <Clouds reducedMotion={reducedMotion} />
+      <Sky daypart={daypart} />
+      <Floodlights on={LIGHTING[daypart].floodlights} />
+      <Clouds reducedMotion={reducedMotion} tint={CLOUD_TINT[daypart]} />
     </group>
   );
 }
@@ -422,7 +470,9 @@ function Crowd({ excitement, reducedMotion }: { excitement: number; reducedMotio
   );
 }
 
-function Clouds({ reducedMotion }: { reducedMotion: boolean }) {
+const CLOUD_TINT: Record<Daypart, string> = { day: "#ffffff", dawn: "#ffe3d0", dusk: "#f0b8c0", night: "#4a5580" };
+
+function Clouds({ reducedMotion, tint }: { reducedMotion: boolean; tint: string }) {
   const group = useRef<THREE.Group>(null);
   const clouds = useMemo(
     () => Array.from({ length: 5 }, (_, index) => ({ x: -30 + index * 14, y: 7 + seeded(index + 3) * 3, z: -24 - seeded(index + 9) * 6, scale: 0.8 + seeded(index + 5) * 0.8 })),
@@ -442,11 +492,285 @@ function Clouds({ reducedMotion }: { reducedMotion: boolean }) {
           {[[-1, 0, 0.9], [0, 0.35, 1.25], [1.1, 0, 0.85], [0.35, -0.2, 0.9]].map(([x, y, radius], part) => (
             <mesh key={part} position={[x, y, 0]}>
               <sphereGeometry args={[radius, 14, 10]} />
-              <meshBasicMaterial color="#ffffff" />
+              <meshBasicMaterial color={tint} />
             </mesh>
           ))}
         </group>
       ))}
+    </group>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Time of day
+// ---------------------------------------------------------------------------------------------
+
+const STARS = Array.from({ length: 48 }, (_, index) => ({ position: [-34 + seeded(index + 70) * 68, 3.5 + seeded(index + 130) * 5, -31] as [number, number, number], scale: [1, 1, 1] as [number, number, number], color: "#ffffff" }));
+
+/** The sun by day, a moon and stars by night; the sky colour itself is the stage's CSS gradient. */
+function Sky({ daypart }: { daypart: Daypart }) {
+  const light = LIGHTING[daypart];
+  const stars = useInstances(STARS);
+  return (
+    <group>
+      {!light.moon && (
+        <mesh position={[-15, daypart === "day" ? 5.5 : 2.8, -30]}>
+          <sphereGeometry args={[2.2, 20, 14]} />
+          <meshBasicMaterial color={daypart === "day" ? "#ffd66b" : daypart === "dawn" ? "#ffb26b" : "#ff8f6b"} />
+        </mesh>
+      )}
+      {light.moon && (
+        <group position={[-15, 5.2, -30]}>
+          <mesh>
+            <sphereGeometry args={[1.7, 20, 14]} />
+            <meshBasicMaterial color="#f3f1e6" />
+          </mesh>
+          <mesh position={[0.55, 0.3, 0.2]}>
+            <sphereGeometry args={[1.5, 20, 14]} />
+            <meshBasicMaterial color="#16204a" />
+          </mesh>
+        </group>
+      )}
+      <instancedMesh ref={stars} args={[undefined, undefined, STARS.length]} visible={light.stars}>
+        <sphereGeometry args={[0.09, 6, 5]} />
+        <meshBasicMaterial />
+      </instancedMesh>
+    </group>
+  );
+}
+
+/** A soft radial glow, drawn once. */
+function useGlow() {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    const context = canvas.getContext("2d");
+    if (context) {
+      const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gradient.addColorStop(0, "rgba(255,244,200,1)");
+      gradient.addColorStop(0.35, "rgba(255,226,150,0.45)");
+      gradient.addColorStop(1, "rgba(255,226,150,0)");
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, 64, 64);
+    }
+    const result = new THREE.CanvasTexture(canvas);
+    result.colorSpace = THREE.SRGBColorSpace;
+    result.generateMipmaps = false;
+    return result;
+  }, []);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return texture;
+}
+
+/** Four poles at the ends of the stands; their lamps are lit from dusk. No real light: a glow is enough. */
+function Floodlights({ on }: { on: boolean }) {
+  const glow = useGlow();
+  if (!on) return null;
+  return (
+    <group>
+      {[-11.5, -4, 4, 11.5].map((x) => (
+        <group key={x} position={[x, 0, -6.2]}>
+          <mesh position={[0, 2.1, 0]}>
+            <capsuleGeometry args={[0.07, 4, 4, 8]} />
+            <meshLambertMaterial color="#9aa3b8" />
+          </mesh>
+          <mesh position={[0, 4.35, 0.1]} scale={[1, 0.55, 0.5]}>
+            <sphereGeometry args={[0.42, 14, 10]} />
+            <meshBasicMaterial color="#fff2c4" />
+          </mesh>
+          <sprite position={[0, 4.35, 0.25]} scale={[3.4, 3.4, 1]}>
+            <spriteMaterial map={glow} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+          </sprite>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Scoreboard
+// ---------------------------------------------------------------------------------------------
+
+const BOARD_WIDTH = 8.2;
+const BOARD_ROW = 62;
+const BOARD_HEAD = 56;
+const BOARD_COLUMN = 512;
+
+/**
+ * The big screen above the stands: who is who, in what state, for how long. Wide and short (two
+ * columns past three agents) so it fits the half-height stage, and it never hides behind a runner.
+ */
+function Scoreboard({ lanes }: { lanes: RaceLane[] }) {
+  const rows = lanes.slice(0, 8);
+  const columns = rows.length > 3 ? 2 : 1;
+  const perColumn = Math.ceil(rows.length / columns);
+  const signature = JSON.stringify(rows.map((lane) => [lane.name, lane.statusLabel, lane.sessionMinutes, lane.laps, lane.color, lane.capColor, NEEDS_YOU.includes(lane.mood)]));
+  const width = columns * BOARD_COLUMN;
+  const height = BOARD_HEAD + perColumn * BOARD_ROW + 12;
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.fillStyle = "rgba(12, 16, 26, 0.9)";
+      context.beginPath();
+      context.roundRect(4, 4, width - 8, height - 8, 32);
+      context.fill();
+      context.lineWidth = 5;
+      context.strokeStyle = "#3a4560";
+      context.stroke();
+      context.textBaseline = "middle";
+      context.fillStyle = "#8fa0c4";
+      context.font = "700 24px ui-monospace, Menlo, monospace";
+      context.fillText(t("AGENTS  ·  ÉTAT  ·  TEMPS DE SESSION", "AGENTS  ·  STATE  ·  SESSION TIME"), 40, 32);
+      rows.forEach((lane, index) => {
+        const left = Math.floor(index / perColumn) * BOARD_COLUMN;
+        const y = BOARD_HEAD + (index % perColumn) * BOARD_ROW + BOARD_ROW / 2;
+        const needs = NEEDS_YOU.includes(lane.mood);
+        context.fillStyle = lane.color;
+        context.beginPath();
+        context.arc(left + 50, y, 15, 0, Math.PI * 2);
+        context.fill();
+        // The cap colour of the runner: the family of its model.
+        context.fillStyle = lane.capColor;
+        context.beginPath();
+        context.arc(left + 50, y, 7, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "#f2f4f8";
+        context.font = "700 32px system-ui, sans-serif";
+        context.fillText(lane.name, left + 80, y - 11);
+        context.fillStyle = needs ? "#ffb454" : "#9fabc6";
+        context.font = "600 24px system-ui, sans-serif";
+        context.fillText(lane.statusLabel, left + 80, y + 18);
+        context.textAlign = "right";
+        context.fillStyle = "#f2f4f8";
+        context.font = "600 30px system-ui, sans-serif";
+        context.fillText(lane.sessionMinutes ? formatMinutes(lane.sessionMinutes) : "—", left + BOARD_COLUMN - 36, y - 11);
+        if (lane.laps) {
+          context.fillStyle = "#9fabc6";
+          context.font = "600 22px system-ui, sans-serif";
+          context.fillText(`${lane.laps} ${lane.laps > 1 ? t("tours", "laps") : t("tour", "lap")}`, left + BOARD_COLUMN - 36, y + 18);
+        }
+        context.textAlign = "left";
+      });
+    }
+    const result = new THREE.CanvasTexture(canvas);
+    result.colorSpace = THREE.SRGBColorSpace;
+    result.generateMipmaps = false;
+    result.minFilter = THREE.LinearFilter;
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature, width, height]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  if (!rows.length) return null;
+  const boardHeight = (BOARD_WIDTH * height) / width;
+  return (
+    <group position={[0, 1.8 + boardHeight / 2, -7.2]}>
+      <mesh>
+        <planeGeometry args={[BOARD_WIDTH, boardHeight]} />
+        <meshBasicMaterial map={texture} transparent />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * (BOARD_WIDTH / 2 - 0.6), -boardHeight / 2 - 0.4, -0.05]}>
+          <capsuleGeometry args={[0.07, 0.8, 4, 8]} />
+          <meshLambertMaterial color="#6b7590" />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Hurdles (recent failures) and lap flags (session time)
+// ---------------------------------------------------------------------------------------------
+
+/** Instanced meshes whose number of instances changes: `capacity` is the most they can hold. */
+function useCounted(items: Array<{ position: [number, number, number]; scale?: [number, number, number]; color: string }>, capacity: number) {
+  const mesh = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const instances = mesh.current;
+    if (!instances) return;
+    const matrix = new THREE.Matrix4();
+    const color = new THREE.Color();
+    const shown = Math.min(items.length, capacity);
+    items.slice(0, shown).forEach((item, index) => {
+      matrix.compose(new THREE.Vector3(...item.position), new THREE.Quaternion(), new THREE.Vector3(...(item.scale ?? [1, 1, 1])));
+      instances.setMatrixAt(index, matrix);
+      instances.setColorAt(index, color.set(item.color));
+    });
+    instances.count = shown;
+    instances.instanceMatrix.needsUpdate = true;
+    if (instances.instanceColor) instances.instanceColor.needsUpdate = true;
+  }, [items, capacity]);
+  return mesh;
+}
+
+type Item = { position: [number, number, number]; scale?: [number, number, number]; color: string };
+
+/**
+ * One soft hurdle per failed tool of the last 15 minutes, ahead of the runner; a blocked agent has
+ * a wall of two bars. They disappear as the failures get old.
+ */
+function Hurdles({ lanes }: { lanes: RaceLane[] }) {
+  const capacity = Math.max(1, lanes.length * MAX_HURDLES * 2);
+  const bar = useMemo(() => new THREE.CapsuleGeometry(0.035, 0.5, 4, 8).rotateX(Math.PI / 2), []);
+  useEffect(() => () => bar.dispose(), [bar]);
+  const bars: Item[] = [];
+  const posts: Item[] = [];
+  lanes.forEach((lane, index) => {
+    const z = laneZ(index, lanes.length);
+    const wall = lane.mood === "blocked";
+    for (let k = 0; k < lane.hurdles; k += 1) {
+      const x = Math.min(FINISH_X - 0.7, progressToX(lane.progress) + 1.3 + k * 0.62);
+      const levels = wall ? [0.2, 0.42] : [0.2];
+      levels.forEach((y) => bars.push({ position: [x, y, z], scale: [1.4, 1.4, 1.4], color: "#ff6f6f" }));
+      [-1, 1].forEach((side) => posts.push({ position: [x, wall ? 0.24 : 0.12, z + side * 0.36], scale: [1.4, wall ? 2.2 : 1.1, 1.4], color: "#ffffff" }));
+    }
+  });
+  const barMesh = useCounted(bars, capacity);
+  const postMesh = useCounted(posts, capacity);
+  return (
+    <group>
+      <instancedMesh key={`b${capacity}`} ref={barMesh} args={[bar, undefined, capacity]}>
+        <meshLambertMaterial />
+      </instancedMesh>
+      <instancedMesh key={`p${capacity}`} ref={postMesh} args={[undefined, undefined, capacity]}>
+        <capsuleGeometry args={[0.03, 0.2, 4, 8]} />
+        <meshLambertMaterial />
+      </instancedMesh>
+    </group>
+  );
+}
+
+const MAX_FLAGS = 6;
+
+/** A small flag planted behind the start line for every 30 minutes a session has lasted. */
+function LapFlags({ lanes }: { lanes: RaceLane[] }) {
+  const capacity = Math.max(1, lanes.length * MAX_FLAGS);
+  const poles: Item[] = [];
+  const flags: Item[] = [];
+  lanes.forEach((lane, index) => {
+    const z = laneZ(index, lanes.length);
+    for (let k = 0; k < Math.min(MAX_FLAGS, lane.laps); k += 1) {
+      const x = START_X - 0.95 - k * 0.24;
+      poles.push({ position: [x, 0.34, z - 0.36], scale: [1.4, 1.5, 1.4], color: "#e9edf5" });
+      flags.push({ position: [x + 0.16, 0.6, z - 0.36], scale: [1.35, 0.85, 0.3], color: lane.color });
+    }
+  });
+  const poleMesh = useCounted(poles, capacity);
+  const flagMesh = useCounted(flags, capacity);
+  return (
+    <group>
+      <instancedMesh key={`p${capacity}`} ref={poleMesh} args={[undefined, undefined, capacity]}>
+        <capsuleGeometry args={[0.012, 0.4, 4, 6]} />
+        <meshLambertMaterial />
+      </instancedMesh>
+      <instancedMesh key={`f${capacity}`} ref={flagMesh} args={[undefined, undefined, capacity]}>
+        <sphereGeometry args={[0.13, 10, 8]} />
+        <meshLambertMaterial />
+      </instancedMesh>
     </group>
   );
 }
@@ -461,7 +785,13 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
   const leftLeg = useRef<THREE.Group>(null);
   const rightLeg = useRef<THREE.Group>(null);
   const confetti = useRef<THREE.Group>(null);
+  const sparks = useRef<THREE.Group>(null);
   const blob = useRef<THREE.Mesh>(null);
+  const trailMesh = useRef<THREE.Mesh>(null);
+  const beam = useRef<THREE.Group>(null);
+  const loopRing = useRef<THREE.Mesh>(null);
+  const trailGeometry = useMemo(() => new THREE.CapsuleGeometry(0.055, 1, 4, 10).rotateZ(Math.PI / 2), []);
+  useEffect(() => () => trailGeometry.dispose(), [trailGeometry]);
   const motion = useRef({
     x: progressToX(lane.progress),
     phase: seeded(z + 4) * Math.PI * 2,
@@ -470,11 +800,13 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
     pendingCue: null as RaceLane["cue"] | null,
     action: null as Action | null,
     confettiAt: -10,
+    sparksAt: -10,
     loopAngle: 0,
     heading: 0,
-    velocities: Array.from({ length: CONFETTI_COUNT }, () => new THREE.Vector3())
+    velocities: Array.from({ length: CONFETTI_COUNT }, () => new THREE.Vector3()),
+    sparkVelocities: Array.from({ length: SPARK_COUNT }, () => new THREE.Vector3())
   });
-  const capColor = useMemo(() => `#${new THREE.Color(lane.color).multiplyScalar(0.72).getHexString()}`, [lane.color]);
+  const capColor = lane.capColor;
 
   useEffect(() => {
     const state = motion.current;
@@ -491,7 +823,9 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
 
     if (state.pendingCue) {
       state.action = reducedMotion ? null : { type: state.pendingCue, startedAt: time };
-      if (state.pendingCue === "finish" && !reducedMotion) launchConfetti(state, time, z, confetti.current);
+      // Only a run of clean turns is celebrated: an ordinary turn just ends with a hop.
+      if (state.pendingCue === "finish" && !reducedMotion && lane.celebration !== "none") launchConfetti(state, time, z, confetti.current);
+      if (state.pendingCue === "finish" && !reducedMotion && lane.celebration === "fireworks") launchSparks(state, time, z, sparks.current);
       state.pendingCue = null;
     }
 
@@ -569,6 +903,26 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
       const lift = 1 / (1 + y * 3);
       blob.current.scale.set(0.34 * RUNNER_SCALE * lift, 0.24 * RUNNER_SCALE * lift, 1);
     }
+    // Token trail behind the runner, spotlight on a runner that needs you or is focused, ring where it loops.
+    if (trailMesh.current) {
+      const length = lane.trail * 3.2;
+      trailMesh.current.visible = moving && length > 0.05;
+      trailMesh.current.scale.set(Math.max(0.001, length), 1, 1);
+      trailMesh.current.position.set(state.x + offsetX - 0.28 - length / 2, 0.4 + y * 0.5, z + offsetZ);
+    }
+    if (beam.current) {
+      const lit = NEEDS_YOU.includes(lane.mood) || lane.focused;
+      beam.current.visible = lit;
+      if (lit) {
+        beam.current.position.set(state.x + offsetX, 0, z + offsetZ);
+        const pulse = reducedMotion ? 1 : 1 + Math.sin(time * 3) * 0.06;
+        beam.current.scale.set(pulse, 1, pulse);
+      }
+    }
+    if (loopRing.current) {
+      loopRing.current.visible = looping;
+      loopRing.current.position.set(state.x, 0.035, z);
+    }
     root.current.rotation.y = state.heading;
     root.current.rotation.z = tilt;
     body.current.rotation.z = lean;
@@ -583,6 +937,7 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
     }
 
     animateConfetti(state, time, delta, confetti.current);
+    animateSparks(state, time, delta, sparks.current);
   });
 
   return (
@@ -661,11 +1016,39 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
           ))}
         </group>
       </group>
+      {/* Token trail: longer when the agent burns more tokens */}
+      <mesh ref={trailMesh} geometry={trailGeometry} visible={false}>
+        <meshBasicMaterial color={lane.color} transparent opacity={0.4} depthWrite={false} />
+      </mesh>
+      {/* Spotlight for a runner that needs you (or that you focus) */}
+      <group ref={beam} visible={false}>
+        <mesh position={[0, 1.55, 0]}>
+          <cylinderGeometry args={[0.3, 0.95, 3.1, 28, 1, true]} />
+          <meshBasicMaterial color={lane.color} transparent opacity={0.16} depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+          <ringGeometry args={[0.62, 0.86, 36]} />
+          <meshBasicMaterial color={lane.color} transparent opacity={0.55} depthWrite={false} />
+        </mesh>
+      </group>
+      {/* The loop an agent keeps running on */}
+      <mesh ref={loopRing} rotation={[-Math.PI / 2, 0, 0]} scale={[1.4, 0.64, 1]} visible={false}>
+        <torusGeometry args={[0.5, 0.03, 6, 44]} />
+        <meshBasicMaterial color="#ff8f5a" transparent opacity={0.8} />
+      </mesh>
       {/* A soft round shadow instead of a shadow map */}
       <mesh ref={blob} rotation={[-Math.PI / 2, 0, 0]} position={[motion.current.x, 0.012, z]} scale={[0.34 * RUNNER_SCALE, 0.24 * RUNNER_SCALE, 1]}>
         <circleGeometry args={[1, 24]} />
         <meshBasicMaterial color="#1c2a1c" transparent opacity={0.22} depthWrite={false} />
       </mesh>
+      <group ref={sparks} visible={false}>
+        {Array.from({ length: SPARK_COUNT }, (_, index) => (
+          <mesh key={index}>
+            <sphereGeometry args={[0.06, 8, 6]} />
+            <meshBasicMaterial color={SPARK_COLORS[index % SPARK_COLORS.length]} />
+          </mesh>
+        ))}
+      </group>
       <group ref={confetti} visible={false}>
         {Array.from({ length: CONFETTI_COUNT }, (_, index) => (
           <mesh key={index}>
@@ -812,7 +1195,42 @@ function wrap(context: CanvasRenderingContext2D, text: string, maxWidth: number,
   });
 }
 
-type MotionState = { confettiAt: number; velocities: THREE.Vector3[] };
+const SPARK_COUNT = 30;
+const SPARK_COLORS = ["#ffd166", "#ff6b9a", "#7be0ff", "#b8ff8a", "#ffffff"];
+const SPARK_SECONDS = 1.7;
+
+type MotionState = { confettiAt: number; velocities: THREE.Vector3[]; sparksAt: number; sparkVelocities: THREE.Vector3[] };
+
+/** A round burst over the finish arch: sparks fly out in every direction, then fall and shrink. */
+function launchSparks(state: MotionState, time: number, z: number, group: THREE.Group | null) {
+  if (!group) return;
+  state.sparksAt = time;
+  group.visible = true;
+  group.children.forEach((spark, index) => {
+    spark.position.set(FINISH_X - 0.8, 3.1, z);
+    spark.scale.setScalar(1);
+    const angle = (index / SPARK_COUNT) * Math.PI * 2;
+    const power = 2.2 + seeded(index + time) * 1.4;
+    state.sparkVelocities[index].set(Math.cos(angle) * power * 0.35, Math.sin(angle) * power, Math.cos(angle * 3) * power * 0.4);
+  });
+}
+
+function animateSparks(state: MotionState, time: number, delta: number, group: THREE.Group | null) {
+  if (!group || !group.visible) return;
+  const age = time - state.sparksAt;
+  if (age > SPARK_SECONDS) {
+    group.visible = false;
+    return;
+  }
+  const fade = Math.max(0.05, 1 - age / SPARK_SECONDS);
+  group.children.forEach((spark, index) => {
+    const velocity = state.sparkVelocities[index];
+    velocity.y -= 4.2 * delta;
+    velocity.multiplyScalar(1 - delta * 1.1);
+    spark.position.addScaledVector(velocity, delta);
+    spark.scale.setScalar(fade);
+  });
+}
 
 function launchConfetti(state: MotionState, time: number, z: number, group: THREE.Group | null) {
   if (!group) return;

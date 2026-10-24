@@ -1,12 +1,12 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
-import { Activity, ArrowUpRight, Info, Minimize2, PanelsTopLeft } from "lucide-react";
+import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
+import { Activity, ArrowUpRight, Info, Minimize2, PanelsTopLeft, Play, Square } from "lucide-react";
 import { statusInfo, since } from "./AgentCard";
 import type { AgentPulse } from "./agentPulse";
 import { CollectorStatus } from "./CollectorStatus";
 import { t } from "./i18n";
 import { ProviderMark } from "./ProviderBadges";
 import { providerFor } from "./providers";
-import { RaceLegend, SprintTrack, supportsWebGL, type TrackMode } from "./SprintTrack";
+import { RaceLegend, SprintTrack, supportsWebGL, type Replay, type TrackMode } from "./SprintTrack";
 import { oneOf, usePreference } from "./preferences";
 import type { SessionEvent } from "./types";
 import { needsYou, useAgentPulses } from "./useAgentPulses";
@@ -53,13 +53,15 @@ export function Stage({ events, agentEvents, liveEventIds, collectorState, repos
   const { pulses, now } = useAgentPulses(agentEvents);
   const [mode, setMode] = usePreference<TrackMode>("race-mode", supportsWebGL() ? "3d" : "2d", isMode);
   const [legend, setLegend] = useState(false);
+  const [replay, setReplay] = useState<Replay | null>(null);
+  const endReplay = useCallback(() => setReplay(null), []);
   const seen = pulses.filter((pulse) => pulse.status !== "never");
   const working = pulses.filter((pulse) => pulse.status === "working").length;
   const attention = pulses.filter((pulse) => needsYou(pulse.status)).length;
   const pulseByKey = new Map(pulses.map((pulse) => [pulse.key, pulse]));
 
   return <div className="stage">
-    <div className="stage-track"><SprintTrack events={events} pulses={pulseByKey} liveEventIds={liveEventIds} onGoTo={onGoTo} mode={mode} /></div>
+    <div className="stage-track"><SprintTrack events={events} pulses={pulseByKey} liveEventIds={liveEventIds} onGoTo={onGoTo} mode={mode} replay={replay} onReplayEnd={endReplay} /></div>
 
     <header className="hud">
       <div className="hud-id"><span className="hud-mark"><Activity size={14} strokeWidth={2.4} /></span><b>AGENT OBSERVER</b><CollectorStatus state={collectorState} /></div>
@@ -70,6 +72,7 @@ export function Stage({ events, agentEvents, liveEventIds, collectorState, repos
       <div className="hud-controls">
         {controls}
         <div className="segmented" role="group" aria-label={t("Rendu de la course", "Race view")}>{(["3d", "2d"] as const).map((value) => <button key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{value === "3d" ? "3D" : "2D"}</button>)}</div>
+        <button className="icon-button" onClick={() => setReplay((current) => current ? null : { anchor: Date.now(), startedAt: Date.now() })} aria-pressed={replay !== null} aria-label={replay ? t("Arrêter le replay", "Stop the replay") : t("Rejouer la dernière heure en 30 secondes", "Replay the last hour in 30 seconds")} title={replay ? t("Arrêter le replay", "Stop the replay") : t("Rejouer la dernière heure en 30 secondes", "Replay the last hour in 30 seconds")}>{replay ? <Square size={12} /> : <Play size={13} />}</button>
         <button className="icon-button" onClick={() => setLegend((value) => !value)} aria-pressed={legend} aria-label={t("Légende de la course", "Race legend")} title={t("Légende de la course", "Race legend")}><PanelsTopLeft size={13} /></button>
         <button className="icon-button" onClick={onMini} aria-label={t("Mode mini", "Mini mode")} title={t("Mode mini : une colonne dans un coin de l’écran", "Mini mode: a column in a corner of the screen")}><Minimize2 size={13} /></button>
       </div>

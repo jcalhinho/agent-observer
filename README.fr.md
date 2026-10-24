@@ -54,6 +54,23 @@ contre de la vitesse sur les ordinateurs plus lents. Une version 2D existe pour 
 course respecte le réglage système de *réduction des animations*. La distance est un indicateur d’activité,
 jamais un pourcentage d’avancement.
 
+La scène porte plus que le mouvement, tout est calculé d’après ce que les agents rapportent :
+
+| Tu vois | Ça veut dire |
+| --- | --- |
+| Une **traînée** derrière le coureur | Les tokens des 5 dernières minutes (échelle logarithmique : un déluge n’est pas 100 fois plus long). |
+| Des **haies** devant lui | Une par outil en échec sur les 15 dernières minutes ; un agent bloqué a un mur de deux barres. |
+| Des **drapeaux** derrière la ligne de départ | Un par tranche de 30 minutes de session. |
+| La couleur de la **casquette** | La famille du modèle utilisé (Claude, Gemini, GPT, Qwen, GLM, DeepSeek, Copilot ; grise si inconnue). |
+| Un **projecteur** et quelques secondes de caméra | Un agent qui commence à avoir besoin de toi. La caméra se rapproche, puis le plan large revient. |
+| **Confettis** / **feu d’artifice** | 3 tours propres de suite / 6, ou 3 après 30 minutes. Un tour ordinaire n’est pas fêté. |
+| Le **tableau** au-dessus des gradins | Chaque agent, son état et son temps de session. |
+| Le **ciel** | Suit l’heure de ton ordinateur (aube, jour, soir avec projecteurs, nuit étoilée) ; **Réglages › Affichage › Ciel de la course** le fixe. |
+
+**Clique un coureur** pour t’en approcher et ouvrir sa carte (session, flux de tokens, échecs, dernières actions,
+*Aller à l’agent*) ; Échap ou un clic ailleurs la ferme. Le **bouton ▶** de la barre du haut rejoue la dernière
+heure en 30 secondes.
+
 Le long du bas de la course, une **pastille par agent**, ceux qui demandent ton attention en premier : ce qu’il
 fait, dans quel dépôt, depuis quand. Clique sur une pastille pour **aller à l’agent** ; le petit « i » ouvre ses
 détails.

@@ -53,6 +53,23 @@ to draw: **Settings › Display › 3D race quality** (*Light*, *Automatic*, *Sm
 speed on slower computers. A 2D version exists for machines without WebGL, and the race respects the
 system's *reduced motion* setting. Distance is an activity indicator, never a completion percentage.
 
+The scene carries more than movement, all computed from what the agents report:
+
+| You see | It means |
+| --- | --- |
+| A **trail** behind the runner | Tokens used in the last 5 minutes (log scale: a flood is not 100 times longer). |
+| **Hurdles** ahead of it | One per failed tool of the last 15 minutes; a blocked agent has a wall of two bars. |
+| **Flags** behind the start line | One per 30 minutes of the session. |
+| The colour of the **cap** | The family of the model in use (Claude, Gemini, GPT, Qwen, GLM, DeepSeek, Copilot; grey when unknown). |
+| A **spotlight** and a few seconds of camera | An agent that starts needing you. The camera leans in, then the wide shot returns. |
+| **Confetti** / **fireworks** | 3 clean turns in a row / 6, or 3 after 30 minutes. An ordinary turn is not celebrated. |
+| The **board** above the stands | Each agent, its state and its session time. |
+| The **sky** | Follows your computer's time (dawn, day, dusk with floodlights, starry night); **Settings › Display › Race sky** fixes it. |
+
+**Click a runner** to bring the camera close and open its card (session, token flow, failures, last actions,
+*Go to the agent*); Esc or a click elsewhere closes it. The **▶ button** in the top bar replays the last hour
+in 30 seconds.
+
 Along the bottom of the race, one **chip per agent**, the ones that need attention first: what it is doing,
 in which repository, how long ago. Click a chip to **go to the agent**; the small "i" opens its details.
 
