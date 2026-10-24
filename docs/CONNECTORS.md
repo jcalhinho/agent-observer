@@ -1,6 +1,6 @@
 # Connecting an agent
 
-Agent Observer ships with built-in connectors for Claude Code, Codex, Antigravity, OpenCode and
+Agent Observer ships with built-in connectors for Claude Code, Codex, Antigravity, GitHub Copilot, OpenCode and
 Qwen Code (Gemini CLI’s connector still exists in the code but is hidden: Antigravity replaces it). Any other agent, script or tool can show up in the app through the **open local API**,
 and new built-in connectors can be contributed in Rust.
 

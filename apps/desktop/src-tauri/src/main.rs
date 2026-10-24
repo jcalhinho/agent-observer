@@ -4,6 +4,7 @@ mod antigravity_models;
 mod antigravity_sessions;
 mod claude_transcripts;
 mod codex_rollout;
+mod copilot_sessions;
 mod focus;
 mod gemini_sessions;
 mod ingest;
@@ -78,6 +79,14 @@ struct CodexSetup {
 
 #[derive(Serialize)]
 struct GeminiSetup {
+    sessions_dir: String,
+    available: bool,
+    capture_prompts: bool,
+    capture_commands: bool,
+}
+
+#[derive(Serialize)]
+struct CopilotSetup {
     sessions_dir: String,
     available: bool,
     capture_prompts: bool,
@@ -205,6 +214,17 @@ fn gemini_setup(state: tauri::State<'_, CollectorState>) -> GeminiSetup {
 #[tauri::command]
 fn configured_models() -> Vec<models::ConfiguredModel> {
     models::configured_models()
+}
+
+#[tauri::command]
+fn copilot_setup(state: tauri::State<'_, CollectorState>) -> CopilotSetup {
+    let sessions_dir = copilot_sessions::sessions_root();
+    CopilotSetup {
+        sessions_dir: sessions_dir.display().to_string(),
+        available: sessions_dir.is_dir(),
+        capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
+        capture_commands: state.capture_commands.load(Ordering::Relaxed),
+    }
 }
 
 #[tauri::command]
@@ -1331,6 +1351,15 @@ fn main() {
                     persist_event(&gemini_state, event);
                 },
             );
+            let copilot_state = state.clone();
+            copilot_sessions::spawn(
+                copilot_sessions::sessions_root(),
+                state.capture_prompts.clone(),
+                state.capture_commands.clone(),
+                move |event| {
+                    persist_event(&copilot_state, event);
+                },
+            );
             let antigravity_state = state.clone();
             antigravity_sessions::spawn(
                 antigravity_sessions::data_root(),
@@ -1374,6 +1403,7 @@ fn main() {
             codex_setup,
             gemini_setup,
             antigravity_setup,
+            copilot_setup,
             configured_models,
             opencode_setup,
             qwen_setup,

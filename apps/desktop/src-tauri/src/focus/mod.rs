@@ -403,6 +403,7 @@ fn editor_with_extension(provider: &str) -> Option<launch::Host> {
         "opencode" => &["sst-dev.opencode-"],
         "qwen_code" => &["qwenlm.qwen-code"],
         "gemini_cli" => &["google.gemini-cli"],
+        "github_copilot" => &["github.copilot-chat-", "github.copilot-"],
         _ => return None,
     };
     let home = home_dir()?;

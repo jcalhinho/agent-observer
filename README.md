@@ -5,7 +5,7 @@
 **See what your coding agents are doing — and which one needs you — without sending anything anywhere.**
 
 A local desktop app for macOS and Windows that watches Claude Code, Codex, Antigravity,
-OpenCode and Qwen Code work on your machine, live.
+GitHub Copilot, OpenCode and Qwen Code work on your machine, live.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
@@ -162,6 +162,7 @@ read, never written, and Git changes are **never attributed to an agent** withou
 | **Claude Code** | Official [HTTP hooks](https://docs.claude.com/en/docs/claude-code/hooks) posted to the local collector, plus token usage read from new lines of its transcripts (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respected). | Copy the settings fragment shown in the **Connectors** tab into `~/.claude/settings.json`. The app never edits it for you. |
 | **Codex** | Appended JSONL rollout records in `~/.codex/sessions` (`CODEX_HOME` respected). | Nothing. |
 | **Antigravity** | Its local files in `~/.gemini/antigravity`, opened **read-only**: the list of conversations (project, state, activity) and, for recent sessions, a step-by-step transcript (tokens, tools, failures). Older conversations are encrypted by Antigravity and only appear through the list. Antigravity only records a code for the selected model, so the app asks Antigravity's own local server (`127.0.0.1`, read-only, see [Privacy](#privacy)) for its name; the model is the one selected when a step was seen. Cost is estimated at API rates when the model is priced. | Nothing. |
+| **GitHub Copilot** | The event logs of its agent in `~/.copilot/session-state/<session>/events.jsonl` (`COPILOT_HOME` respected): Copilot CLI and the agent sessions of VS Code, which run on it. Tokens, model, tool calls and failures. The older Copilot Chat panel (`chatSessions`) is not read. | Nothing. |
 | **OpenCode** | Its local SQLite database (`~/.local/share/opencode/opencode*.db`, `OPENCODE_DB` / `OPENCODE_DATA_DIR` respected), opened **read-only**. | Nothing. |
 | **Qwen Code** | Appended JSONL chat records in `~/.qwen/projects/<project>/chats`. | Nothing. |
 

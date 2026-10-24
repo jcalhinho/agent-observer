@@ -32,7 +32,7 @@ export function MiniView({ agentEvents, collectorState, pinned, onTogglePin, onE
     <div className="mini-cards">
       {seen.length
         ? seen.map((pulse) => <AgentCard key={pulse.key} pulse={pulse} now={now} repository={repositoryName(pulse)} compact onGoTo={onGoTo} />)
-        : <p className="mini-empty">{t("Aucun agent observé pour l’instant. Lance une session avec Claude Code, Codex, Antigravity, OpenCode ou Qwen Code : elle apparaîtra ici.", "No agent observed yet. Start a session with Claude Code, Codex, Antigravity, OpenCode or Qwen Code: it will show up here.")}</p>}
+        : <p className="mini-empty">{t("Aucun agent observé pour l’instant. Lance une session avec Claude Code, Codex, Antigravity, GitHub Copilot, OpenCode ou Qwen Code : elle apparaîtra ici.", "No agent observed yet. Start a session with Claude Code, Codex, Antigravity, GitHub Copilot, OpenCode or Qwen Code: it will show up here.")}</p>}
     </div>
     {unseen.length > 0 && <footer className="mini-footer">{t("Pas encore vus", "Not seen yet")} : {unseen.map((pulse) => agentName(pulse.key)).join(", ")}</footer>}
   </div>;

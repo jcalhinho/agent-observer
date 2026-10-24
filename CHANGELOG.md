@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-24
+
+### Added
+- **GitHub Copilot connector.** Reads the event logs of Copilot's agent
+  (`~/.copilot/session-state/<session>/events.jsonl`, `COPILOT_HOME` respected): Copilot CLI and the
+  agent sessions of VS Code, which run on it. Sessions, turns, tokens, model, tool calls and failures
+  (with "Keep error messages", their cleaned message). Message text, reasoning and tool results are never
+  stored. "Go to agent" opens the folder in VS Code when the Copilot extension is installed.
+
+### Limits
+- The older Copilot Chat panel (`workspaceStorage/*/chatSessions`) is not read.
+- Tool calls and failures follow the Copilot SDK's event names; only a text-only session was available to
+  check them against, so report a session where they do not show.
+
 ## [0.8.0] - 2026-10-24
 
 ### Added

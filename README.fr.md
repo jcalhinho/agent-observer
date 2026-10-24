@@ -5,7 +5,7 @@
 **Voir ce que font tes agents de code — et lequel a besoin de toi — sans rien envoyer nulle part.**
 
 Une app de bureau locale pour macOS et Windows qui regarde travailler Claude Code, Codex,
-Antigravity, OpenCode et Qwen Code sur ta machine, en direct.
+Antigravity, GitHub Copilot, OpenCode et Qwen Code sur ta machine, en direct.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Dernière version](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
@@ -168,6 +168,7 @@ dépôts sont lus, jamais modifiés, et un changement Git n’est **jamais attri
 | **Claude Code** | [Hooks HTTP](https://docs.claude.com/en/docs/claude-code/hooks) officiels envoyés au collecteur local, et consommation de tokens lue dans les nouvelles lignes de ses transcriptions (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respecté). | Copier le fragment affiché dans l’onglet **Connecteurs** dans `~/.claude/settings.json`. L’app ne le modifie jamais à ta place. |
 | **Codex** | Les enregistrements JSONL ajoutés dans `~/.codex/sessions` (`CODEX_HOME` respecté). | Rien. |
 | **Antigravity** | Ses fichiers locaux dans `~/.gemini/antigravity`, ouverts en **lecture seule** : la liste des conversations (projet, état, activité) et, pour les sessions récentes, un transcript étape par étape (tokens, outils, échecs). Les anciennes conversations sont chiffrées par Antigravity et n’apparaissent que dans la liste. Antigravity n’enregistre qu’un code pour le modèle sélectionné : l’app demande donc son nom au serveur local d’Antigravity (`127.0.0.1`, lecture seule, voir [Confidentialité](#confidentialité)) ; le modèle est celui sélectionné au moment où une étape a été vue. Le coût est estimé au tarif API quand le modèle a un prix connu. | Rien. |
+| **GitHub Copilot** | Les journaux d’événements de son agent dans `~/.copilot/session-state/<session>/events.jsonl` (`COPILOT_HOME` respecté) : Copilot CLI et les sessions d’agent de VS Code, qui reposent dessus. Tokens, modèle, appels d’outils et échecs. L’ancien panneau Copilot Chat (`chatSessions`) n’est pas lu. | Rien. |
 | **OpenCode** | Sa base SQLite locale (`~/.local/share/opencode/opencode*.db`, `OPENCODE_DB` / `OPENCODE_DATA_DIR` respectés), ouverte en **lecture seule**. | Rien. |
 | **Qwen Code** | Les enregistrements JSONL ajoutés dans `~/.qwen/projects/<projet>/chats`. | Rien. |
 
