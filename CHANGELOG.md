@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-10-24
+
+### Fixed
+- The "selected model" lookup was started once per agent card and once for the race, each asking the
+  backend every minute (which can run a process listing). One shared poller now serves them all.
+
+### Tests
+- The OpenCode command line for the story and Ask is built by a function covered by a test (the
+  `--model` argument was not tested in 0.9.1).
+
 ## [0.9.1] - 2026-10-24
 
 ### Fixed

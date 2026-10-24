@@ -364,24 +364,28 @@ pub fn plan(provider: &str, prompt: &str, folder: &Path) -> Option<Plan> {
         "opencode" => {
             let file = folder.join("prompt.md");
             std::fs::write(&file, prompt).ok()?;
-            let mut args = strings(&["run"]);
-            // Without it, OpenCode uses the model of its config file, which may not be the one the
-            // user picked last (or one their key does not serve).
-            if let Some(model) = crate::models::opencode_model_ref() {
-                args.push("--model".into());
-                args.push(model);
-            }
-            args.push("-f".into());
-            args.push(file.display().to_string());
-            args.push(INSTRUCTION.into());
             Plan {
-                args,
+                args: opencode_args(crate::models::opencode_model_ref().as_deref(), &file),
                 stdin: None,
                 answer_file: None,
             }
         }
         _ => return None,
     })
+}
+
+/// Without `--model`, OpenCode uses the model of its config file, which may not be the one the user
+/// picked last (or one their key does not serve).
+fn opencode_args(model: Option<&str>, prompt_file: &Path) -> Vec<String> {
+    let mut args = strings(&["run"]);
+    if let Some(model) = model {
+        args.push("--model".into());
+        args.push(model.to_owned());
+    }
+    args.push("-f".into());
+    args.push(prompt_file.display().to_string());
+    args.push(INSTRUCTION.into());
+    args
 }
 
 /// Removes colour codes some programs print even when their output is not a terminal.
@@ -574,6 +578,15 @@ pub fn generate(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn opencode_is_told_which_model_to_use() {
+        let file = Path::new("/tmp/x/prompt.md");
+        let with = opencode_args(Some("sgp/claude-qwen"), file);
+        assert_eq!(&with[..3], ["run", "--model", "sgp/claude-qwen"]);
+        assert_eq!(with[3], "-f");
+        assert!(!opencode_args(None, file).iter().any(|arg| arg == "--model"));
+    }
 
     #[test]
     fn recognises_the_report_folder_on_both_systems() {
