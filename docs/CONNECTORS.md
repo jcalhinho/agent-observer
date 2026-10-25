@@ -102,7 +102,7 @@ Keep the call non-blocking for the agent: short timeout, errors ignored.
 ## 2. Built-in connector (Rust)
 
 Built-in connectors live in `apps/desktop/src-tauri/src/`, one module per agent
-(`codex_rollout.rs`, `gemini_sessions.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`,
+(`codex_rollout.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`,
 `claude_transcripts.rs`). They follow the same pattern:
 
 1. **Find the data the agent already writes** (logs, local database) or receives (hooks). Never

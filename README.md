@@ -137,7 +137,7 @@ and your home folder removed) of the errors of failed tools — Claude Code, Cod
 
 ### The daily story
 
-An agent you **already have** — Claude Code, Codex, Gemini CLI, Qwen Code or OpenCode, as a command, an editor
+An agent you **already have** — Claude Code, Codex, Qwen Code, OpenCode or GitHub Copilot, as a command, an editor
 extension or (for Claude) the desktop app — writes the story of your last 24 hours: on demand, and every day at
 a time you choose (**18:00** by default). If the app was closed at that time, it is written at the next launch.
 
@@ -273,6 +273,8 @@ xattr -dr com.apple.quarantine "/Applications/RepoWatcher Agent Observer.app"
 2. If **Microsoft Defender SmartScreen** shows *"Windows protected your PC"*, click
    **More info → Run anyway**.
 3. WebView2 is already present on Windows 10/11; the installer fetches it if missing.
+
+Using it on Windows and something looks off? [`docs/WINDOWS.md`](docs/WINDOWS.md) is a short checklist of what to expect for each agent.
 
 Verify the checksum in PowerShell before running it:
 

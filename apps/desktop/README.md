@@ -35,17 +35,17 @@ distribution.
 
 ## Current implementation boundary
 
-For now the interface shows five agents: Claude Code, Codex, Gemini CLI,
-OpenCode and Qwen Code. The Cursor connector remains in the native runtime but is
-hidden, and its events are ignored by the interface.
+The interface shows six agents: Claude Code, Antigravity, Codex, Qwen Code, OpenCode and
+GitHub Copilot. The Cursor connector remains in the native runtime but is hidden, and its events
+are ignored by the interface.
 
-The app currently supports six local connectors: Claude Code through its
-documented HTTP hooks, Codex, Gemini CLI and Qwen Code through their local
-session logs, OpenCode through its local SQLite database in read-only mode, and
-Cursor through its documented user hooks. These are six implemented integrations, not
-universal coverage of every coding agent; GitHub Copilot, Cline, Roo Code,
-Continue, and Aider are not connected. Claude Code and Cursor hook setup is
-shown in-app; Codex, Gemini and Qwen Code are detected without editing their settings.
+Claude Code is connected through its documented HTTP hooks (plus its session transcripts for
+tokens). Antigravity, Codex, Qwen Code, OpenCode and GitHub Copilot are read from their local
+files (JSONL logs or SQLite, read-only), without editing their settings. Gemini CLI is no longer
+observed: Antigravity replaces it. These are implemented integrations, not universal coverage of
+every coding agent; Cline, Roo Code, Continue and Aider are not connected, but any tool can send
+events through the local API documented in `docs/CONNECTORS.md`. Claude Code hook setup is shown
+in-app.
 The app listens only on `127.0.0.1:43821`, authenticates requests with a
 generated local bearer token, and exposes a settings fragment for the user to
 merge manually into Claude Code's user settings (`~/.claude/settings.json`, or
@@ -80,7 +80,7 @@ discarded before persistence.
 The overview's 100 m agent track animates each newly observed event: events
 trigger a hop, tool failures trigger a fall/recovery, and explicit turn/session
 completion signals move the runner to the finish. Claude Code and Codex expose
-turn-stop/completion markers; OpenCode, Gemini CLI, and Cursor can expose
+turn-stop/completion markers; OpenCode and Cursor can expose
 activity without a reliable model-generation boundary, so their lanes are
 labelled “signal récent” rather than claiming a confirmed running state. Track
 distance is a visual activity indicator, never a model-completion percentage.
@@ -103,7 +103,7 @@ folders are used (comments and trailing commas are accepted; missing folders
 are reported). Each event is attached to the deepest repository containing its
 project or file path; paths outside every repository are resolved with
 `git rev-parse --git-common-dir`, so a worktree counts for the clone it belongs
-to, and Gemini CLI events match by project-path hash. A filter row scopes the
+to. A filter row scopes the
 race, charts and activity feed to one repository or to events outside the
 workspace. The repositories table shows branch, commits ahead/behind upstream,
 uncommitted changes, agents seen and active, and last activity side by side;
@@ -122,25 +122,21 @@ provider-reported input/output token counts, model and latency of each API
 response. Assistant text, thoughts, tool outputs and API response text are never
 persisted.
 
-Gemini CLI is observed from local chat records under
-`%USERPROFILE%\.gemini\tmp` (or `$HOME/.gemini/tmp`; `GEMINI_CLI_HOME` is
-respected). Existing files are positioned at their end when monitoring starts;
-newly created session files are observed from their beginning. Older messages
-are not imported. Gemini records can include prompts, model output, and tool
-results: output/thoughts and tool results are discarded, while prompts and
-commands follow the same opt-in privacy switches. Input/output token counts
-are shown only when present in the provider record. A project hash associates
-Gemini sessions with the selected repository without needing to expose the
-working directory in the event.
+Antigravity is observed read-only from `~/.gemini/antigravity` (its conversation list and, for
+recent sessions, the step transcripts); encrypted `.pb` files are never read. GitHub Copilot is
+observed from `~/.copilot/session-state/<id>/events.jsonl` (`COPILOT_HOME` is respected). Existing
+files are positioned at their end when monitoring starts: older messages are not imported.
+Messages, reasoning and tool results are discarded; prompts and commands follow the same opt-in
+privacy switches.
 
 Claude's `PostToolUse` hook exposes token fields for completed foreground
 subagents (`Agent` tool responses), but those figures cover the final request
 only, not the overall subagent run or parent session. The app labels and sums
 only those observed partial values; overall session token totals remain
 unavailable rather than estimated. Search,
-richer commit/diff attribution and the six additional integrations listed above
+richer commit/diff attribution and further integrations
 remain unimplemented. Complete transcript and tool-output capture are
-intentionally excluded by the privacy model. Codex and Gemini history before
+intentionally excluded by the privacy model. Codex, Antigravity and Copilot history before
 RepoWatcher starts is not backfilled; usage fields remain limited to values
 present in their local session streams.
 
@@ -214,7 +210,7 @@ runtime is missing.
 On a managed work PC, follow company software policy if SmartScreen or endpoint
 protection blocks the unsigned initial build; ask IT to distribute the MSI if
 required rather than bypassing those controls. After launch, configure Claude
-Code from the in-app instructions. Codex, Gemini CLI and OpenCode are detected
+Code from the in-app instructions. Antigravity, Codex, Qwen Code, OpenCode and Copilot are detected
 from their existing local records without changing their settings. On Windows,
 OpenCode's database is normally under `%USERPROFILE%\.local\share\opencode`.
 

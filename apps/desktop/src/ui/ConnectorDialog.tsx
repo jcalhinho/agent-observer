@@ -6,19 +6,17 @@ import type { ConnectorKind } from "./providers";
 
 type ClaudeSetup = { endpoint: string; token: string; settings_fragment: string };
 type CodexSetup = { sessions_dir: string; available: boolean };
-type GeminiSetup = { sessions_dir: string; available: boolean };
 type OpenCodeSetup = { data_dir: string; database_paths: string[]; available: boolean };
 type CopilotSetup = { sessions_dir: string; available: boolean };
 type AntigravitySetup = { data_dir: string; available: boolean };
 type QwenSetup = { projects_dir: string; available: boolean };
-type SetupByKind = { claude: ClaudeSetup; codex: CodexSetup; gemini: GeminiSetup; opencode: OpenCodeSetup; qwen: QwenSetup; antigravity: AntigravitySetup; copilot: CopilotSetup };
+type SetupByKind = { claude: ClaudeSetup; codex: CodexSetup; opencode: OpenCodeSetup; qwen: QwenSetup; antigravity: AntigravitySetup; copilot: CopilotSetup };
 
 export type ConnectorSetup = { [K in ConnectorKind]: { kind: K; setup: SetupByKind[K] } }[ConnectorKind];
 
 const SETUP_COMMANDS: Record<ConnectorKind, string> = {
   claude: "claude_setup",
   codex: "codex_setup",
-  gemini: "gemini_setup",
   opencode: "opencode_setup",
   qwen: "qwen_setup",
   antigravity: "antigravity_setup",
@@ -35,7 +33,6 @@ export function connectorSource(connector: ConnectorSetup): { path: string; foun
   switch (connector.kind) {
     case "claude": return null;
     case "codex": return { path: connector.setup.sessions_dir, found: connector.setup.available };
-    case "gemini": return { path: connector.setup.sessions_dir, found: connector.setup.available };
     case "antigravity": return { path: connector.setup.data_dir, found: connector.setup.available };
     case "copilot": return { path: connector.setup.sessions_dir, found: connector.setup.available };
     case "qwen": return { path: connector.setup.projects_dir, found: connector.setup.available };
@@ -48,7 +45,6 @@ function readOnlyCopy(kind: Exclude<ConnectorKind, "claude">): { name: string; h
     case "codex": return { name: "Codex", how: t("L’app lit les journaux de session que Codex écrit sur ton disque, au fur et à mesure.", "The app reads the session logs Codex writes to your disk, as they are written."), tokens: t("Codex fournit les tokens de chaque requête au modèle.", "Codex reports the tokens of each model request.") };
     case "copilot": return { name: "GitHub Copilot", how: t("L’app lit les journaux d’événements que l’agent Copilot écrit sur ton disque (Copilot CLI et sessions d’agent de VS Code), au fur et à mesure. Les messages, le raisonnement et les résultats d’outils ne sont jamais enregistrés.", "The app reads the event logs the Copilot agent writes to your disk (Copilot CLI and VS Code agent sessions), as they are written. Messages, reasoning and tool results are never recorded."), tokens: t("Copilot fournit les tokens et le modèle de chaque requête.", "Copilot reports the tokens and model of each request.") };
     case "antigravity": return { name: "Antigravity", how: t("L’app lit en lecture seule les fichiers locaux d’Antigravity : la liste de ses conversations et, pour les sessions récentes, le détail de chaque étape. Les messages et le contenu des fichiers ne sont jamais enregistrés.", "The app reads Antigravity’s local files, read-only: its list of conversations and, for recent sessions, the detail of each step. Messages and file contents are never recorded."), tokens: t("Antigravity fournit les tokens de chaque étape. Pour le modèle, l’app interroge le serveur local d’Antigravity (lecture seule) : coût estimé au tarif API quand le modèle est connu.", "Antigravity reports the tokens of each step. For the model, the app asks Antigravity’s local server (read-only): the cost is estimated at API rates when the model is priced.") };
-    case "gemini": return { name: "Gemini CLI", how: t("L’app lit les enregistrements de conversation que Gemini CLI écrit pour chaque projet.", "The app reads the conversation records Gemini CLI writes for each project."), tokens: t("Gemini CLI fournit les tokens et la durée de chaque réponse.", "Gemini CLI reports the tokens and duration of each answer.") };
     case "qwen": return { name: "Qwen Code", how: t("L’app lit les journaux de conversation que Qwen Code écrit pour chaque projet.", "The app reads the conversation logs Qwen Code writes for each project."), tokens: t("Qwen Code fournit les tokens, le modèle et la durée de chaque requête.", "Qwen Code reports the tokens, model and duration of each request.") };
     case "opencode": return { name: "OpenCode", how: t("L’app lit la base de données d’OpenCode en lecture seule.", "The app reads OpenCode’s database, read-only."), tokens: t("OpenCode fournit les tokens de chaque réponse.", "OpenCode reports the tokens of each answer.") };
   }

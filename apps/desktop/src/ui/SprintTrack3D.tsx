@@ -1092,7 +1092,7 @@ function NameTag({ name, model, color, icon, renderOrder }: { name: string; mode
     if (context) {
       context.font = "700 46px system-ui, sans-serif";
       const label = icon ? `${icon.symbol}  ${name}` : name;
-      const modelLabel = model ?? "modèle non fourni";
+      const modelLabel = model ?? t("modèle non fourni", "model not reported");
       const width = Math.min(512, Math.max(context.measureText(label).width, context.measureText(modelLabel).width) + 48);
       const left = (512 - width) / 2;
       context.fillStyle = "rgba(15, 19, 26, 0.82)";

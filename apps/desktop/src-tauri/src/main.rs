@@ -6,9 +6,6 @@ mod claude_transcripts;
 mod codex_rollout;
 mod copilot_sessions;
 mod focus;
-// Kept, not started: see the comment where the connectors are spawned.
-#[allow(dead_code)]
-mod gemini_sessions;
 mod ingest;
 mod models;
 mod no_window;
@@ -73,14 +70,6 @@ struct ClaudeSetup {
 
 #[derive(Serialize)]
 struct CodexSetup {
-    sessions_dir: String,
-    available: bool,
-    capture_prompts: bool,
-    capture_commands: bool,
-}
-
-#[derive(Serialize)]
-struct GeminiSetup {
     sessions_dir: String,
     available: bool,
     capture_prompts: bool,
@@ -195,17 +184,6 @@ fn claude_setup(state: tauri::State<'_, CollectorState>) -> ClaudeSetup {
 fn codex_setup(state: tauri::State<'_, CollectorState>) -> CodexSetup {
     let sessions_dir = codex_rollout::sessions_root();
     CodexSetup {
-        sessions_dir: sessions_dir.display().to_string(),
-        available: sessions_dir.is_dir(),
-        capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
-        capture_commands: state.capture_commands.load(Ordering::Relaxed),
-    }
-}
-
-#[tauri::command]
-fn gemini_setup(state: tauri::State<'_, CollectorState>) -> GeminiSetup {
-    let sessions_dir = gemini_sessions::sessions_root();
-    GeminiSetup {
         sessions_dir: sessions_dir.display().to_string(),
         available: sessions_dir.is_dir(),
         capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
@@ -1395,7 +1373,6 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             claude_setup,
             codex_setup,
-            gemini_setup,
             antigravity_setup,
             copilot_setup,
             configured_models,

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-export type ConnectorKind = "claude" | "codex" | "gemini" | "opencode" | "qwen" | "antigravity" | "copilot";
+export type ConnectorKind = "claude" | "codex" | "opencode" | "qwen" | "antigravity" | "copilot";
 
 export type Provider = {
   /** Stable UI identifier (React keys, 3D lane ids). */
@@ -26,7 +26,7 @@ export const providers: Provider[] = [
   { id: "cursor", eventKey: "cursor", name: "Cursor", initials: "◈", color: "#c98500", surface: "#352a14" },
   { id: "opencode", eventKey: "opencode", name: "OpenCode", initials: "O", color: "#d55181", surface: "#3a1f2b", connector: { kind: "opencode", scope: "SQLite local" } },
   { id: "copilot", eventKey: "github_copilot", name: "GitHub Copilot", initials: "⌘", color: "#c98500", surface: "#352a14", connector: { kind: "copilot", scope: "Journaux locaux" } },
-  { id: "gemini", eventKey: "gemini_cli", name: "Gemini CLI", initials: "✳", color: "#5aa0f0", surface: "#1c2c45", connector: { kind: "gemini", scope: "Journaux locaux" } },
+  { id: "gemini", eventKey: "gemini_cli", name: "Gemini CLI", initials: "✳", color: "#5aa0f0", surface: "#1c2c45" },
   { id: "antigravity", eventKey: "antigravity", name: "Antigravity", initials: "✦", color: "#3987e5", surface: "#1c2c45", connector: { kind: "antigravity", scope: "Fichiers locaux" } },
   { id: "qwen", eventKey: "qwen_code", name: "Qwen Code", initials: "Q", color: "#9085e9", surface: "#28264a", connector: { kind: "qwen", scope: "Journaux locaux" } },
   { id: "cline", eventKey: "cline", name: "Cline", initials: "C", color: "#efb477", surface: "#3c3023" },

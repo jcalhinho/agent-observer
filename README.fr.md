@@ -142,7 +142,7 @@ sur une ligne et nettoyée (clés, jetons, mots de passe et dossier personnel re
 
 ### L’histoire du jour
 
-Un agent que tu **as déjà** — Claude Code, Codex, Gemini CLI, Qwen Code ou OpenCode, en commande, en extension
+Un agent que tu **as déjà** — Claude Code, Codex, Qwen Code, OpenCode ou GitHub Copilot, en commande, en extension
 d’éditeur ou (pour Claude) dans l’application — écrit l’histoire de tes dernières 24 h : à la demande, et chaque
 jour à l’heure de ton choix (**18 h** par défaut). Si l’app était fermée à ce moment-là, elle est écrite au
 lancement suivant.
@@ -286,6 +286,8 @@ xattr -dr com.apple.quarantine "/Applications/RepoWatcher Agent Observer.app"
 2. Si **Microsoft Defender SmartScreen** affiche *« Windows a protégé votre ordinateur »*,
    clique sur **Informations complémentaires → Exécuter quand même**.
 3. WebView2 est déjà présent sur Windows 10/11 ; l’installateur le télécharge s’il manque.
+
+Tu utilises l’app sous Windows et quelque chose cloche ? [`docs/WINDOWS.md`](docs/WINDOWS.md) (en anglais) est une courte checklist de ce qu’on doit voir pour chaque agent.
 
 Vérifie l’empreinte dans PowerShell avant de le lancer :
 

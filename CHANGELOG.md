@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.5] - 2026-10-25
+
+### Changed
+- **Screenshots redone** with demo data (Antigravity and GitHub Copilot, no real paths or project names).
+  They showed Gemini CLI, which is no longer observed.
+- **The Gemini CLI connector is gone** (`gemini_sessions.rs`, its setup command and Connectors entry):
+  it had not been started since Antigravity replaced it. Gemini CLI history already stored stays readable.
+- The Connectors page says five agents are read automatically (it said four), and the *Keep error
+  messages* setting lists the agents that follow it (Claude Code, Antigravity, Codex, Qwen Code, OpenCode,
+  GitHub Copilot).
+- `apps/desktop/README.md` describes the six current agents.
+
+### Fixed
+- The model label under a runner in the 3D race was always French; it follows the interface language.
+
+### Added
+- `docs/WINDOWS.md`: a checklist of what to see, agent by agent, on a real Windows PC.
+
+
 ## [0.11.4] - 2026-10-25
 
 ### Fixed

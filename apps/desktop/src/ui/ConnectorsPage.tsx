@@ -51,7 +51,7 @@ export function ConnectorsPage({ events, now, onConfigure }: { events: SessionEv
   return <section className="page">
     <SectionHeader
       title={t("Connecteurs", "Connectors")}
-      description={t("Un connecteur, c’est la façon dont l’app observe un agent. Quatre agents sont lus automatiquement, Claude Code demande une petite configuration, et tu peux brancher n’importe quel autre agent via l’API locale.", "A connector is how the app observes an agent. Four agents are read automatically, Claude Code needs a small setup, and you can plug in any other agent through the local API.")}
+      description={t("Un connecteur, c’est la façon dont l’app observe un agent. Cinq agents sont lus automatiquement, Claude Code demande une petite configuration, et tu peux brancher n’importe quel autre agent via l’API locale.", "A connector is how the app observes an agent. Five agents are read automatically, Claude Code needs a small setup, and you can plug in any other agent through the local API.")}
       details={t("Les connecteurs lisent ce que les agents écrivent déjà sur ton ordinateur (journaux, base locale) ou ce qu’ils envoient eux-mêmes (hooks Claude Code). Ils ne pilotent jamais les agents et ne modifient aucun de leurs réglages.", "Connectors read what agents already write on your computer (logs, local database) or what they send themselves (Claude Code hooks). They never drive agents and never change their settings.")}
     />
     <div className="connector-list">
