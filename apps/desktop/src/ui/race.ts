@@ -9,6 +9,11 @@ export type RaceEvent = {
 };
 export type RaceState = { status: RaceStatus; latest: RaceEvent | null; progress: number; activityCount: number; startedAt: number | null };
 
+/** A turn that has had no event for this long is over (interrupted, or its session was closed): it stops running. */
+export const RUNNING_STALE_MS = 5 * 60_000;
+/** A runner that finished a turn stays on the line this long, then walks back to the start. */
+export const FINISH_HOLD_MS = 8_000;
+
 export function deriveRaceState(provider: string, events: RaceEvent[], now: number): RaceState {
   const sessions = new Map<string, RaceEvent[]>();
   for (const event of events) {
@@ -53,6 +58,11 @@ export function deriveRaceState(provider: string, events: RaceEvent[], now: numb
     }
     const lastAt = new Date(latest.occurred_at).getTime();
     if (status === "recent" && lastAt < now - 45_000) status = "idle";
+    // An interrupted turn never gets its end event (Claude Code does not send one on Esc), and a
+    // closed session leaves its last turn open: without this the runner would run forever, and its
+    // stale turn would win over a newer finished one.
+    if (status === "running" && lastAt < now - RUNNING_STALE_MS) status = "idle";
+    if (status === "finished" && lastAt < now - FINISH_HOLD_MS) status = "idle";
     const elapsedSeconds = startedAt === null ? 0 : Math.max(0, (now - startedAt) / 1000);
     const progress = status === "finished" ? 100 : status === "running" || status === "recent" ? progressAt(activityCount, elapsedSeconds) : 0;
     candidates.push({ status, latest, progress, activityCount, startedAt });

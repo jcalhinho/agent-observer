@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.4] - 2026-10-25
+
+### Fixed
+- **A runner could stay in motion for ever.** A turn that never got its end event (interrupted with Esc,
+  which Claude Code does not report, or a session closed mid-turn) stayed "running", and a stale turn won
+  over the newer finished one. A turn with no event for 5 minutes is now over.
+- **A runner that finished a turn now goes back to the start**: it stays on the line for 8 seconds, then
+  jogs back, facing the start, and waits there.
+
 ## [0.11.3] - 2026-10-25
 
 ### Fixed

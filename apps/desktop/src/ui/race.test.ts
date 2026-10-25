@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveRaceState, progressAt, type RaceEvent } from "./race";
+import { deriveRaceState, FINISH_HOLD_MS, progressAt, type RaceEvent } from "./race";
 
 const baseTime = Date.parse("2026-10-20T12:00:00.000Z");
 
@@ -61,5 +61,32 @@ describe("provider race state", () => {
     expect(state.progress).toBe(progressAt(state.activityCount, 20));
     expect(progressAt(1, 0)).toBe(7);
     expect(progressAt(500, 9999)).toBe(92);
+  });
+
+  it("stops running a turn that went silent, so it cannot win over a newer finished one", () => {
+    const stale = [
+      { ...event("claude_code", "user_message", 0), session_id: "old" },
+      { ...event("claude_code", "tool_started", 10), session_id: "old" }
+    ];
+    const newer = [
+      { ...event("claude_code", "user_message", 3600), session_id: "new" },
+      { ...event("claude_code", "checkpoint", 3660), session_id: "new" }
+    ];
+    // An hour in: the old turn was left open long ago, the new one finished a minute ago.
+    const state = deriveRaceState("claude_code", [...stale, ...newer], baseTime + 3_665_000);
+    expect(state.status).toBe("finished");
+    expect(state.progress).toBe(100);
+    // Alone, the old turn is idle, not running.
+    expect(deriveRaceState("claude_code", stale, baseTime + 3_665_000).status).toBe("idle");
+    // A turn that is still being fed stays running.
+    expect(deriveRaceState("claude_code", stale, baseTime + 60_000).status).toBe("running");
+  });
+
+  it("sends a finished runner back to the start after a short hold", () => {
+    const events = [event("claude_code", "user_message", 0), event("claude_code", "checkpoint", 5)];
+    expect(deriveRaceState("claude_code", events, baseTime + 8_000).progress).toBe(100);
+    const later = deriveRaceState("claude_code", events, baseTime + 5_000 + FINISH_HOLD_MS + 1_000);
+    expect(later.status).toBe("idle");
+    expect(later.progress).toBe(0);
   });
 });

@@ -47,7 +47,7 @@ l’**historique** côte à côte, pour la période choisie.
 ### La course et le bandeau : qui a besoin de toi
 
 La course est un stade 3D low-poly où chaque agent est un coureur. Chaque événement le fait sauter, un outil
-en échec le fait tomber puis se relever, la fin d’un tour l’envoie franchir la ligne, un agent qui t’attend
+en échec le fait tomber puis se relever, la fin d’un tour l’envoie franchir la ligne (puis, quelques secondes plus tard, retourner au départ), un agent qui t’attend
 lève la main, celui qui tourne en rond court en rond. Tout est arrondi, doux et léger à dessiner :
 **Réglages › Affichage › Qualité de la course 3D** (*Léger*, *Automatique*, *Fluide*) échange de la netteté
 contre de la vitesse sur les ordinateurs plus lents. Une version 2D existe pour les machines sans WebGL, et la

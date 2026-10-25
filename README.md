@@ -47,7 +47,7 @@ by side for the period you choose.
 ### The race and the dock: who needs you
 
 The race is a low-poly 3D stadium where each agent is a runner. Every event makes it hop, a failed tool
-makes it fall and get back up, the end of a turn sends it to the finish line, an agent that waits for you
+makes it fall and get back up, the end of a turn sends it to the finish line (and, a few seconds later, back to the start), an agent that waits for you
 raises a hand, one that goes round in circles runs in circles. Everything is rounded and soft, and cheap
 to draw: **Settings › Display › 3D race quality** (*Light*, *Automatic*, *Smooth*) trades sharpness for
 speed on slower computers. A 2D version exists for machines without WebGL, and the race respects the

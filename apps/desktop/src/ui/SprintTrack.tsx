@@ -167,7 +167,7 @@ export function RaceLegend() {
   return <ul className="race-legend">
     <li><i className="legend-leap" />{t("saute : nouvelle action", "jumps: new action")}</li>
     <li><i className="legend-fall" />{t("tombe : outil en échec", "falls: failed tool")}</li>
-    <li><i className="legend-finish" />{t("franchit la ligne : tour terminé", "crosses the line: turn finished")}</li>
+    <li><i className="legend-finish" />{t("franchit la ligne : tour terminé, puis retourne au départ", "crosses the line: turn finished, then jogs back to the start")}</li>
     <li><i className="legend-loop" />{t("tourne en rond : boucle", "runs in circles: loop")}</li>
     <li><i className="legend-wait" />{t("lève la main : t’attend, un projecteur l’éclaire", "raises a hand: waiting for you, under a spotlight")}</li>
     <li><i className="legend-hurdle" />{t("haie sur la piste : un outil a échoué là, pendant le tour en cours ; un mur = bloqué", "hurdle on the track: a tool failed there, during the turn in progress; a wall = blocked")}</li>

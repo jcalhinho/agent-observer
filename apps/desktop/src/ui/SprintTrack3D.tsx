@@ -823,11 +823,13 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
     }
 
     const targetX = progressToX(lane.progress);
-    state.x = reducedMotion ? targetX : state.x + (targetX - state.x) * (1 - Math.exp(-delta * 2.2));
+    // After a finished turn the runner jogs back to the start line (facing it), instead of sliding.
+    const returning = !reducedMotion && targetX < state.x - 0.4;
+    state.x = reducedMotion ? targetX : returning ? Math.max(targetX, state.x - 5 * delta) : state.x + (targetX - state.x) * (1 - Math.exp(-delta * 2.2));
     const mood = lane.mood;
     const looping = mood === "looping" && !reducedMotion;
     const halted = mood === "waiting" || mood === "stalled" || mood === "blocked";
-    const moving = looping || (!halted && (lane.status === "running" || lane.status === "recent"));
+    const moving = looping || returning || (!halted && (lane.status === "running" || lane.status === "recent"));
     state.stride += ((moving ? 1 : 0) - state.stride) * (1 - Math.exp(-delta * 5));
     const amplitude = reducedMotion ? 0 : state.stride;
     state.phase += delta * (5 + 7 * amplitude);
@@ -875,6 +877,8 @@ function Runner({ lane, z, bubbleRow, renderOrder, reducedMotion }: { lane: Race
       offsetX = Math.cos(state.loopAngle) * 0.7;
       offsetZ = Math.sin(state.loopAngle) * 0.32;
       heading = Math.atan2(-Math.cos(state.loopAngle) * 0.32, -Math.sin(state.loopAngle) * 0.7);
+    } else if (returning) {
+      heading = Math.PI;
     } else if (halted) {
       // Turn towards the viewer: it is you the agent is waiting for.
       heading = -Math.PI / 2;
