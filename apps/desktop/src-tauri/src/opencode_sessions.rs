@@ -302,6 +302,20 @@ impl OpenCodeMonitor {
                             }
                         }
                     }
+                    // OpenCode marks the end of a turn with an `idle` message: the runner stops there
+                    // instead of waiting for the next event.
+                    "idle" => {
+                        let mut event = make_event(
+                            &path,
+                            &session_id,
+                            EventKind::Checkpoint,
+                            &format!("{message_id}:idle"),
+                            &context,
+                        );
+                        event.occurred_at = occurred_at;
+                        event.outcome = Some("turn-completed".to_owned());
+                        events.push(event);
+                    }
                     _ => {}
                 }
             }
@@ -518,7 +532,9 @@ mod tests {
                    ('ses-test', 'msg-user', 'user', 1000, 1000,
                     '{\"text\":\"private prompt\"}'),
                    ('ses-test', 'msg-assistant', 'assistant', 1100, 1200,
-                    '{\"model\":{\"id\":\"model-x\"},\"tokens\":{\"input\":123,\"output\":45},\"time\":{\"completed\":1200},\"content\":[{\"type\":\"tool\",\"id\":\"call-1\",\"name\":\"bash\",\"time\":{\"ran\":1150,\"completed\":1190},\"state\":{\"status\":\"completed\",\"input\":{\"command\":\"echo private\",\"path\":\"src/main.rs\"}}}]}');",
+                    '{\"model\":{\"id\":\"model-x\"},\"tokens\":{\"input\":123,\"output\":45},\"time\":{\"completed\":1200},\"content\":[{\"type\":\"tool\",\"id\":\"call-1\",\"name\":\"bash\",\"time\":{\"ran\":1150,\"completed\":1190},\"state\":{\"status\":\"completed\",\"input\":{\"command\":\"echo private\",\"path\":\"src/main.rs\"}}}]}'),
+                   ('ses-test', 'msg-idle', 'idle', 1300, 1300,
+                    '{\"time\":{\"created\":1300},\"outcome\":\"succeeded\"}');",
             )
             .expect("create OpenCode schema fixture");
         drop(connection);
@@ -569,6 +585,13 @@ mod tests {
         assert_eq!(user.session_id, "ses-test");
         assert_eq!(user.project_path.as_deref(), Some("C:/work/demo"));
         assert_eq!(user.content, None);
+
+        let idle = events
+            .iter()
+            .find(|event| event.kind == EventKind::Checkpoint)
+            .expect("an idle message ends the turn");
+        assert_eq!(idle.outcome.as_deref(), Some("turn-completed"));
+        assert_eq!(idle.session_id, "ses-test");
 
         let usage = events
             .iter()

@@ -39,10 +39,19 @@ describe("provider race state", () => {
     expect(deriveRaceState("codex", [started, completed], baseTime + 5_000).status).toBe("finished");
   });
 
-  it("labels OpenCode activity as recent, then returns it to idle when the signal ages out", () => {
+  it("keeps an OpenCode turn running between its events, and ends it on the idle checkpoint", () => {
     const message = event("opencode", "user_message", 0);
-    expect(deriveRaceState("opencode", [message], baseTime + 10_000).status).toBe("recent");
-    expect(deriveRaceState("opencode", [message], baseTime + 46_000).status).toBe("idle");
+    expect(deriveRaceState("opencode", [message], baseTime + 10_000).status).toBe("running");
+    // the model thinks for 100 s without writing anything: still running
+    expect(deriveRaceState("opencode", [message], baseTime + 100_000).status).toBe("running");
+    const idle = event("opencode", "checkpoint", 120, "turn-completed");
+    expect(deriveRaceState("opencode", [message, idle], baseTime + 121_000).status).toBe("finished");
+  });
+
+  it("still labels the activity of signal-only agents as recent, then idle", () => {
+    const message = event("antigravity", "user_message", 0);
+    expect(deriveRaceState("antigravity", [message], baseTime + 10_000).status).toBe("recent");
+    expect(deriveRaceState("antigravity", [message], baseTime + 46_000).status).toBe("idle");
   });
 
   it("does not show activity for another provider's events", () => {

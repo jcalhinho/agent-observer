@@ -42,7 +42,7 @@ export function deriveRaceState(provider: string, events: RaceEvent[], now: numb
         activityCount = 0;
         continue;
       }
-      const boundedSignal = provider === "opencode" || provider === "gemini_cli" || provider === "antigravity" || provider === "cursor";
+      const boundedSignal = provider === "gemini_cli" || provider === "antigravity" || provider === "cursor";
       if (!boundedSignal && isTurnStart(provider, event)) {
         if (status !== "running" || event.kind === "user_message" || event.outcome?.startsWith("turn-started:")) startedAt = timestamp;
         status = "running";
