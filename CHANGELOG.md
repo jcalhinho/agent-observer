@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.11.6] - 2026-10-26
+## [0.11.7] - 2026-10-26
+
+0.11.6 was never published: its lock file was out of date and CI refused it. Same content, plus:
 
 ### Fixed
+- The code of conduct has a real contact address (it was a placeholder).
 - **The OpenCode runner only moved for 45 seconds after each event.** OpenCode writes nothing while the
   model thinks, so a 100-second answer left the runner standing still. A turn now runs from your message
   until OpenCode's own `idle` marker (new `Checkpoint` event), and a turn with no event for 5 minutes is
