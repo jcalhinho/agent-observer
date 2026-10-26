@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.8] - 2026-10-26
+
+### Fixed
+- **A short turn looked like the runner did not move.** Qwen Code answers in about 8 seconds, and in that time
+  the runner only went from 7 % to 11 % of the track before jumping to the finish. The first seconds of a turn
+  now count the most (about 28 % after 8 seconds); the pace afterwards is steady and a turn still tops out at 92 %.
+
 ## [0.11.7] - 2026-10-26
 
 0.11.6 was never published: its lock file was out of date and CI refused it. Same content, plus:

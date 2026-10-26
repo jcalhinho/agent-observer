@@ -69,6 +69,10 @@ describe("provider race state", () => {
     const state = deriveRaceState("claude_code", events, baseTime + 20_000);
     expect(state.progress).toBe(progressAt(state.activityCount, 20));
     expect(progressAt(1, 0)).toBe(7);
+    // a turn of a few seconds is already well on its way, and the runner never goes backwards
+    expect(progressAt(1, 8)).toBeGreaterThanOrEqual(25);
+    const ramp = [0, 2, 5, 10, 30, 60, 120, 300].map((seconds) => progressAt(1, seconds));
+    expect([...ramp].sort((a, b) => a - b)).toEqual(ramp);
     expect(progressAt(500, 9999)).toBe(92);
   });
 

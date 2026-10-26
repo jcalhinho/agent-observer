@@ -73,9 +73,14 @@ export function deriveRaceState(provider: string, events: RaceEvent[], now: numb
   return latest || { status: "ready", latest: null, progress: 0, activityCount: 0, startedAt: null };
 }
 
-/** How far along the track an open turn is, from how many events it has had and for how long. */
+/**
+ * How far along the track an open turn is, from how many events it has had and for how long.
+ * The first seconds count the most (a short turn, like a quick Qwen Code answer, has to be seen
+ * running); after that the runner keeps a steady pace.
+ */
 export function progressAt(activityCount: number, elapsedSeconds: number) {
-  return Math.min(92, Math.round(7 + (activityCount - 1) * 5 + elapsedSeconds * 0.55));
+  const opening = 38 * (1 - Math.exp(-elapsedSeconds / 12));
+  return Math.min(92, Math.round(7 + (activityCount - 1) * 5 + opening + elapsedSeconds * 0.25));
 }
 
 export function isTurnStart(provider: string, event: RaceEvent) {
