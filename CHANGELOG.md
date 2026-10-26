@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.9] - 2026-10-26
+
+### Fixed
+- **The race could stay on "Waiting for an agent" while the database was full.** The latest events are
+  read in one page of 500 rows, and a single row this version could not decode failed the whole page; the
+  error was swallowed, so nothing was drawn. Unreadable rows are now skipped (and logged), the rest is shown,
+  and a failed load is reported in the console instead of being hidden.
+
 ## [0.11.8] - 2026-10-26
 
 ### Fixed

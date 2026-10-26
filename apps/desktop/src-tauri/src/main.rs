@@ -551,11 +551,27 @@ fn load_session_events(
             row.get::<_, String>(0)
         })
         .map_err(|error| error.to_string())?;
-    rows.map(|row| {
-        let payload = row.map_err(|error| error.to_string())?;
-        serde_json::from_str(&payload).map_err(|error| error.to_string())
-    })
-    .collect()
+    let payloads = rows
+        .collect::<Result<Vec<String>, _>>()
+        .map_err(|error| error.to_string())?;
+    Ok(decode_stored_events(&payloads))
+}
+
+/// Decodes stored payloads, skipping any row this version cannot read: one such row
+/// must not hide every other event, which would leave the race empty over a full database.
+fn decode_stored_events(payloads: &[String]) -> Vec<SessionEvent> {
+    payloads
+        .iter()
+        .filter_map(
+            |payload| match serde_json::from_str::<SessionEvent>(payload) {
+                Ok(event) => Some(event),
+                Err(error) => {
+                    eprintln!("session_events: unreadable row skipped: {error}");
+                    None
+                }
+            },
+        )
+        .collect()
 }
 
 #[derive(Serialize)]
@@ -1413,6 +1429,27 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_unreadable_stored_row_does_not_hide_the_others() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection.execute_batch(SCHEMA).unwrap();
+        let mut event = normalize_cursor_event(
+            &json!({ "hook_event_name": "postToolUse", "conversation_id": "c", "generation_id": "g", "tool_name": "Shell", "tool_input": {} }),
+            false,
+        )
+        .unwrap();
+        event.provider = Provider::Codex;
+        let readable = serde_json::to_string(&event).unwrap();
+        let payloads = vec![
+            "{\"provider\":\"unknown-agent\",\"kind\":\"from_the_future\"}".to_owned(),
+            readable,
+            "not json".to_owned(),
+        ];
+        let decoded = decode_stored_events(&payloads);
+        assert_eq!(decoded.len(), 1);
+        assert_eq!(decoded[0].provider, Provider::Codex);
+    }
 
     #[test]
     fn purges_only_events_older_than_the_retention_period() {

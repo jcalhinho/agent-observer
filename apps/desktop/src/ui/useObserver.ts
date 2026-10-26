@@ -33,10 +33,10 @@ export function useObserver() {
     listen<string>("collector-error", (event) => setCollectorState(`error: ${event.payload}`)).then((stop) => { stopErrors = stop; });
     invoke<SessionEvent[]>("load_session_events", { limit: PAGE, beforeOccurredAt: null, beforeEventId: null })
       .then((stored) => {
-        setHasMore(stored.length === PAGE);
+        setHasMore(stored.length > 0);
         setEvents((current) => merge(current, stored).slice(0, PAGE));
       })
-      .catch(() => undefined);
+      .catch((error) => console.error("load_session_events failed", error));
     listen<SessionEvent>("session-event", (event) => {
       const payload = normalizeEvent(event.payload);
       if (!isActiveProvider(payload.provider)) return;
@@ -53,7 +53,7 @@ export function useObserver() {
     try {
       const older = await invoke<SessionEvent[]>("load_session_events", { limit: PAGE, beforeOccurredAt: oldest.occurred_at, beforeEventId: oldest.event_id });
       setEvents((current) => merge(current, older));
-      setHasMore(older.length === PAGE);
+      setHasMore(older.length > 0);
     } finally {
       setLoadingOlder(false);
     }
