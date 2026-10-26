@@ -16,7 +16,7 @@
     "desktop:install-mac": "bash apps/desktop/scripts/install-mac.sh"
   },
   "devDependencies": {
-    "@types/node": "^22.14.1",
+    "@types/node": "^26.6.5",
     "typescript": "^5.8.3",
     "vitest": "^5.0.5"
   }
