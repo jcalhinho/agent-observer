@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   had not changed relied on a size Windows only refreshes when the writer closes the file. Every recent
   log is read again on each poll, as before.
 
+## [0.12.1] - 2026-11-01
+
+### Fixed
+- **Windows: new log lines could be read late, and CI failed there.** Skipping log files whose listed size
+  had not changed relied on a size Windows only refreshes when the writer closes the file. Every recent
+  log is read again on each poll, as before.
+
 ## [0.12.0] - 2026-11-01
 
 ### Added
