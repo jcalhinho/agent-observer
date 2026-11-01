@@ -78,11 +78,7 @@ impl ReasonixMonitor {
             }
             // Unchanged files are skipped without opening them: opening ~every recent file each
             // second is what makes polling costly on Windows (antivirus filters).
-            if let Some(cursor) = self
-                .cursors
-                .get_mut(&path)
-                .filter(|cursor| cursor.offset != length)
-            {
+            if let Some(cursor) = self.cursors.get_mut(&path) {
                 events.extend(read_appended_records(
                     &path,
                     cursor,
@@ -521,7 +517,7 @@ mod tests {
     }
 
     #[test]
-    fn only_appended_lines_are_read_and_unchanged_files_are_skipped() {
+    fn only_appended_lines_are_read() {
         let root =
             env::temp_dir().join(format!("agent-observer-reasonix-{}", uuid::Uuid::new_v4()));
         let sessions = root.join("-work-demo").join("sessions");

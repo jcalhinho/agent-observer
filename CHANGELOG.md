@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-01
+
+### Fixed
+- **Windows: new log lines could be read late, and CI failed there.** Skipping log files whose listed size
+  had not changed relied on a size Windows only refreshes when the writer closes the file. Every recent
+  log is read again on each poll, as before.
+
 ## [0.12.0] - 2026-11-01
 
 ### Added
@@ -15,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Prompts and commands stay opt-in; assistant text and tool output are never stored.
 
 ### Changed
-- **Lighter on Windows.** Log files that did not grow are no longer opened on every poll, git status
+- **Lighter on Windows.** git status
   refreshes are rarer (10 s / 3 min) and paused while the window is hidden, and git runs with
   `--no-optional-locks` so it never takes the index lock.
 

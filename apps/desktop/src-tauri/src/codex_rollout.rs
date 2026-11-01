@@ -78,12 +78,7 @@ impl RolloutMonitor {
                     },
                 );
             }
-            // Unchanged files are skipped without opening them: opening every recent log each poll is costly on Windows.
-            if let Some(cursor) = self
-                .cursors
-                .get_mut(&path)
-                .filter(|cursor| cursor.offset != length)
-            {
+            if let Some(cursor) = self.cursors.get_mut(&path) {
                 events.extend(read_appended_records(
                     &path,
                     cursor,
