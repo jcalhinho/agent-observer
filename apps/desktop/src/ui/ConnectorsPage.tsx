@@ -16,6 +16,7 @@ function how(key: string) {
     case "antigravity": return t("Fichiers locaux d’Antigravity (conversations et étapes).", "Antigravity local files (conversations and steps).");
     case "gemini_cli": return t("Enregistrements de conversation Gemini CLI.", "Gemini CLI conversation records.");
     case "qwen_code": return t("Journaux de conversation Qwen Code.", "Qwen Code conversation logs.");
+    case "reasonix": return t("Journaux de session Reasonix (Studio et CLI).", "Reasonix session logs (Studio and CLI).");
     case "opencode": return t("Base de données OpenCode, en lecture seule.", "OpenCode database, read-only.");
     default: return "";
   }

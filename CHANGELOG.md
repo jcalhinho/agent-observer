@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Reasonix connector.** Reads the session logs of Reasonix Studio and the Reasonix CLI
+  (`~/.reasonix/projects/*/sessions/*.wire.jsonl`): tool calls, tokens with cache, model and turn outcome.
+  Prompts and commands stay opt-in; assistant text and tool output are never stored.
+
+### Changed
+- **Lighter on Windows.** Log files that did not grow are no longer opened on every poll, git status
+  refreshes are rarer (10 s / 3 min) and paused while the window is hidden, and git runs with
+  `--no-optional-locks` so it never takes the index lock.
+
 ## [0.11.9] - 2026-10-26
 
 ### Fixed
