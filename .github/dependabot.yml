@@ -26,6 +26,10 @@ updates:
     labels: ["dependencies", "javascript"]
     commit-message:
       prefix: "build(deps)"
+    ignore:
+      # CI and releases run Node 22; newer type definitions would describe a different runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       tauri:
         patterns: ["@tauri-apps/*"]
