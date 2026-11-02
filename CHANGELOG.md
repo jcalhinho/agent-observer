@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-11-02
+
 ### Added
 - **Cursor set-up screen.** Cursor is now listed with the other connectors, with its hooks block to copy into
   `~/.cursor/hooks.json` and a "hooks to install" status until its first event arrives.
