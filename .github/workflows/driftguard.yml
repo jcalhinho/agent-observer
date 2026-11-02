@@ -1,0 +1,25 @@
+name: DriftGuard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1" # weekly: providers retire APIs even when the code does not change
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jcalhinho/driftguard@v1
+        with:
+          min-severity: critical
+          # shortcut: report-only (annotations) until the first run shows the real findings; set to "true" then.
+          fail-on-findings: "false"
+          # Price tables, tests and docs name retired models on purpose.
+          ignore: "**/*.test.* docs/** CHANGELOG.md apps/desktop/src/ui/pricing.ts"
