@@ -20,7 +20,7 @@ describe("provider table", () => {
 
 describe("active providers", () => {
   it("shows only Claude Code, Codex, OpenCode, Qwen Code, Antigravity, GitHub Copilot, Reasonix and Cursor (Gemini CLI is replaced by Antigravity)", () => {
-    expect(activeProviders.map((provider) => provider.name).sort()).toEqual(["Antigravity", "Claude Code", "Codex", "GitHub Copilot", "Cursor", "OpenCode", "Qwen Code", "Reasonix"]);
+    expect(activeProviders.map((provider) => provider.name).sort()).toEqual(["Antigravity", "Claude Code", "Codex", "Cursor", "GitHub Copilot", "OpenCode", "Qwen Code", "Reasonix"]);
   });
 });
 
