@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildDailyReport } from "./dailyReport";
+import { buildDailyReport, shareCard } from "./dailyReport";
 import { currentLang, setLang, type Lang } from "./i18n";
 import type { SessionEvent } from "./types";
 
@@ -36,5 +36,13 @@ describe("24 h report", () => {
     const report = buildDailyReport([], NOW);
     expect(report.editorial.summary).toBe("No agent activity was captured in the last 24 hours.");
     expect(report.agents).toEqual([]);
+  });
+
+  it("builds a card without any project name or path", () => {
+    setLang("en");
+    const card = shareCard(buildDailyReport([event("a", 5, { file_path: "/work/api/secret.ts" }), event("b", 4, { kind: "file_changed", file_path: "/work/api/secret.ts" })], NOW));
+    expect(card).toContain("1 agent(s)");
+    expect(card).toContain("github.com/jcalhinho/agent-observer");
+    expect(card).not.toMatch(/api|secret/);
   });
 });

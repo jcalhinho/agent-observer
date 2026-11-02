@@ -120,4 +120,15 @@ export function buildDailyReport(allEvents: SessionEvent[], now = Date.now()): D
   };
 }
 
+/** A short plain-text card to paste in a chat or a post: facts only, no project names or paths. */
+export function shareCard(report: DailyReport): string {
+  const lines = [
+    t(`Mes agents de code, sur 24 h : ${report.agents.length} agent(s), ${report.sessions} session(s), ${report.toolCalls} appels d’outils.`, `My coding agents over 24 h: ${report.agents.length} agent(s), ${report.sessions} session(s), ${report.toolCalls} tool calls.`),
+    ...report.agents.map((agent) => `• ${agent.name}: ${agent.turns} ${t("tours", "turns")} · ${formatCompact(agent.inputTokens)} ${t("lus", "read")} / ${formatCompact(agent.outputTokens)} ${t("écrits", "written")}`),
+    t(`${report.filesChanged} fichier(s) modifié(s), ${report.failures} échec(s).`, `${report.filesChanged} file(s) changed, ${report.failures} failure(s).`),
+    "Agent Observer · https://github.com/jcalhinho/agent-observer"
+  ];
+  return lines.join("\n");
+}
+
 export function reportMetricTokens(report: DailyReport) { return t(`${formatCompact(report.inputTokens)} lus · ${formatCompact(report.outputTokens)} écrits`, `${formatCompact(report.inputTokens)} read · ${formatCompact(report.outputTokens)} written`); }

@@ -10,8 +10,9 @@ type OpenCodeSetup = { data_dir: string; database_paths: string[]; available: bo
 type CopilotSetup = { sessions_dir: string; available: boolean };
 type AntigravitySetup = { data_dir: string; available: boolean };
 type QwenSetup = { projects_dir: string; available: boolean };
+type CursorSetup = { endpoint: string; settings_fragment: string };
 type ReasonixSetup = { projects_dir: string; available: boolean };
-type SetupByKind = { reasonix: ReasonixSetup; claude: ClaudeSetup; codex: CodexSetup; opencode: OpenCodeSetup; qwen: QwenSetup; antigravity: AntigravitySetup; copilot: CopilotSetup };
+type SetupByKind = { cursor: CursorSetup; reasonix: ReasonixSetup; claude: ClaudeSetup; codex: CodexSetup; opencode: OpenCodeSetup; qwen: QwenSetup; antigravity: AntigravitySetup; copilot: CopilotSetup };
 
 export type ConnectorSetup = { [K in ConnectorKind]: { kind: K; setup: SetupByKind[K] } }[ConnectorKind];
 
@@ -21,6 +22,7 @@ const SETUP_COMMANDS: Record<ConnectorKind, string> = {
   opencode: "opencode_setup",
   qwen: "qwen_setup",
   reasonix: "reasonix_setup",
+  cursor: "cursor_setup",
   antigravity: "antigravity_setup",
   copilot: "copilot_setup"
 };
@@ -33,7 +35,7 @@ export async function loadConnectorSetup(kind: ConnectorKind): Promise<Connector
 /** Where a log-based connector reads from, and whether that place exists on this computer. */
 export function connectorSource(connector: ConnectorSetup): { path: string; found: boolean } | null {
   switch (connector.kind) {
-    case "claude": return null;
+    case "claude": case "cursor": return null;
     case "codex": return { path: connector.setup.sessions_dir, found: connector.setup.available };
     case "antigravity": return { path: connector.setup.data_dir, found: connector.setup.available };
     case "copilot": return { path: connector.setup.sessions_dir, found: connector.setup.available };
@@ -43,7 +45,7 @@ export function connectorSource(connector: ConnectorSetup): { path: string; foun
   }
 }
 
-function readOnlyCopy(kind: Exclude<ConnectorKind, "claude">): { name: string; how: string; tokens: string } {
+function readOnlyCopy(kind: Exclude<ConnectorKind, "claude" | "cursor">): { name: string; how: string; tokens: string } {
   switch (kind) {
     case "codex": return { name: "Codex", how: t("L’app lit les journaux de session que Codex écrit sur ton disque, au fur et à mesure.", "The app reads the session logs Codex writes to your disk, as they are written."), tokens: t("Codex fournit les tokens de chaque requête au modèle.", "Codex reports the tokens of each model request.") };
     case "copilot": return { name: "GitHub Copilot", how: t("L’app lit les journaux d’événements que l’agent Copilot écrit sur ton disque (Copilot CLI et sessions d’agent de VS Code), au fur et à mesure. Les messages, le raisonnement et les résultats d’outils ne sont jamais enregistrés.", "The app reads the event logs the Copilot agent writes to your disk (Copilot CLI and VS Code agent sessions), as they are written. Messages, reasoning and tool results are never recorded."), tokens: t("Copilot fournit les tokens et le modèle de chaque requête.", "Copilot reports the tokens and model of each request.") };
@@ -57,6 +59,25 @@ function readOnlyCopy(kind: Exclude<ConnectorKind, "claude">): { name: string; h
 /** How a connector works and, for Claude Code, the hooks to add. Capture options live in Réglages. */
 export function ConnectorSetupDialog({ connector, onClose }: { connector: ConnectorSetup; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
+  if (connector.kind === "cursor") {
+    const { setup } = connector;
+    const copy = async () => {
+      await navigator.clipboard.writeText(setup.settings_fragment);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    };
+    return <Dialog id="cursor" title={t("Brancher Cursor", "Set up Cursor")} onClose={onClose}>
+      <p>{t("Cursor prévient l’app de chacune de ses actions grâce à des hooks : de petites notifications envoyées à l’app pendant qu’il travaille.", "Cursor tells the app about each of its actions through hooks: small notifications sent to the app while it works.")}</p>
+      <ol className="steps">
+        <li>{t("Ouvre ton fichier de hooks Cursor :", "Open your Cursor hooks file:")} <code>~/.cursor/hooks.json</code> (Windows : <code>%USERPROFILE%\.cursor\hooks.json</code>).</li>
+        <li>{t("Ajoute le bloc ci-dessous, en le fusionnant avec l’existant si le fichier n’est pas vide.", "Add the block below, merging it with the existing content if the file is not empty.")}</li>
+        <li>{t("Redémarre Cursor : ses sessions apparaissent ensuite dans l’app. L’app ne modifie jamais ce fichier elle-même.", "Restart Cursor: its sessions then show up in the app. The app never edits this file itself.")}</li>
+      </ol>
+      <textarea readOnly value={setup.settings_fragment} aria-label={t("Bloc de hooks à ajouter à Cursor", "Hooks block to add to Cursor")} />
+      <p className="dialog-note">{t("Ce bloc contient le chemin du jeton de cette installation. Si l’app est fermée, les hooks abandonnent après 3 secondes sans gêner Cursor.", "This block points to this installation’s token. If the app is closed, the hooks give up after 3 seconds without disturbing Cursor.")}</p>
+      <div className="dialog-actions"><button className="button" onClick={onClose}>{t("Fermer", "Close")}</button><button className="button primary" onClick={copy}>{copied ? t("Copié ✓", "Copied ✓") : t("Copier le bloc", "Copy the block")}</button></div>
+    </Dialog>;
+  }
   if (connector.kind === "claude") {
     const { setup } = connector;
     const copy = async () => {

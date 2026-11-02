@@ -1,6 +1,6 @@
-import { RefreshCw } from "lucide-react";
+import { Copy, RefreshCw } from "lucide-react";
 import { formatCompact } from "./analytics";
-import { buildDailyReport, reportMetricTokens } from "./dailyReport";
+import { buildDailyReport, reportMetricTokens, shareCard } from "./dailyReport";
 import { SectionHeader } from "./Explain";
 import { locale, t } from "./i18n";
 import { providerFor } from "./providers";
@@ -18,7 +18,7 @@ export function DailyReportPage({ events, hasMore }: { events: SessionEvent[]; h
         title={t("Rapport 24 h", "24 h report")}
         description={t("Les faits de la journée, tirés des événements collectés ici. Rien n’est inventé par un modèle.", "The day’s facts, from the events collected here. Nothing is made up by a model.")}
         details={t("Un résumé en mots simples, puis les chiffres : agents, modèles, outils, fichiers et cadence par heure. Un rappel te prévient une fois par jour si les notifications sont activées.", "A summary in plain words, then the numbers: agents, models, tools, files and activity per hour. A reminder tells you once a day if notifications are on.")}
-        actions={<><span className="report-period">{new Date(report.from).toLocaleString(locale(), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} → {t("maintenant", "now")}</span><button className="icon-button" onClick={() => window.location.reload()} aria-label={t("Rafraîchir le rapport", "Refresh the report")} title={t("Rafraîchir le rapport", "Refresh the report")}><RefreshCw size={13} /></button></>}
+        actions={<><span className="report-period">{new Date(report.from).toLocaleString(locale(), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} → {t("maintenant", "now")}</span><button className="icon-button" onClick={() => void navigator.clipboard.writeText(shareCard(report))} aria-label={t("Copier une carte à partager", "Copy a card to share")} title={t("Copier une carte à partager (sans noms de projets)", "Copy a card to share (no project names)")}><Copy size={14} /></button><button className="icon-button" onClick={() => window.location.reload()} aria-label={t("Rafraîchir le rapport", "Refresh the report")} title={t("Rafraîchir le rapport", "Refresh the report")}><RefreshCw size={13} /></button></>}
       />
       {hasMore && <p className="notice warn">{t("La fenêtre locale contient plus d’événements que ceux chargés : le rapport est exact sur les événements présents. Charge l’historique depuis Sessions pour le compléter.", "The local window holds more events than are loaded: the report is exact on the events present. Load older history from Sessions to complete it.")}</p>}
       <dl className="report-kpis">

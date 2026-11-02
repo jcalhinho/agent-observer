@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Cursor set-up screen.** Cursor is now listed with the other connectors, with its hooks block to copy into
+  `~/.cursor/hooks.json` and a "hooks to install" status until its first event arrives.
+- **Share card.** The 24 h report has a button that copies a short text card (agents, turns, tokens, files, failures)
+  with no project names or paths.
+
 ## [0.12.1] - 2026-11-01
 
 ### Fixed
