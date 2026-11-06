@@ -342,3 +342,4 @@ time { font-variant-numeric: tabular-nums; }
 .connector-list li > span { flex: 1; }
 .connector-list li small { color: var(--faint); font-size: 11px; }
 .card-model.mixed { border-style: dashed; }
+.card-launch { flex: none; padding: 1px 6px; border: 1px solid var(--border); color: var(--faint); font: 10.5px var(--mono); text-transform: uppercase; letter-spacing: .04em; }

@@ -123,6 +123,11 @@ pub struct SessionEvent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent: Option<String>,
     pub kind: EventKind,
+    /// Comment l'agent a ete lance, quand la source le dit : « cli », « vscode »,
+    /// « ide »… La valeur est celle que l'agent rapporte, sans traduction, car
+    /// chacun a son vocabulaire. Absent pour les agents qui ne le disent pas.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launch_mode: Option<String>,
     pub project_path: Option<String>,
     pub project_hash: Option<String>,
     pub model: Option<Sourced<String>>,
@@ -160,6 +165,7 @@ impl SessionEvent {
             provider,
             agent: None,
             kind,
+            launch_mode: None,
             project_path: None,
             project_hash: None,
             model: None,

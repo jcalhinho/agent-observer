@@ -4,6 +4,7 @@ mod antigravity_models;
 mod antigravity_sessions;
 mod claude_transcripts;
 mod codex_rollout;
+mod copilot_chat;
 mod copilot_sessions;
 mod models;
 mod no_window;
@@ -850,6 +851,10 @@ fn main() {
                 },
             );
             let opencode_state = state.clone();
+            let copilot_chat_state = state.clone();
+            copilot_chat::spawn(state.capture_prompts.clone(), move |event| {
+                persist_event(&copilot_chat_state, event);
+            });
             opencode_sessions::spawn(
                 state.capture_prompts.clone(),
                 state.capture_commands.clone(),

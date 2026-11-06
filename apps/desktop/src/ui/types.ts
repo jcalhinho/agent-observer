@@ -21,6 +21,8 @@ export type SessionEvent = {
   /** Size of the model's context window, when the agent reports it. */
   context_window?: { value: number; origin: string } | null;
   model?: { value: string; origin: string } | null;
+  /** Comment l'agent a ete lance, quand la source le dit. */
+  launch_mode?: string | null;
   duration_ms?: { value: number; origin: string } | null;
   outcome?: string | null;
 };

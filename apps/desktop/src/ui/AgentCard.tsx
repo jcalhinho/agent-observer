@@ -40,6 +40,28 @@ function compact(value: number) {
 const fallback = providers.find((provider) => provider.eventKey === "custom")!;
 
 /**
+ * Où travaille l'agent, en un mot lisible.
+ *
+ * Trois cas à gérer : certains agents (Reasonix) ne transmettent pas leur
+ * répertoire de travail, mais bien le chemin des fichiers qu'ils touchent ;
+ * un chemin qui est le dossier personnel afficherait sinon le nom de
+ * l'utilisateur, ce qui n'apprend rien ; et la racine n'a pas de dernier
+ * segment. Le chemin complet reste au survol.
+ */
+export function placeOf(project: { project_path: string | null; file_path: string | null } | null): { label: string; full: string | null } {
+  const raw = project?.project_path ?? null;
+  // Faute de répertoire de travail, le dossier parent du dernier fichier touché.
+  const derived = raw ?? (project?.file_path ? project.file_path.replaceAll("\\", "/").split("/").slice(0, -1).join("/") : null);
+  if (!derived) return { label: t("dossier inconnu", "unknown folder"), full: null };
+
+  const parts = derived.replaceAll("\\", "/").split("/").filter(Boolean);
+  // `/Users/<nom>` ou `/home/<nom>` : c'est le dossier personnel.
+  const isHome = parts.length === 2 && (parts[0] === "Users" || parts[0] === "home");
+  const label = isHome ? "~" : parts.at(-1) ?? "/";
+  return { label: raw ? label : t(`${label} (déduit)`, `${label} (inferred)`), full: derived };
+}
+
+/**
  * Une carte, huit informations : qui, son état, ce qu'il fait, depuis quand, où, quel modèle,
  * combien de tokens, et le remplissage du contexte. Rien d'autre.
  */
@@ -61,7 +83,7 @@ export function AgentCard({ pulse, now }: { pulse: AgentPulse; now: number }) {
     : status.explanation;
 
   // 4. Où.
-  const folder = pulse.project?.project_path?.replaceAll("\\", "/").split("/").filter(Boolean).at(-1);
+  const place = placeOf(pulse.project);
 
   // 8. Quel modèle : celui de la dernière réponse, sinon celui qui est
   //    configuré dans les réglages de l'agent.
@@ -101,7 +123,8 @@ export function AgentCard({ pulse, now }: { pulse: AgentPulse; now: number }) {
     </p>
 
     <p className="card-where">
-      <span title={pulse.project?.project_path ?? undefined}>{folder ?? t("dossier inconnu", "unknown folder")}</span>
+      <span title={place.full ?? undefined}>{place.label}</span>
+      {pulse.launchMode && <span className="card-launch" title={t("Comment l’agent a été lancé, d’après ce qu’il rapporte", "How the agent was launched, as it reports it")}>{pulse.launchMode}</span>}
       {model && <span className={`card-model ${pulse.modelsSeen.length > 1 ? "mixed" : ""}`} title={modelTitle}>{model}{pulse.modelsSeen.length > 1 ? " +" : ""}</span>}
     </p>
 
