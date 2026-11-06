@@ -44,6 +44,15 @@ export type AgentPulse = {
     /** Every model reported in this session, in first-seen order. */
     models?: string[];
   } | null;
+  /**
+   * Le modele de la reponse la plus recente. A ne pas confondre avec
+   * `session.model`, qui est le PREMIER modele vu dans la session : un agent
+   * qui demarre sur un petit modele, ou qui en utilise un pour une tache de
+   * fond, garderait sinon ce nom-la jusqu'au bout.
+   */
+  model: string | null;
+  /** Tous les modeles vus dans la session, du plus recent au plus ancien. */
+  modelsSeen: string[];
   /** Where the latest event happened, to name its repository. */
   project: { project_path: string | null; file_path: string | null; project_hash: string | null } | null;
   /** Events per minute over the last 15 minutes, oldest first. */
@@ -76,7 +85,7 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
     const age = now - Date.parse(event.occurred_at);
     if (age >= 0 && age < SPARK_MINUTES * 60_000) spark[SPARK_MINUTES - 1 - Math.floor(age / 60_000)] += 1;
   }
-  if (!own.length) return { key, status: "never", lastEventAt: null, current: null, recent: [], turnStartedAt: null, failureStreak: 0, loop: null, session: null, project: null, spark, context: null };
+  if (!own.length) return { key, status: "never", lastEventAt: null, current: null, recent: [], turnStartedAt: null, failureStreak: 0, loop: null, session: null, model: null, modelsSeen: [], project: null, spark, context: null };
 
   const latest = own[0];
   const lastEventAt = Date.parse(latest.occurred_at);
@@ -118,7 +127,12 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
   else status = "idle";
 
   const summary = summarizeSession(sessionEvents);
+  // `own` va du plus recent au plus ancien : le premier modele rencontre est
+  // donc celui de la derniere reponse.
+  const reported = sessionEvents.map((event) => event.model?.value).filter((value): value is string => Boolean(value));
   return {
+    model: reported[0] ?? null,
+    modelsSeen: [...new Set(reported)],
     key,
     status,
     lastEventAt,

@@ -63,9 +63,18 @@ export function AgentCard({ pulse, now }: { pulse: AgentPulse; now: number }) {
   // 4. Où.
   const folder = pulse.project?.project_path?.replaceAll("\\", "/").split("/").filter(Boolean).at(-1);
 
-  // 8. Quel modèle : celui qu'il a rapporté, sinon celui qui est configuré.
+  // 8. Quel modèle : celui de la dernière réponse, sinon celui qui est
+  //    configuré dans les réglages de l'agent.
   const configured = useConfiguredModels()[provider.eventKey];
-  const model = session?.model ?? configured ?? null;
+  const model = pulse.model ?? configured ?? null;
+  // Un agent peut changer de modèle en cours de session, ou en utiliser un
+  // plus petit pour une tâche de fond : on le dit au survol plutôt que
+  // d'afficher un nom trompeur.
+  const modelTitle = pulse.modelsSeen.length > 1
+    ? t(`Modèle de la dernière réponse. Dans cette session : ${pulse.modelsSeen.join(", ")}.`, `Model of the latest response. In this session: ${pulse.modelsSeen.join(", ")}.`)
+    : pulse.model
+      ? t("Modèle de la dernière réponse", "Model of the latest response")
+      : t("Modèle choisi dans les réglages de l’agent ; aucune réponse encore observée", "Model selected in the agent’s settings; no response observed yet");
 
   // 7. Combien il consomme.
   const tokens = session && (session.inputTokens !== null || session.outputTokens !== null)
@@ -93,7 +102,7 @@ export function AgentCard({ pulse, now }: { pulse: AgentPulse; now: number }) {
 
     <p className="card-where">
       <span title={pulse.project?.project_path ?? undefined}>{folder ?? t("dossier inconnu", "unknown folder")}</span>
-      {model && <span className="card-model" title={t("Modèle utilisé", "Model in use")}>{model}</span>}
+      {model && <span className={`card-model ${pulse.modelsSeen.length > 1 ? "mixed" : ""}`} title={modelTitle}>{model}{pulse.modelsSeen.length > 1 ? " +" : ""}</span>}
     </p>
 
     <div className="card-usage">

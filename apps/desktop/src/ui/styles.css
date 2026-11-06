@@ -341,3 +341,4 @@ time { font-variant-numeric: tabular-nums; }
 .connector-list li { display: flex; align-items: center; gap: 9px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
 .connector-list li > span { flex: 1; }
 .connector-list li small { color: var(--faint); font-size: 11px; }
+.card-model.mixed { border-style: dashed; }
