@@ -1,9 +1,11 @@
 import { narrateEvent, type Narration } from "./activity-copy";
-import { WRITE_TOOL } from "./analytics";
 import { contextUsage, type ContextUsage } from "./contextUsage";
 import { detectLoop, type LoopFinding } from "./loopDetector";
 import { summarizeSession } from "./sessionSummary";
 import type { SessionEvent } from "./types";
+
+/** Outils qui ecrivent : sert a compter les fichiers touches. */
+const WRITE_TOOL = /edit|write|patch|create|replace|multi_?edit|file_changed/i;
 
 /**
  * At-a-glance state of one agent, ordered by how much it needs the user:

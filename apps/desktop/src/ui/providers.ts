@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from "react";
 
 export type ConnectorKind = "claude" | "codex" | "opencode" | "qwen" | "reasonix" | "cursor" | "antigravity" | "copilot";
 
@@ -51,56 +50,25 @@ export function providerById(id: string): Provider {
  */
 export const activeProviders: Provider[] = ["claude_code", "antigravity", "codex", "qwen", "opencode", "copilot", "reasonix", "cursor"].map(providerById);
 
-/*
- * Custom connectors (open HTTP API) are providers too, keyed `custom:<connector id>`. They are kept
- * in a small store so every view re-renders when one is added or removed.
- */
-let customProviders: Provider[] = [];
-let agents: Provider[] = activeProviders;
-let version = 0;
-const listeners = new Set<() => void>();
-
-export type CustomConnectorInfo = { id: string; name: string; color: string };
-
-export function setCustomProviders(connectors: CustomConnectorInfo[]) {
-  customProviders = connectors.map((connector) => ({
-    id: `custom:${connector.id}`,
-    eventKey: `custom:${connector.id}`,
-    name: connector.name,
-    initials: connector.name.trim().charAt(0).toUpperCase() || "+",
-    color: connector.color,
-    surface: "#262b35"
-  }));
-  agents = customProviders.length ? [...activeProviders, ...customProviders] : activeProviders;
-  version += 1;
-  listeners.forEach((listener) => listener());
-}
-
-/** Every agent the app shows: the built-in ones, then custom connectors (chart and lane order). */
+/** Les agents que l'app affiche, dans l'ordre. */
 export function activeAgents(): Provider[] {
-  return agents;
+  return activeProviders;
 }
 
-/** Re-renders the calling component when custom connectors change; returns the agents. */
+/** Gardé comme point d'accroche : la liste des agents est fixe aujourd'hui. */
 export function useAgents(): Provider[] {
-  useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => version);
-  return activeAgents();
+  return activeProviders;
 }
 
 export function providerFor(eventKey: string): Provider | undefined {
-  return eventKey.startsWith("custom:") ? customProviders.find((provider) => provider.eventKey === eventKey) : providers.find((provider) => provider.eventKey === eventKey);
+  return providers.find((provider) => provider.eventKey === eventKey);
 }
 
 export function agentName(eventKey: string) {
   return providerFor(eventKey)?.name ?? eventKey;
 }
 
-/** Events worth showing. Custom keys always pass: connectors may load after the first events. */
+/** Les événements qui méritent d'être affichés. */
 export function isActiveProvider(eventKey: string) {
-  return eventKey.startsWith("custom:") || activeProviders.some((provider) => provider.eventKey === eventKey);
-}
-
-/** Events of custom connectors are stored as provider `custom` + `agent`; the UI keys them `custom:<agent>`. */
-export function normalizeEvent<T extends { provider: string; agent?: string | null }>(event: T): T {
-  return event.provider === "custom" && event.agent ? { ...event, provider: `custom:${event.agent}` } : event;
+  return activeProviders.some((provider) => provider.eventKey === eventKey);
 }

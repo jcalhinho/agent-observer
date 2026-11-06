@@ -3,13 +3,13 @@ import { locale, t } from "./i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { save } from "@tauri-apps/plugin-dialog";
-import { isActiveProvider, normalizeEvent } from "./providers";
+import { isActiveProvider } from "./providers";
 import { compareEventsNewestFirst, type SessionEvent } from "./types";
 
 const PAGE = 500;
 
 function merge(current: SessionEvent[], incoming: SessionEvent[]) {
-  const byId = new Map([...current, ...incoming.map(normalizeEvent).filter((event) => isActiveProvider(event.provider))].map((event) => [event.event_id, event]));
+  const byId = new Map([...current, ...incoming.filter((event) => isActiveProvider(event.provider))].map((event) => [event.event_id, event]));
   return [...byId.values()].sort(compareEventsNewestFirst);
 }
 
@@ -38,7 +38,7 @@ export function useObserver() {
       })
       .catch((error) => console.error("load_session_events failed", error));
     listen<SessionEvent>("session-event", (event) => {
-      const payload = normalizeEvent(event.payload);
+      const payload = event.payload;
       if (!isActiveProvider(payload.provider)) return;
       setLiveEventIds((current) => ({ ...current, [payload.provider]: payload.event_id }));
       setEvents((current) => merge(current, [payload]));

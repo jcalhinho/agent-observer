@@ -5,7 +5,6 @@ mod antigravity_sessions;
 mod claude_transcripts;
 mod codex_rollout;
 mod copilot_sessions;
-mod ingest;
 mod models;
 mod no_window;
 mod opencode_sessions;
@@ -13,7 +12,6 @@ mod procs;
 mod qwen_sessions;
 mod reasonix_sessions;
 mod redact;
-mod workspace;
 
 use axum::{
     Router,
@@ -27,20 +25,16 @@ use rusqlite::{Connection, params};
 use serde::Serialize;
 use serde_json::{Value, json};
 use session_events::{DataOrigin, EventKind, Provider, SessionEvent, Sourced};
-use sha2::{Digest, Sha256};
 use std::{
     fs,
     io::{BufWriter, Write},
     net::SocketAddr,
     path::PathBuf,
-    process::Command,
     sync::atomic::{AtomicBool, Ordering},
     sync::{Arc, Mutex},
 };
 use tauri::{Emitter, Manager};
 use uuid::Uuid;
-
-use crate::no_window::Quiet;
 
 #[derive(Clone)]
 struct CollectorState {
@@ -118,48 +112,6 @@ struct CursorSetup {
     settings_fragment: String,
     capture_commands: bool,
 }
-
-#[derive(Serialize)]
-struct RepositorySnapshot {
-    root: String,
-    project_hash: String,
-    branch: Option<String>,
-    /// Commits ahead of / behind the upstream branch, when one is configured.
-    ahead: Option<u32>,
-    behind: Option<u32>,
-    changed_files: Vec<RepositoryFile>,
-    recent_commits: Vec<RepositoryCommit>,
-}
-
-#[derive(Serialize)]
-struct RepositoryFile {
-    path: String,
-    status: String,
-}
-
-#[derive(Serialize)]
-struct RepositoryCommit {
-    short_id: String,
-    subject: String,
-    relative_time: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-struct WindowCommit {
-    id: String,
-    short_id: String,
-    subject: String,
-    author: String,
-    committed_at: String,
-}
-
-#[derive(Serialize)]
-struct WindowCommits {
-    commits: Vec<WindowCommit>,
-    truncated: bool,
-}
-
-const WINDOW_COMMIT_LIMIT: usize = 100;
 
 #[tauri::command]
 fn claude_setup(state: tauri::State<'_, CollectorState>) -> ClaudeSetup {
@@ -462,57 +414,6 @@ struct AnalyticsEvents {
     truncated: bool,
 }
 
-/// Every stored event of a time window (most recent first, capped) for charts and
-/// totals. Prompt and command text are dropped: analytics only need metadata.
-#[tauri::command]
-fn load_analytics_events(
-    state: tauri::State<'_, CollectorState>,
-    since: Option<String>,
-    until: Option<String>,
-    limit: Option<usize>,
-) -> Result<AnalyticsEvents, String> {
-    let limit = limit.unwrap_or(50_000).clamp(1, 100_000);
-    // Same RFC 3339 shape as the stored `occurred_at`, so text comparison orders correctly.
-    let normalize = |value: String| {
-        chrono::DateTime::parse_from_rfc3339(&value)
-            .map(|time| time.with_timezone(&chrono::Utc).to_rfc3339())
-            .map_err(|error| error.to_string())
-    };
-    let since = since.map(normalize).transpose()?;
-    let until = until.map(normalize).transpose()?;
-    let database = state.database.lock().map_err(|error| error.to_string())?;
-    let total: usize = database
-        .query_row(
-            "SELECT count(*) FROM session_events WHERE (?1 IS NULL OR occurred_at >= ?1) AND (?2 IS NULL OR occurred_at < ?2)",
-            params![since, until],
-            |row| row.get::<_, i64>(0),
-        )
-        .map_err(|error| error.to_string())? as usize;
-    let mut statement = database
-        .prepare("SELECT payload FROM session_events WHERE (?1 IS NULL OR occurred_at >= ?1) AND (?2 IS NULL OR occurred_at < ?2) ORDER BY occurred_at DESC, event_id DESC LIMIT ?3")
-        .map_err(|error| error.to_string())?;
-    let rows = statement
-        .query_map(params![since, until, limit as i64], |row| {
-            row.get::<_, String>(0)
-        })
-        .map_err(|error| error.to_string())?;
-    let mut events = Vec::new();
-    for row in rows {
-        let payload = row.map_err(|error| error.to_string())?;
-        // A row this version cannot read is skipped rather than failing the whole window.
-        if let Ok(mut event) = serde_json::from_str::<SessionEvent>(&payload) {
-            event.content = None;
-            event.command = None;
-            events.push(event);
-        }
-    }
-    Ok(AnalyticsEvents {
-        truncated: total > events.len(),
-        total,
-        events,
-    })
-}
-
 #[tauri::command]
 fn export_session_history(
     state: tauri::State<'_, CollectorState>,
@@ -572,242 +473,6 @@ fn persist_event(state: &CollectorState, event: SessionEvent) -> bool {
     drop(database);
     let _ = state.app.emit("session-event", event);
     true
-}
-
-#[tauri::command]
-fn discover_workspace(path: String) -> Result<workspace::Workspace, String> {
-    workspace::discover(&PathBuf::from(path))
-}
-
-#[tauri::command]
-fn resolve_repositories(paths: Vec<String>) -> std::collections::HashMap<String, Option<String>> {
-    workspace::main_repositories(paths)
-}
-
-#[tauri::command]
-fn repository_snapshot(path: String) -> Result<RepositorySnapshot, String> {
-    let root = PathBuf::from(&path);
-    if !root.is_dir() {
-        return Err("Le chemin sélectionné n’est pas un dossier.".into());
-    }
-    let git = |args: &[&str]| -> Result<String, String> {
-        let output = Command::new("git")
-            .quiet()
-            // Read-only: without this, status refreshes take index.lock and can collide with the agent's own git.
-            .arg("--no-optional-locks")
-            .arg("-C")
-            .arg(&root)
-            .args(args)
-            .output()
-            .map_err(|error| format!("Git n’est pas disponible : {error}"))?;
-        if !output.status.success() {
-            return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
-        }
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-    };
-    let branch = git(&["branch", "--show-current"])
-        .ok()
-        .map(|value| value.trim().to_owned())
-        .filter(|value| !value.is_empty());
-    // `behind<TAB>ahead`; fails silently when the branch has no upstream.
-    let (behind, ahead) = git(&["rev-list", "--left-right", "--count", "@{upstream}...HEAD"])
-        .ok()
-        .and_then(|counts| {
-            let mut parts = counts
-                .split_whitespace()
-                .map(|part| part.parse::<u32>().ok());
-            Some((parts.next()??, parts.next()??))
-        })
-        .map_or((None, None), |(behind, ahead)| (Some(behind), Some(ahead)));
-    let status = git(&["status", "--porcelain=v1", "--untracked-files=all"])?;
-    let changed_files = status
-        .lines()
-        .filter_map(|line| {
-            if line.len() < 4 {
-                return None;
-            }
-            let state = line.get(..2)?.trim().to_owned();
-            let file = line.get(3..)?.rsplit(" -> ").next()?.to_owned();
-            Some(RepositoryFile {
-                path: file,
-                status: state,
-            })
-        })
-        .collect();
-    let commits = git(&[
-        "log",
-        "-8",
-        "--date=relative",
-        "--pretty=format:%h%x1f%s%x1f%ar",
-    ])?;
-    let recent_commits = commits
-        .lines()
-        .filter_map(|line| {
-            let mut parts = line.splitn(3, '\u{1f}');
-            Some(RepositoryCommit {
-                short_id: parts.next()?.to_owned(),
-                subject: parts.next()?.to_owned(),
-                relative_time: parts.next()?.to_owned(),
-            })
-        })
-        .collect();
-    Ok(RepositorySnapshot {
-        root: root.display().to_string(),
-        project_hash: format!("{:x}", Sha256::digest(path.as_bytes())),
-        branch,
-        ahead,
-        behind,
-        changed_files,
-        recent_commits,
-    })
-}
-
-/// Commits whose committer date falls inside `[since, until]`. Git's
-/// `--since/--until` prune the walk; the exact bound is re-checked here on the
-/// committer timestamp. Being in the window does not attribute a commit to an
-/// agent.
-#[tauri::command]
-fn commits_in_window(path: String, since: String, until: String) -> Result<WindowCommits, String> {
-    let root = PathBuf::from(&path);
-    if !root.is_dir() {
-        return Err("Le chemin sélectionné n’est pas un dossier.".into());
-    }
-    let parse = |value: &str| {
-        chrono::DateTime::parse_from_rfc3339(value)
-            .map(|date| date.with_timezone(&chrono::Utc))
-            .map_err(|_| format!("Date invalide : {value}"))
-    };
-    let (since, until) = (parse(&since)?, parse(&until)?);
-    if since > until {
-        return Err("La fenêtre de session est inversée.".into());
-    }
-    let output = Command::new("git")
-        .quiet()
-        .arg("-C")
-        .arg(&root)
-        .arg("log")
-        .arg("--all")
-        .arg(format!("--since={}", since.timestamp()))
-        .arg(format!("--until={}", until.timestamp() + 1))
-        .arg(format!("--max-count={}", WINDOW_COMMIT_LIMIT + 1))
-        .arg("--date-order")
-        .arg("--pretty=format:%H%x1f%h%x1f%ct%x1f%an%x1f%s")
-        .output()
-        .map_err(|error| format!("Git n’est pas disponible : {error}"))?;
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
-    }
-    let mut commits = parse_window_commits(
-        &String::from_utf8_lossy(&output.stdout),
-        since.timestamp(),
-        until.timestamp(),
-    );
-    let truncated = commits.len() > WINDOW_COMMIT_LIMIT;
-    commits.truncate(WINDOW_COMMIT_LIMIT);
-    Ok(WindowCommits { commits, truncated })
-}
-
-fn parse_window_commits(log: &str, since: i64, until: i64) -> Vec<WindowCommit> {
-    log.lines()
-        .filter_map(|line| {
-            let mut parts = line.splitn(5, '\u{1f}');
-            let id = parts.next()?.to_owned();
-            let short_id = parts.next()?.to_owned();
-            let timestamp = parts.next()?.parse::<i64>().ok()?;
-            let author = parts.next()?.to_owned();
-            let subject = parts.next()?.to_owned();
-            if timestamp < since || timestamp > until {
-                return None;
-            }
-            let committed_at = chrono::DateTime::from_timestamp(timestamp, 0)?.to_rfc3339();
-            Some(WindowCommit {
-                id,
-                short_id,
-                subject,
-                author,
-                committed_at,
-            })
-        })
-        .collect()
-}
-
-/// `POST /v1/events`: events from a custom connector (see `ingest.rs` and docs/CONNECTORS.md).
-async fn receive_custom_events(
-    State(state): State<CollectorState>,
-    request: Request,
-) -> impl IntoResponse {
-    let token = request
-        .headers()
-        .get(header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.strip_prefix("Bearer "))
-        .map(str::to_owned);
-    let connector = token.and_then(|token| {
-        state
-            .database
-            .lock()
-            .ok()
-            .and_then(|database| ingest::connector_for_token(&database, &token))
-    });
-    let Some(connector) = connector else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            axum::Json(
-                json!({ "error": "Jeton inconnu : copie celui du connecteur dans l’onglet Connecteurs." }),
-            ),
-        );
-    };
-    let Ok(body) = axum::body::to_bytes(request.into_body(), 1024 * 1024).await else {
-        return (
-            StatusCode::PAYLOAD_TOO_LARGE,
-            axum::Json(json!({ "error": "Requête trop grosse (1 Mo maximum)." })),
-        );
-    };
-    let events = match ingest::parse(
-        &body,
-        &connector,
-        state.capture_prompts.load(Ordering::Relaxed),
-        state.capture_commands.load(Ordering::Relaxed),
-    ) {
-        Ok(events) => events,
-        Err(error) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                axum::Json(json!({ "error": error })),
-            );
-        }
-    };
-    let accepted = events
-        .into_iter()
-        .filter(|event| persist_event(&state, event.clone()))
-        .count();
-    (StatusCode::OK, axum::Json(json!({ "accepted": accepted })))
-}
-
-#[tauri::command]
-fn list_custom_connectors(
-    state: tauri::State<'_, CollectorState>,
-) -> Result<Vec<ingest::CustomConnector>, String> {
-    let database = state.database.lock().map_err(|error| error.to_string())?;
-    ingest::list(&database).map_err(|error| error.to_string())
-}
-
-#[tauri::command]
-fn create_custom_connector(
-    state: tauri::State<'_, CollectorState>,
-    name: String,
-) -> Result<ingest::CustomConnector, String> {
-    let database = state.database.lock().map_err(|error| error.to_string())?;
-    ingest::create(&database, &name)
-}
-
-#[tauri::command]
-fn delete_custom_connector(
-    state: tauri::State<'_, CollectorState>,
-    id: String,
-) -> Result<(), String> {
-    let database = state.database.lock().map_err(|error| error.to_string())?;
-    ingest::delete(&database, &id)
 }
 
 async fn receive_claude_hook(
@@ -1080,7 +745,6 @@ fn main() {
             fs::create_dir_all(&data_dir)?;
             let connection = Connection::open(data_dir.join("observer.sqlite3"))?;
             connection.execute_batch(SCHEMA)?;
-            connection.execute_batch(ingest::TABLE)?;
             // Old events go first, before anything reads the database.
             let _ = purge_expired_events(&connection, retention_days(&connection));
             let preference = |key: &str| -> bool {
@@ -1111,7 +775,6 @@ fn main() {
             let address = SocketAddr::from(([127, 0, 0, 1], port));
             let router = Router::new()
                 .route("/claude-hook", post(receive_claude_hook))
-                .route("/v1/events", post(receive_custom_events))
                 .route("/cursor-hook", post(receive_cursor_hook))
                 .with_state(state.clone());
             let handle = app.handle().clone();
@@ -1217,19 +880,11 @@ fn main() {
             reasonix_setup,
             cursor_setup,
             load_session_events,
-            load_analytics_events,
             export_session_history,
-            repository_snapshot,
-            discover_workspace,
-            resolve_repositories,
-            commits_in_window,
             collector_status,
             update_capture_policy,
             retention_policy,
             update_retention_policy,
-            list_custom_connectors,
-            create_custom_connector,
-            delete_custom_connector,
             clear_session_history,
             capture_errors,
             update_capture_errors
@@ -1339,26 +994,6 @@ mod tests {
             ended.duration_ms.as_ref().map(|value| value.value),
             Some(2000)
         );
-    }
-
-    #[test]
-    fn window_commits_keep_only_commits_inside_the_bounds() {
-        let log = "aaa\u{1f}a1\u{1f}100\u{1f}Ada\u{1f}before\n\
-                   bbb\u{1f}b2\u{1f}150\u{1f}Bob\u{1f}inside: a\u{1f}b\n\
-                   ccc\u{1f}c3\u{1f}200\u{1f}Cy\u{1f}on the edge\n\
-                   ddd\u{1f}d4\u{1f}201\u{1f}Di\u{1f}after\n\
-                   malformed line";
-        let commits = parse_window_commits(log, 150, 200);
-        assert_eq!(
-            commits
-                .iter()
-                .map(|commit| commit.short_id.as_str())
-                .collect::<Vec<_>>(),
-            ["b2", "c3"]
-        );
-        assert_eq!(commits[0].subject, "inside: a\u{1f}b");
-        assert_eq!(commits[0].author, "Bob");
-        assert_eq!(commits[0].committed_at, "1970-01-01T00:02:30+00:00");
     }
 
     #[test]

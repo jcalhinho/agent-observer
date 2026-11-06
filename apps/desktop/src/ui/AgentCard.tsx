@@ -1,30 +1,24 @@
-import { ContextMeter } from "./ContextMeter";
-import { useConfiguredModels } from "./useConfiguredModels";
-import type { CSSProperties, KeyboardEvent, MouseEvent } from "react";
-import { ArrowUpRight } from "lucide-react";
+import type { CSSProperties } from "react";
 import type { AgentPulse, PulseStatus } from "./agentPulse";
-import { formatCompact, formatDuration } from "./analytics";
-import { costLabelText, useSubscription } from "./costPreferences";
-import { InfoTip } from "./Explain";
-import { locale, t } from "./i18n";
+import { t } from "./i18n";
 import { ProviderMark } from "./ProviderBadges";
 import { providerFor, providers } from "./providers";
+import { useConfiguredModels } from "./useConfiguredModels";
 
-/** The one vocabulary for agent states, used by the cards, the race and the help panel. */
+/** Le vocabulaire unique des états d'agent. */
 export function statusInfo(status: PulseStatus): { label: string; explanation: string } {
   switch (status) {
-    case "looping": return { label: t("Tourne en rond", "Going in circles"), explanation: t("L’agent répète les mêmes actions sans avancer (même commande, même fichier, même enchaînement). Interviens : il consomme des tokens pour rien.", "The agent repeats the same actions without progress (same command, same file, same sequence). Step in: it burns tokens for nothing.") };
-    case "blocked": return { label: t("Bloqué", "Blocked"), explanation: t("Au moins deux outils ont échoué d’affilée. Jette un œil à sa session.", "At least two tools failed in a row. Have a look at its session.") };
-    case "stalled": return { label: t("Silencieux", "Silent"), explanation: t("Un tour est en cours mais rien ne se passe depuis plus de 2 minutes. Il attend souvent une validation ou une réponse de ta part.", "A turn is open but nothing happened for over 2 minutes. It often waits for your approval or answer.") };
+    case "looping": return { label: t("Tourne en rond", "Going in circles"), explanation: t("L’agent répète les mêmes actions sans avancer. Interviens : il consomme des tokens pour rien.", "The agent repeats the same actions without progress. Step in: it burns tokens for nothing.") };
+    case "blocked": return { label: t("Bloqué", "Blocked"), explanation: t("Au moins deux outils ont échoué d’affilée.", "At least two tools failed in a row.") };
+    case "stalled": return { label: t("Silencieux", "Silent"), explanation: t("Un tour est en cours mais rien ne se passe depuis plus de 2 minutes. Il attend souvent une validation.", "A turn is open but nothing happened for over 2 minutes. It often waits for your approval.") };
     case "waiting": return { label: t("T’attend", "Waiting for you"), explanation: t("Son dernier tour est terminé : il est prêt pour ton prochain message.", "Its last turn is done: it is ready for your next message.") };
-    case "working": return { label: t("Au travail", "Working"), explanation: t("Il agit en ce moment : des événements arrivent depuis moins de 45 secondes.", "It is acting right now: events arrived less than 45 seconds ago.") };
-    case "idle": return { label: t("Au repos", "Idle"), explanation: t("Aucune activité récente ; sa dernière session est terminée ou ancienne.", "No recent activity; its last session ended or is old.") };
-    case "never": return { label: t("Pas encore vu", "Not seen yet"), explanation: t("Aucun événement reçu de cet agent. Vérifie son connecteur dans l’onglet Connecteurs.", "No event received from this agent. Check its connector in the Connectors tab.") };
+    case "working": return { label: t("Au travail", "Working"), explanation: t("Il agit en ce moment.", "It is acting right now.") };
+    case "idle": return { label: t("Au repos", "Idle"), explanation: t("Aucune activité récente.", "No recent activity.") };
+    case "never": return { label: t("Pas encore vu", "Not seen yet"), explanation: t("Aucun événement reçu de cet agent.", "No event received from this agent.") };
   }
 }
 
-const fallbackProvider = providers.find((provider) => provider.eventKey === "custom")!;
-
+/** Âge d'un événement, en clair. */
 export function since(at: number | null, now: number) {
   if (at === null) return "—";
   const seconds = Math.max(0, Math.round((now - at) / 1000));
@@ -36,65 +30,83 @@ export function since(at: number | null, now: number) {
   return hours < 48 ? t(`il y a ${hours} h`, `${hours} h ago`) : t(`il y a ${Math.floor(hours / 24)} j`, `${Math.floor(hours / 24)} d ago`);
 }
 
-function Stat({ label, value, explanation, tone }: { label: string; value: string; explanation: string; tone?: "bad" }) {
-  return <div className={`agent-stat ${tone ?? ""}`} title={explanation}><dt>{label}</dt><dd>{value}</dd></div>;
+/** 12 400 -> « 12,4k ». */
+function compact(value: number) {
+  if (value < 1000) return String(value);
+  if (value < 1_000_000) return `${(value / 1000).toFixed(value < 10_000 ? 1 : 0).replace(".", ",")}k`;
+  return `${(value / 1_000_000).toFixed(1).replace(".", ",")}M`;
 }
 
+const fallback = providers.find((provider) => provider.eventKey === "custom")!;
+
 /**
- * One line of identity, one line of "what is it doing", one line of numbers, one thin activity
- * strip. Explanations live in tooltips; the whole card leads to the agent.
+ * Une carte, huit informations : qui, son état, ce qu'il fait, depuis quand, où, quel modèle,
+ * combien de tokens, et le remplissage du contexte. Rien d'autre.
  */
-export function AgentCard({ pulse, now, repository, compact = false, onGoTo }: { pulse: AgentPulse; now: number; repository: string | null; compact?: boolean; onGoTo?: (pulse: AgentPulse) => void }) {
-  const provider = providerFor(pulse.key) ?? fallbackProvider;
+export function AgentCard({ pulse, now }: { pulse: AgentPulse; now: number }) {
+  const provider = providerFor(pulse.key) ?? fallback;
   const status = statusInfo(pulse.status);
-  const [subscription] = useSubscription(pulse.key);
   const session = pulse.session;
-  const failRate = session && session.toolCalls ? Math.round((session.failures / session.toolCalls) * 100) : 0;
-  const tokens = session && (session.inputTokens !== null || session.outputTokens !== null) ? (session.inputTokens ?? 0) + (session.outputTokens ?? 0) : null;
-  const sparkMax = Math.max(1, ...pulse.spark);
+
+  // 6. Ce qui va mal passe devant ce que l'agent raconte.
+  const trouble = pulse.status === "looping" && pulse.loop
+    ? t(`Boucle : ${pulse.loop.evidence}`, `Loop: ${pulse.loop.evidence}`)
+    : pulse.status === "blocked"
+      ? t(`${pulse.failureStreak} échecs d’affilée`, `${pulse.failureStreak} failures in a row`)
+      : null;
+
+  // 3. Ce qu'il fait, là.
+  const doing = pulse.current
+    ? `${pulse.current.text}${pulse.current.detail ? ` · ${pulse.current.detail}` : ""}`
+    : status.explanation;
+
+  // 4. Où.
   const folder = pulse.project?.project_path?.replaceAll("\\", "/").split("/").filter(Boolean).at(-1);
-  const place = repository ?? (folder ? t(`${folder} (hors workspace)`, `${folder} (outside the workspace)`) : t("dépôt inconnu", "unknown repository"));
+
+  // 8. Quel modèle : celui qu'il a rapporté, sinon celui qui est configuré.
   const configured = useConfiguredModels()[provider.eventKey];
-  const reported = session ? (session.models?.length ? session.models : [session.model]).filter(Boolean).join(" · ") : "";
-  const model = reported || (configured ? t(`${configured} (choisi)`, `${configured} (selected)`) : "");
-  const note = pulse.status === "looping" && pulse.loop ? t(`Boucle détectée : ${pulse.loop.evidence}.`, `Loop detected: ${pulse.loop.evidence}.`) : pulse.status === "blocked" ? t(`${pulse.failureStreak} échecs d’affilée`, `${pulse.failureStreak} failures in a row`) : null;
-  const needsYou = pulse.status === "waiting" || pulse.status === "stalled";
+  const model = session?.model ?? configured ?? null;
 
-  // The whole card leads to the agent; its own buttons keep their role.
-  const canGo = Boolean(onGoTo && pulse.session);
-  const go = (event: MouseEvent | KeyboardEvent) => {
-    if (!canGo || (event.target as HTMLElement).closest("button, a, summary, details")) return;
-    if ("key" in event && event.key !== "Enter") return;
-    onGoTo!(pulse);
-  };
-  const doing = pulse.current ? `${pulse.current.text}${pulse.current.detail ? ` · ${pulse.current.detail}` : ""}` : status.explanation;
+  // 7. Combien il consomme.
+  const tokens = session && (session.inputTokens !== null || session.outputTokens !== null)
+    ? (session.inputTokens ?? 0) + (session.outputTokens ?? 0)
+    : null;
+  const context = pulse.context;
 
-  return <article className={`agent-card status-${pulse.status} ${compact ? "compact" : ""} ${canGo ? "clickable" : ""}`} style={{ "--agent-color": provider.color } as CSSProperties} aria-label={`${provider.name} : ${status.label}`} onClick={go} onKeyDown={go} tabIndex={canGo ? 0 : undefined} title={canGo ? t("Cliquer pour aller là où travaille l’agent", "Click to go where the agent works") : undefined}>
-    <header className="agent-card-header">
+  return <article
+    className={`card status-${pulse.status}`}
+    style={{ "--agent-color": provider.color } as CSSProperties}
+    aria-label={`${provider.name} : ${status.label}`}
+  >
+    <header className="card-head">
       <ProviderMark provider={provider} small />
-      <div className="agent-card-title">
-        <b>{provider.name}</b>
-        <span title={model ? `${place} · ${model}` : place}>{place}{model ? ` · ${model}` : ""}</span>
-      </div>
-      <span className="status-badge" title={status.explanation}>{status.label}</span>
-      {canGo && <button className={`go-to-agent ${needsYou ? "primary" : ""}`} onClick={() => onGoTo!(pulse)} aria-label={needsYou ? t("Lui répondre", "Reply") : t("Aller à l’agent", "Go to agent")} title={needsYou ? t("Lui répondre", "Reply") : t("Aller à l’agent", "Go to agent")}><ArrowUpRight size={14} />{needsYou && <span>{t("Répondre", "Reply")}</span>}</button>}
+      <b>{provider.name}</b>
+      <span className="badge" title={status.explanation}>{status.label}</span>
     </header>
 
-    <p className={`agent-now tone-${pulse.current?.tone ?? "info"}`} title={note ?? doing}>
-      <span className="agent-now-text">{note ?? doing}</span>
-      {pulse.current && <time>{since(pulse.current.at, now)}</time>}
+    <p className={`card-doing ${trouble ? "trouble" : `tone-${pulse.current?.tone ?? "info"}`}`}>
+      <span>{trouble ?? doing}</span>
+      <time dateTime={pulse.lastEventAt ? new Date(pulse.lastEventAt).toISOString() : undefined}>
+        {since(pulse.lastEventAt, now)}
+      </time>
     </p>
 
-    {session && <dl className="agent-stats">
-      <Stat label={pulse.turnStartedAt !== null ? t("Tour", "Turn") : t("Tours", "Turns")} value={pulse.turnStartedAt !== null ? formatDuration(Math.max(0, now - pulse.turnStartedAt)) : String(session.turns)} explanation={pulse.turnStartedAt !== null ? t("Temps écoulé depuis ton dernier message à l’agent.", "Time since your last message to the agent.") : t("Nombre d’échanges (ton message puis le travail de l’agent) dans sa session actuelle.", "Number of exchanges (your message, then the agent’s work) in its current session.")} />
-      <Stat label={t("Outils", "Tools")} value={failRate ? `${session.toolCalls} · ${failRate}%` : String(session.toolCalls)} tone={failRate >= 20 ? "bad" : undefined} explanation={t("Actions lancées par l’agent dans sa session (lire, modifier, exécuter…) et la part qui a échoué.", "Actions the agent ran in its session (read, edit, run…) and the share that failed.")} />
-      <Stat label="Tokens" value={tokens === null ? "—" : formatCompact(tokens)} explanation={tokens === null ? t("Ce connecteur ne transmet pas de compteur de tokens pour cette session.", "This connector reports no token counter for this session.") : t(`Volume de texte traité par le modèle dans la session : ${formatCompact(session.inputTokens ?? 0)} lus (contexte, cache compris) et ${formatCompact(session.outputTokens ?? 0)} écrits.`, `Text processed by the model in the session: ${formatCompact(session.inputTokens ?? 0)} read (context, cache included) and ${formatCompact(session.outputTokens ?? 0)} written.`)} />
-      {session.cost !== null
-        ? <Stat label={subscription ? t("Valeur", "Value") : t("Coût", "Cost")} value={"≈ " + session.cost.toLocaleString(locale(), { style: "currency", currency: "USD", maximumFractionDigits: 2 })} explanation={subscription ? t("Ce que ces tokens coûteraient au tarif API. Tu es au forfait : ce n’est pas ce que tu paies.", "What these tokens would cost at API prices. You are on a subscription: this is not what you pay.") : t("Estimation à partir des prix publics du modèle et des tokens fournis. Ce n’est pas une facture : forfaits et remises ne sont pas connus.", "Estimate from the model’s public prices and the reported tokens. Not an invoice: plans and discounts are unknown.")} />
-        : <Stat label={t("Fichiers", "Files")} value={String(session.filesChanged)} explanation={t("Fichiers différents que l’agent a modifiés pendant sa session (d’après les outils qu’il a utilisés).", "Distinct files the agent edited in its session (from the tools it used).")} />}
-    </dl>}
-    {session && pulse.context && <ContextMeter usage={pulse.context} />}
+    <p className="card-where">
+      <span title={pulse.project?.project_path ?? undefined}>{folder ?? t("dossier inconnu", "unknown folder")}</span>
+      {model && <span className="card-model" title={t("Modèle utilisé", "Model in use")}>{model}</span>}
+    </p>
 
-    <div className="agent-spark" role="img" aria-label={t("Activité minute par minute sur les 15 dernières minutes", "Activity per minute over the last 15 minutes")} title={t("Activité · 15 dernières minutes", "Activity · last 15 minutes")}>{pulse.spark.map((value, index) => <i key={index} style={{ height: `${value ? Math.max(18, (value / sparkMax) * 100) : 8}%` }} className={value ? "" : "empty"} />)}</div>
+    <div className="card-usage">
+      <span className="card-tokens" title={session ? t(`${compact(session.inputTokens ?? 0)} lus, ${compact(session.outputTokens ?? 0)} écrits dans cette session`, `${compact(session.inputTokens ?? 0)} read, ${compact(session.outputTokens ?? 0)} written in this session`) : undefined}>
+        {tokens === null ? t("tokens inconnus", "tokens unknown") : `${compact(tokens)} tokens`}
+      </span>
+      {context?.percent !== null && context !== null && <span className={`card-ctx state-${context.state}`} title={t("Remplissage de la fenêtre de contexte", "How full the context window is")}>
+        {t("contexte", "context")} {Math.round(context.percent)}%
+      </span>}
+    </div>
+
+    {context?.percent !== null && context !== null && <div className={`ctx-bar state-${context.state}`} role="img" aria-label={t(`Contexte rempli à ${Math.round(context.percent)} %`, `Context ${Math.round(context.percent)}% full`)}>
+      <i style={{ width: `${Math.min(100, Math.max(2, context.percent))}%` }} />
+    </div>}
   </article>;
 }
