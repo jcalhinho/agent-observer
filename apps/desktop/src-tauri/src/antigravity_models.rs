@@ -87,13 +87,13 @@ fn server_token(cmd: &str) -> Option<String> {
 }
 
 fn fetch_labels() -> Option<HashMap<String, String>> {
-    let processes = crate::focus::snapshot();
+    let processes = crate::procs::snapshot();
     let server = processes.iter().find(|process| {
         let cmd = process.cmd.to_lowercase();
         cmd.contains("language_server") && cmd.contains("antigravity")
     })?;
     let token = server_token(&server.cmd)?;
-    crate::focus::listening_ports(server.pid)
+    crate::procs::listening_ports(server.pid)
         .into_iter()
         .find_map(|port| ask(port, &token).and_then(|body| parse_labels(&body)))
 }

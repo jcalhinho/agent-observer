@@ -75,40 +75,6 @@ fn opencode_model(state: Option<&Value>, config: Option<&Value>) -> Option<Strin
     opencode_choice(state, config).map(|(_, model)| model)
 }
 
-/// `$VAR/opencode/<file>` when the XDG variable is set, else `~/<default>/opencode/<file>`; OpenCode
-/// uses the same locations on every system, Windows included. The first one that exists is read.
-fn opencode_file(variable: &str, default: &[&str], names: &[&str]) -> Option<Value> {
-    let mut folders: Vec<PathBuf> = Vec::new();
-    if let Some(base) = env::var_os(variable).filter(|base| !base.is_empty()) {
-        folders.push(PathBuf::from(base));
-    }
-    if let Some(home) = home() {
-        folders.push(default.iter().fold(home, |path, part| path.join(part)));
-    }
-    folders
-        .iter()
-        .flat_map(|folder| {
-            names
-                .iter()
-                .map(move |name| folder.join("opencode").join(name))
-        })
-        .find_map(json)
-}
-
-/// `provider/model` for `opencode run --model`: what the user picked last in OpenCode, which is not
-/// always what its config file says (an agent run without it can fail on a model the key does not
-/// serve).
-pub fn opencode_model_ref() -> Option<String> {
-    let state = opencode_file("XDG_STATE_HOME", &[".local", "state"], &["model.json"]);
-    let config = opencode_file(
-        "XDG_CONFIG_HOME",
-        &[".config"],
-        &["opencode.json", "opencode.jsonc"],
-    );
-    opencode_choice(state.as_ref(), config.as_ref())
-        .and_then(|(provider, model)| provider.map(|provider| format!("{provider}/{model}")))
-}
-
 fn qwen_model(settings: &Value) -> Option<String> {
     let model = settings.get("model")?;
     clean(model.as_str().or_else(|| model.get("name")?.as_str())?)

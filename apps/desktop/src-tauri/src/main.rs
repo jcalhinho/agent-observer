@@ -5,15 +5,14 @@ mod antigravity_sessions;
 mod claude_transcripts;
 mod codex_rollout;
 mod copilot_sessions;
-mod focus;
 mod ingest;
 mod models;
 mod no_window;
 mod opencode_sessions;
+mod procs;
 mod qwen_sessions;
 mod reasonix_sessions;
 mod redact;
-mod story;
 mod workspace;
 
 use axum::{
@@ -53,11 +52,6 @@ struct CollectorState {
     capture_commands: Arc<AtomicBool>,
     /// Keep a short, cleaned version of failed tools' error messages (off by default).
     capture_errors: Arc<AtomicBool>,
-    /// Claude Code process of each session, learnt from the connection of its first hook.
-    agent_pids: Arc<Mutex<std::collections::HashMap<String, u32>>>,
-    /// A story is being written (only one at a time) and a request to stop it.
-    story_busy: Arc<AtomicBool>,
-    story_cancel: Arc<AtomicBool>,
 }
 
 #[derive(Serialize)]
@@ -354,7 +348,7 @@ fn update_capture_policy(
     Ok(())
 }
 
-const SCHEMA: &str = "PRAGMA journal_mode=WAL; PRAGMA secure_delete=ON; CREATE TABLE IF NOT EXISTS session_events (event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, occurred_at TEXT NOT NULL, provider TEXT NOT NULL, kind TEXT NOT NULL, project_path TEXT, payload TEXT NOT NULL); CREATE INDEX IF NOT EXISTS idx_session_events_time ON session_events(occurred_at); CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS report_stories (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT NOT NULL, period_from TEXT NOT NULL, period_to TEXT NOT NULL, language TEXT NOT NULL, agent TEXT NOT NULL, text TEXT NOT NULL, seconds REAL NOT NULL);";
+const SCHEMA: &str = "PRAGMA journal_mode=WAL; PRAGMA secure_delete=ON; CREATE TABLE IF NOT EXISTS session_events (event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, occurred_at TEXT NOT NULL, provider TEXT NOT NULL, kind TEXT NOT NULL, project_path TEXT, payload TEXT NOT NULL); CREATE INDEX IF NOT EXISTS idx_session_events_time ON session_events(occurred_at); CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value INTEGER NOT NULL);";
 
 /// Days events are kept; 0 keeps everything.
 const DEFAULT_RETENTION_DAYS: i64 = 30;
@@ -408,145 +402,11 @@ fn update_retention_policy(
     purge_expired_events(&database, days).map_err(|error| error.to_string())
 }
 
-/// Agents installed on this computer that can write a story.
-#[tauri::command]
-async fn story_agents() -> Result<Vec<story::StoryAgent>, String> {
-    tauri::async_runtime::spawn_blocking(story::detect_agents)
-        .await
-        .map_err(|error| error.to_string())
-}
-
-/// Asks `provider` (an agent already installed) to write a story from `prompt`.
-#[tauri::command]
-async fn generate_story(
-    state: tauri::State<'_, CollectorState>,
-    provider: String,
-    prompt: String,
-) -> Result<story::StoryText, story::StoryError> {
-    if state.story_busy.swap(true, Ordering::SeqCst) {
-        return Err(story::StoryError {
-            code: "busy".into(),
-            detail: String::new(),
-        });
-    }
-    state.story_cancel.store(false, Ordering::SeqCst);
-    let cancel = state.story_cancel.clone();
-    let result =
-        tauri::async_runtime::spawn_blocking(move || story::generate(&provider, &prompt, &cancel))
-            .await
-            .map_err(|error| story::StoryError {
-                code: "failed".into(),
-                detail: error.to_string(),
-            })
-            .and_then(|result| result);
-    state.story_busy.store(false, Ordering::SeqCst);
-    result
-}
-
-#[tauri::command]
-fn cancel_story(state: tauri::State<'_, CollectorState>) {
-    state.story_cancel.store(true, Ordering::SeqCst);
-}
-
-#[derive(Serialize, serde::Deserialize)]
-struct StoryRecord {
-    #[serde(default)]
-    id: i64,
-    created_at: String,
-    period_from: String,
-    period_to: String,
-    language: String,
-    agent: String,
-    text: String,
-    seconds: f64,
-}
-
-/// Stories kept; the oldest go first.
-const STORIES_KEPT: i64 = 60;
-
-#[tauri::command]
-fn save_story(state: tauri::State<'_, CollectorState>, story: StoryRecord) -> Result<i64, String> {
-    let database = state.database.lock().map_err(|error| error.to_string())?;
-    database
-        .execute(
-            "INSERT INTO report_stories(created_at, period_from, period_to, language, agent, text, seconds) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            params![story.created_at, story.period_from, story.period_to, story.language, story.agent, story.text, story.seconds],
-        )
-        .map_err(|error| error.to_string())?;
-    let id = database.last_insert_rowid();
-    database
-        .execute(
-            "DELETE FROM report_stories WHERE id NOT IN (SELECT id FROM report_stories ORDER BY id DESC LIMIT ?1)",
-            params![STORIES_KEPT],
-        )
-        .map_err(|error| error.to_string())?;
-    Ok(id)
-}
-
-#[tauri::command]
-fn list_stories(
-    state: tauri::State<'_, CollectorState>,
-    limit: Option<i64>,
-) -> Result<Vec<StoryRecord>, String> {
-    let database = state.database.lock().map_err(|error| error.to_string())?;
-    let mut statement = database
-        .prepare("SELECT id, created_at, period_from, period_to, language, agent, text, seconds FROM report_stories ORDER BY id DESC LIMIT ?1")
-        .map_err(|error| error.to_string())?;
-    let rows = statement
-        .query_map(
-            params![limit.unwrap_or(STORIES_KEPT).clamp(1, STORIES_KEPT)],
-            |row| {
-                Ok(StoryRecord {
-                    id: row.get(0)?,
-                    created_at: row.get(1)?,
-                    period_from: row.get(2)?,
-                    period_to: row.get(3)?,
-                    language: row.get(4)?,
-                    agent: row.get(5)?,
-                    text: row.get(6)?,
-                    seconds: row.get(7)?,
-                })
-            },
-        )
-        .map_err(|error| error.to_string())?;
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|error| error.to_string())
-}
-
-/// Saves a story as Markdown where the user chose in the save dialog. Only text files, and never
-/// more than a story can weigh.
-#[tauri::command]
-fn export_text(path: String, text: String) -> Result<(), String> {
-    let allowed = std::path::Path::new(&path)
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| {
-            extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("txt")
-        });
-    if !allowed || text.len() > 1_000_000 {
-        return Err("Only .md and .txt files of reasonable size can be saved.".into());
-    }
-    fs::write(path, text).map_err(|error| error.to_string())
-}
-
-#[tauri::command]
-fn delete_story(state: tauri::State<'_, CollectorState>, id: i64) -> Result<(), String> {
-    let database = state.database.lock().map_err(|error| error.to_string())?;
-    database
-        .execute("DELETE FROM report_stories WHERE id = ?1", params![id])
-        .map_err(|error| error.to_string())?;
-    Ok(())
-}
-
 #[tauri::command]
 fn clear_session_history(state: tauri::State<'_, CollectorState>) -> Result<(), String> {
     let database = state.database.lock().map_err(|error| error.to_string())?;
     database
         .execute("DELETE FROM session_events", [])
-        .map_err(|error| error.to_string())?;
-    // Stories are made from the events: erasing the history erases them too.
-    database
-        .execute("DELETE FROM report_stories", [])
         .map_err(|error| error.to_string())?;
     database
         .execute_batch("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;")
@@ -700,14 +560,6 @@ fn collector_status(state: tauri::State<'_, CollectorState>) -> String {
 }
 
 fn persist_event(state: &CollectorState, event: SessionEvent) -> bool {
-    // An agent run to write a story is not the user's work: it never shows up in the observer.
-    if event
-        .project_path
-        .as_deref()
-        .is_some_and(story::is_sandbox_path)
-    {
-        return false;
-    }
     let Ok(payload) = serde_json::to_string(&event) else {
         return false;
     };
@@ -720,41 +572,6 @@ fn persist_event(state: &CollectorState, event: SessionEvent) -> bool {
     drop(database);
     let _ = state.app.emit("session-event", event);
     true
-}
-
-/// Brings the terminal or editor where an agent session runs to the front.
-#[tauri::command]
-async fn focus_agent(
-    state: tauri::State<'_, CollectorState>,
-    provider: String,
-    session_id: String,
-    project_path: Option<String>,
-    lang: Option<String>,
-    launch_host: Option<String>,
-) -> Result<focus::FocusOutcome, String> {
-    focus::set_language(lang.as_deref());
-    let known_pid = state
-        .agent_pids
-        .lock()
-        .ok()
-        .and_then(|pids| pids.get(&session_id).copied());
-    tauri::async_runtime::spawn_blocking(move || {
-        focus::focus_agent(
-            &provider,
-            known_pid,
-            project_path.as_deref(),
-            Some(&session_id),
-            launch_host.as_deref(),
-        )
-    })
-    .await
-    .map_err(|error| error.to_string())
-}
-
-#[tauri::command]
-fn reveal_folder(path: String, lang: Option<String>) -> Result<(), String> {
-    focus::set_language(lang.as_deref());
-    focus::reveal_folder(&path)
 }
 
 #[tauri::command]
@@ -995,7 +812,7 @@ fn delete_custom_connector(
 
 async fn receive_claude_hook(
     State(state): State<CollectorState>,
-    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    ConnectInfo(_peer): ConnectInfo<SocketAddr>,
     request: Request,
 ) -> impl IntoResponse {
     let authorized = request
@@ -1021,31 +838,6 @@ async fn receive_claude_hook(
     ) else {
         return StatusCode::NO_CONTENT;
     };
-    // The hook request comes from the Claude Code process itself: its client port names it, which
-    // lets "go to the agent" find the right terminal. Looked up once per session, while the
-    // connection is still open.
-    let known = state
-        .agent_pids
-        .lock()
-        .map(|pids| pids.contains_key(&event.session_id))
-        .unwrap_or(true);
-    if !known {
-        let port = peer.port();
-        if let Ok(Some(pid)) =
-            tauri::async_runtime::spawn_blocking(move || focus::pid_for_local_port(port)).await
-        {
-            if let Ok(mut pids) = state.agent_pids.lock() {
-                pids.insert(event.session_id.clone(), pid);
-            }
-            // Remember where the session runs (terminal, editor, desktop app) while it is alive,
-            // so it can be started again in the same place once it has ended.
-            let session_id = event.session_id.clone();
-            let _ = tauri::async_runtime::spawn_blocking(move || {
-                focus::note_host(&session_id, pid);
-            })
-            .await;
-        }
-    }
     if !persist_event(&state, event) {
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
@@ -1314,9 +1106,6 @@ fn main() {
                 capture_prompts: Arc::new(AtomicBool::new(capture_prompts)),
                 capture_commands: Arc::new(AtomicBool::new(capture_commands)),
                 capture_errors: Arc::new(AtomicBool::new(capture_errors)),
-                agent_pids: Arc::new(Mutex::new(std::collections::HashMap::new())),
-                story_busy: Arc::new(AtomicBool::new(false)),
-                story_cancel: Arc::new(AtomicBool::new(false)),
             };
             let port = 43821;
             let address = SocketAddr::from(([127, 0, 0, 1], port));
@@ -1431,8 +1220,6 @@ fn main() {
             load_analytics_events,
             export_session_history,
             repository_snapshot,
-            focus_agent,
-            reveal_folder,
             discover_workspace,
             resolve_repositories,
             commits_in_window,
@@ -1445,14 +1232,7 @@ fn main() {
             delete_custom_connector,
             clear_session_history,
             capture_errors,
-            update_capture_errors,
-            story_agents,
-            generate_story,
-            cancel_story,
-            save_story,
-            list_stories,
-            delete_story,
-            export_text
+            update_capture_errors
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Agent Observer");

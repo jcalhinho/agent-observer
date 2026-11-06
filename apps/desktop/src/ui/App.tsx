@@ -1,36 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Bot, CircleHelp, Feather, GitBranch, MessageCircleQuestion, Plug, Settings2 } from "lucide-react";
+import { Bot, CircleHelp, GitBranch, Plug, Settings2 } from "lucide-react";
 import type { AgentPulse } from "./agentPulse";
 import { eventsInRange, isDayRange, isDayText, timeAxis, type AnalyticsRange } from "./analytics";
-import { AskPanel } from "./AskPanel";
 import { AgentsPanel } from "./AgentsPanel";
 import { ConnectorSetupDialog, type ConnectorSetup } from "./ConnectorDialog";
 import { ConnectorsPage } from "./ConnectorsPage";
-import { DailyReportPage } from "./DailyReportPage";
 import { Deck, STAGE_MAX, type TabDef } from "./Deck";
 import { Workbench } from "./Workbench";
-import { FocusToast } from "./FocusToast";
 import { HelpContent } from "./HelpPanel";
 import { t, useLang } from "./i18n";
 import { MiniView } from "./MiniView";
 import { enterMiniWindow, leaveMiniWindow, setMiniPinned } from "./miniWindow";
 import { NotificationCenter } from "./NotificationCenter";
 import { isBoolean, isNumber, isString, oneOf, usePreference } from "./preferences";
-import { agentName, setCustomProviders, useAgents, type CustomConnectorInfo } from "./providers";
+import { setCustomProviders, useAgents, type CustomConnectorInfo } from "./providers";
 import { RepositoriesPage } from "./RepositoriesPage";
 import { SessionAnalytics } from "./SessionAnalytics";
 import { SessionsPage } from "./SessionsPage";
 import { SettingsPage } from "./SettingsPage";
 import { useShell } from "./shell";
 import { Stage } from "./Stage";
-import { StoryPanel } from "./StoryPanel";
-import { StoryScheduler } from "./StoryScheduler";
 import { sessionKey } from "./types";
 import { needsYou, useAgentPulses } from "./useAgentPulses";
 import { useAnalyticsEvents } from "./useAnalyticsEvents";
 import { useDialogFocus } from "./useDialogFocus";
-import { useFocusAgent } from "./useFocusAgent";
 import { useNow } from "./useNow";
 import { useObserver } from "./useObserver";
 import { useWorkspace } from "./useWorkspace";
@@ -76,16 +70,14 @@ export function App() {
     chartEvents: filterByRepository(chartWindow.events, filter, workspace.repositoryOf)
   }), [observer.events, agentWindow.events, chartWindow.events, filter, workspace.repositoryOf]);
   const { activity: repositoryActivity, outside } = useRepositoryActivity(chartWindow.events, workspace);
-  const sessionCount = useMemo(() => new Set(observer.events.map(sessionKey)).size, [observer.events]);
   const claudeHooks = useMemo(() => observer.events.some((event) => event.provider === "claude_code" && event.kind !== "model_usage" && event.kind !== "session_started"), [observer.events]);
 
-  const focus = useFocusAgent();
-  const goToAgent = (pulse: AgentPulse) => {
-    if (!pulse.session) return;
-    void focus.goTo({ provider: pulse.key, sessionId: pulse.session.id, projectPath: pulse.project?.project_path ?? null, agentName: agentName(pulse.key) });
+  /** Everything that used to jump to the agent's own window now opens its details here. */
+  const inspectAgent = (key: string) => {
+    setInspected(key);
+    dispatch({ type: "open", edge: "left", tab: "agents" });
   };
-  const watcher = <NotificationCenter events={agentWindow.events} onGoTo={(target) => void focus.goTo(target)} />;
-  const toast = <FocusToast toast={focus.toast} onReveal={(path) => void focus.revealFolder(path)} onDismiss={focus.dismiss} />;
+  const watcher = <NotificationCenter events={agentWindow.events} onGoTo={(target) => inspectAgent(target.provider)} />;
   const repositoryName = (pulse: AgentPulse) => (pulse.project ? workspace.repositoryOf(pulse.project)?.name ?? null : null);
 
   useDialogFocus(() => setConnectorSetup(null), [connectorSetup]);
@@ -107,27 +99,22 @@ export function App() {
   }
 
   if (compact) {
-    return <><MiniView agentEvents={agentWindow.events} collectorState={observer.collectorState} pinned={miniPinned} onTogglePin={() => { setMiniPinnedPreference(!miniPinned); void setMiniPinned(!miniPinned); }} onExpand={leaveMini} repositoryName={repositoryName} onGoTo={goToAgent} />{watcher}{toast}<StoryScheduler events={agentWindow.events} /></>;
+    return <><MiniView agentEvents={agentWindow.events} collectorState={observer.collectorState} pinned={miniPinned} onTogglePin={() => { setMiniPinnedPreference(!miniPinned); void setMiniPinned(!miniPinned); }} onExpand={leaveMini} repositoryName={repositoryName} onGoTo={(pulse) => inspectAgent(pulse.key)} />{watcher}</>;
   }
 
   const tabs: TabDef[] = [
-    { id: "agents", edge: "left", label: t("Agents", "Agents"), icon: Bot, badge: <AttentionBadge events={scope.agentEvents} />, tone: "warn", content: <AgentsPanel agentEvents={scope.agentEvents} repositoryName={repositoryName} onGoTo={goToAgent} focusKey={inspected} /> },
+    { id: "agents", edge: "left", label: t("Agents", "Agents"), icon: Bot, badge: <AttentionBadge events={scope.agentEvents} />, tone: "warn", content: <AgentsPanel agentEvents={scope.agentEvents} repositoryName={repositoryName} onGoTo={(pulse) => inspectAgent(pulse.key)} focusKey={inspected} /> },
     { id: "repositories", edge: "left", label: t("Dépôts", "Repositories"), icon: GitBranch, badge: workspace.repositories.length || null, content: <RepositoriesPage model={workspace} activity={repositoryActivity} events={chartWindow.events} onFilter={(next) => setRepositoryFilter(next)} /> },
-    { id: "story", edge: "right", label: t("Histoire", "Story"), icon: Feather, content: <><StoryPanel events={agentWindow.events} /><DailyReportPage events={agentWindow.events} hasMore={observer.hasMore} /></> },
-    { id: "ask", edge: "right", label: t("Demander", "Ask"), icon: MessageCircleQuestion, content: <AskPanel events={scope.chartEvents} range={range} onOpenSession={(key) => { setSelectedSession(key); dispatch({ type: "close", edge: "right" }); }} /> },
     { id: "connectors", edge: "top", label: t("Connecteurs", "Connectors"), icon: Plug, badge: claudeHooks ? null : "!", tone: claudeHooks ? undefined : "warn", content: <ConnectorsTab events={agentWindow.events} onConfigure={setConnectorSetup} /> },
     { id: "settings", edge: "top", label: t("Réglages", "Settings"), icon: Settings2, content: <SettingsPage onExport={observer.exportHistory} onClear={observer.clearHistory} onMini={goMini} /> },
     { id: "help", edge: "top", label: t("Aide", "Help"), icon: CircleHelp, content: <HelpContent /> }
   ];
 
   const stage = <Stage
-    events={scope.events}
     agentEvents={scope.agentEvents}
-    liveEventIds={observer.liveEventIds}
     collectorState={observer.collectorState}
     repositoryName={repositoryName}
-    onGoTo={goToAgent}
-    onInspect={(pulse) => { setInspected(pulse.key); dispatch({ type: "open", edge: "left", tab: "agents" }); }}
+    onInspect={(pulse) => inspectAgent(pulse.key)}
     onMini={goMini}
     onOpenConnectors={() => dispatch({ type: "open", edge: "top", tab: "connectors" })}
     controls={<><WorkspaceSwitcher model={workspace} /><RepositoryFilterSelect model={workspace} filter={filter} onFilter={setRepositoryFilter} activity={repositoryActivity} outside={outside} total={chartWindow.events.length} /></>}
@@ -143,9 +130,7 @@ export function App() {
 
   return <>
     <Deck stage={stage} workbench={workbench} tabs={tabs} state={shell} dispatch={dispatch} split={Math.min(STAGE_MAX, split)} onSplit={setSplit} />
-    {toast}
     {connectorSetup && <ConnectorSetupDialog key={connectorSetup.kind} connector={connectorSetup} onClose={() => setConnectorSetup(null)} />}
-    <StoryScheduler events={agentWindow.events} />
   </>;
 }
 
