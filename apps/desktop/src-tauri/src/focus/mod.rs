@@ -213,7 +213,9 @@ pub fn ancestors(processes: &[ProcInfo], pid: u32) -> Vec<ProcInfo> {
 
 /// A snapshot of every process with what the search needs.
 pub fn snapshot() -> Vec<ProcInfo> {
-    let mut system = System::new();
+    let Ok(mut system) = System::new() else {
+        return Vec::new();
+    };
     system.refresh_processes_specifics(
         ProcessesToUpdate::All,
         true,
