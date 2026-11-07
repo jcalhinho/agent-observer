@@ -2,18 +2,18 @@
 
 # Agent Observer
 
-**Voir ce que font tes agents de code — et lequel a besoin de toi — sans rien envoyer nulle part.**
+**Vois ce que font tes agents de code — et lequel a besoin de toi — sur un seul écran simple, sans rien envoyer nulle part.**
 
-Une app de bureau locale pour macOS et Windows qui regarde travailler Claude Code, Codex,
-Antigravity, GitHub Copilot, OpenCode et Qwen Code sur ta machine, en direct.
+Une application de bureau locale pour macOS et Windows qui regarde travailler, en direct, Claude Code,
+Codex, GitHub Copilot, Antigravity, OpenCode, Qwen Code et Reasonix sur ta machine.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Dernière version](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
-[![Licence : MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Licence : MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
-[Télécharger](#installation) · [Fonctionnalités](#fonctionnalités) · [Confidentialité](#confidentialité) · [Compiler](#compiler-depuis-les-sources) · [Contribuer](CONTRIBUTING.md) · [English](README.md)
+[Télécharger](#installation) · [Ce que tu vois](#ce-que-tu-vois) · [Confidentialité](#confidentialité) · [Compiler](#compiler-depuis-les-sources) · [Contribuer](CONTRIBUTING.md) · [English](README.md)
 
-<img src="docs/media/deck.png" alt="Agent Observer : une barre d’onglets en haut, la course 3D avec son bandeau d’agents, puis graphiques et historique côte à côte" width="900">
+<img src="docs/media/screen.png" alt="Agent Observer : un seul écran avec une carte par agent, la plus urgente en premier" width="900">
 
 </div>
 
@@ -21,259 +21,144 @@ Antigravity, GitHub Copilot, OpenCode et Qwen Code sur ta machine, en direct.
 
 ## Pourquoi
 
-Faire tourner deux ou trois agents de code en parallèle est devenu courant. Savoir lequel a
-fini, lequel attend ta validation et lequel échoue sur la même commande depuis cinq minutes,
-beaucoup moins. Agent Observer répond d’un coup d’œil à une question : **qui a besoin de moi
-maintenant ?**
+Faire tourner deux ou trois agents de code en parallèle est devenu normal. Savoir lequel a
+fini, lequel attend ton accord et lequel échoue sur la même commande depuis cinq minutes,
+beaucoup moins. Agent Observer répond à une seule question d'un coup d'œil :
+**qui a besoin de moi maintenant ?**
 
-Il ne fait **qu’observer**. Il ne pilote jamais un agent, ne modifie jamais ton code, ne
-change pas les réglages d’un agent à ta place et n’a aucune télémétrie. Rien ne quitte ton ordinateur
-sauf si tu demandes l’histoire du jour : un agent que tu as déjà est alors lancé une fois et parle
-à son propre fournisseur, comme d’habitude.
+Il ne fait qu'**observer**. Il ne pilote jamais un agent, ne modifie jamais ton code ni les
+réglages d'un agent à ta place, et n'envoie aucune télémétrie. Il ne fait aucune requête réseau de lui-même.
 
-> **État :** jeune (0.x). L’interface existe en **français et en anglais** (elle suit la langue
-> de ton système ; à changer dans Réglages). Les contributions sont bienvenues.
+> **État :** début de vie (0.x). L'interface existe en **français et en anglais** (elle suit
+> la langue du système ; change-la dans les Réglages).
 
-## Fonctionnalités
+## Ce que tu vois
 
-### La fenêtre : la course, puis tes données
+Un écran, une carte par agent. Les cartes les plus urgentes passent devant. Chaque carte répond à
+huit questions, et à rien d'autre :
 
-La barre du haut réunit tous les **onglets**. Dessous, la **course** prend au plus **la moitié** de la fenêtre
-(tire la ligne sous elle pour la rétrécir) ; sous la course, l’**atelier** montre les **graphiques** et
-l’**historique** côte à côte, pour la période choisie.
+| # | Question | Ce que montre la carte |
+| --- | --- | --- |
+| 1 | **Qui m'attend ?** | L'état en un mot, coloré selon l'urgence. |
+| 2 | **Qui travaille ?** | Compté dans la barre du haut, à côté du nombre d'agents qui t'attendent. |
+| 3 | **Que fait-il ?** | L'outil en cours et son fichier ou sa commande. |
+| 4 | **Depuis quand ?** | L'âge de la dernière activité. |
+| 5 | **Où ?** | Le dossier du projet (`~` pour ton dossier personnel, « déduit » quand il vient d'un chemin de fichier). |
+| 6 | **Ça tourne mal ?** | Une boucle détectée ou des échecs en série, affichés à la place de l'activité, en couleur. |
+| 7 | **Combien ça consomme ?** | Les tokens de la session, et une barre de remplissage de la fenêtre de contexte. |
+| 8 | **Quel modèle ?** | Le dernier modèle rapporté par l'agent (un `+` et une pastille en pointillés s'il en a utilisé plusieurs), sinon celui qui est configuré. La façon dont il a été lancé (terminal, VS Code…) s'affiche à côté quand elle est connue. |
 
-<img src="docs/media/overview.png" alt="Agent Observer : une barre d’onglets, la course 3D avec un bandeau d’agents, puis graphiques et historique côte à côte" width="900">
+<img src="docs/media/card.png" alt="Une carte d'agent : état, activité, dossier, modèle, tokens et barre de contexte" width="420">
 
-### La course et le bandeau : qui a besoin de toi
-
-La course est un stade 3D low-poly où chaque agent est un coureur. Chaque événement le fait sauter, un outil
-en échec le fait tomber puis se relever, la fin d’un tour l’envoie franchir la ligne (puis, quelques secondes plus tard, retourner au départ), un agent qui t’attend
-lève la main, celui qui tourne en rond court en rond. Tout est arrondi, doux et léger à dessiner :
-**Réglages › Affichage › Qualité de la course 3D** (*Léger*, *Automatique*, *Fluide*) échange de la netteté
-contre de la vitesse sur les ordinateurs plus lents. Une version 2D existe pour les machines sans WebGL, et la
-course respecte le réglage système de *réduction des animations*. La distance est un indicateur d’activité,
-jamais un pourcentage d’avancement.
-
-La scène porte plus que le mouvement, tout est calculé d’après ce que les agents rapportent :
-
-| Tu vois | Ça veut dire |
+| État | Sens |
 | --- | --- |
-| Des **haies** sur la piste | Une là où un outil a échoué pendant le tour en cours ; un agent bloqué a un mur de deux barres. Elles disparaissent à la fin du tour. |
-| Des **drapeaux** derrière la ligne de départ | Un par tranche de 30 minutes de session. |
-| La couleur de la **casquette** | La famille du modèle utilisé (Claude, Gemini, GPT, Qwen, GLM, DeepSeek, Copilot ; grise si inconnue). |
-| Un **projecteur** et quelques secondes de caméra | Un agent qui commence à avoir besoin de toi. La caméra se rapproche, puis le plan large revient. |
-| **Confettis** / **feu d’artifice** | 3 tours propres de suite / 6, ou 3 après 30 minutes. Un tour ordinaire n’est pas fêté. |
-| Le **tableau** au-dessus des gradins | Chaque agent, son état et son temps de session. |
-| Le **ciel** | Suit l’heure de ton ordinateur (aube, jour, soir avec projecteurs, nuit étoilée) ; **Réglages › Affichage › Ciel de la course** le fixe. |
-
-**Clique un coureur** pour t’en approcher et ouvrir sa carte (session, flux de tokens, échecs, dernières actions,
-*Aller à l’agent*) ; Échap ou un clic ailleurs la ferme. Le **bouton ▶** de la barre du haut rejoue la dernière
-heure en 30 secondes.
-
-Le long du bas de la course, une **pastille par agent**, ceux qui demandent ton attention en premier : ce qu’il
-fait, dans quel dépôt, depuis quand. Clique sur une pastille pour **aller à l’agent** ; le petit « i » ouvre ses
-détails.
-
-| Statut | Signification |
-| --- | --- |
-| **Tourne en rond** | Il répète les mêmes actions sans avancer (même commande, même fichier, même enchaînement) : il consomme des tokens pour rien. |
-| **Bloqué** | Au moins deux outils ont échoué d’affilée. |
-| **Silencieux** | Un tour est en cours mais rien ne se passe depuis plus de 2 minutes : il attend souvent ta validation. |
-| **T’attend** | Son dernier tour est terminé : il est prêt pour ton prochain message. |
+| **Tourne en rond** | Il répète les mêmes actions sans avancer (même commande, même fichier, même séquence) : il brûle des tokens pour rien. |
+| **Bloqué** | Au moins deux outils ont échoué à la suite. |
+| **Silencieux** | Un tour est ouvert mais rien ne s'est passé depuis plus de 2 minutes — souvent il attend ton accord. |
+| **T'attend** | Son dernier tour est fini ; il est prêt pour ton prochain message. |
 | **Au travail** | Des événements sont arrivés dans les 45 dernières secondes. |
 | **Au repos** | Aucune activité récente. |
-| **Pas encore vu** | Rien reçu : vérifie son connecteur. |
+| **Pas encore vu** | Rien reçu — vérifie son connecteur. Listé dans un petit pied de page. |
 
-« Aller à l’agent » met au premier plan son terminal, son éditeur ou son application (Claude Desktop, l’app
-Codex, les extensions VS Code et Cursor, Terminal, iTerm2, Windows Terminal…). Si l’agent est arrêté, sa session
-est relancée là où elle avait été vue, avec ce qui est installé (sa commande, son application, ou un éditeur
-avec son extension).
+La barre de contexte passe à l'orange dès 80 % et au rouge dès 95 %. La fenêtre vient de l'agent
+quand il la rapporte, sinon d'une petite table de modèles documentés ; pour un modèle inconnu, la carte
+affiche le nombre de tokens et aucun pourcentage plutôt qu'une supposition.
 
-### Graphiques et historique, par période ou par jour
+### Réglages
 
-La barre au-dessus choisit la période : les **15 dernières minutes**, **1 heure**, **24 heures**, **tout**, ou
-un **jour du calendrier** (flèches et sélecteur de date) — tout ce qui reste dans l’historique local, 30 jours
-par défaut.
+Le bouton de la barre du haut ouvre un panneau qui glisse ; referme-le et tu reviens à l'écran unique.
 
-- **Graphiques** : activité et tokens dans le temps, qui agit le plus et qui échoue, outils, fichiers, durées
-  de tours, dépôts. Un coût **estimé** est affiché pour les modèles dont le prix public figure dans
-  [`pricing.ts`](apps/desktop/src/ui/pricing.ts) — toujours « ≈ $ au tarif API », jamais une facture (un
-  réglage par agent le renomme *valeur consommée* si tu es au forfait). Une valeur qu’un agent ne fournit pas
-  est affichée *non fournie*, jamais devinée.
-- **Historique** : les sessions de cette période ; choisis-en une pour son résumé (durée, tours, outils, échecs,
-  tokens, coût, commits faits pendant) et sa chronologie complète, que tu peux limiter à ce qui **mérite un
-  coup d’œil**.
+- **Connecteurs** : quels agents sont détectés, et comment les brancher (pour Claude Code, le
+  fragment de réglages à copier).
+- **Ce qui est enregistré** : les prompts, les commandes shell et les messages d'erreur sont désactivés par défaut.
+- **Rétention** : de 7 jours à pour toujours.
+- **Exporter / effacer** ton historique local.
+- **Langue** : français ou anglais.
 
-<img src="docs/media/day.png" alt="Un jour passé choisi dans la barre de période : les graphiques et l’historique montrent ce jour seulement" width="900">
-
-### Les tiroirs : tout le reste
-
-Chaque onglet de la barre du haut ouvre un **tiroir** qui glisse depuis un bord — l’icône à côté du nom de
-l’onglet indique lequel. Tire son bord intérieur pour l’agrandir, **épingle**-le pour qu’il garde sa place,
-`Échap` referme les tiroirs libres.
-
-| Bord | Onglets |
-| --- | --- |
-| **Gauche** | **Agents** (chaque carte en entier) · **Dépôts** (branche, synchro, agents par dépôt) |
-| **Droite** | **Histoire** (l’histoire et le rapport des 24 h) · **Demander** (interroger l’historique) |
-| **Haut** | **Connecteurs** · **Réglages** · **Aide** |
-
-<img src="docs/media/agents.png" alt="Le tiroir Agents ouvert à gauche : une carte complète par agent" width="900">
-
-### Demander : interroger l’historique
-
-**Demander** répond à des questions comme *« pourquoi des erreurs cet après-midi ? »* ou *« quel agent a le
-plus travaillé ? »* avec un agent que tu **as déjà**, sur la période choisie sous la course. L’app sélectionne
-les faits (sessions, échecs, attentes, boucles, coûts) ; la réponse cite les sessions sur lesquelles elle
-s’appuie sous la forme `[s3]` — un clic les ouvre dans l’historique — et peut finir par des **pistes** à copier
-vers un agent. L’app n’envoie jamais rien à un agent à ta place.
-
-Chaque session des faits liste les **fichiers que son agent a modifiés** (la réponse peut donc les nommer) et,
-pour les sessions principales, les **sujets des commits Git faits pendant qu’elle tournait** (lus en local).
-C’est ce qui permet de répondre à *« était-ce un correctif ou une fonctionnalité ? »* — comme une déduction :
-aucun agent ne l’enregistre, et un commit fait pendant une session n’est pas forcément celui de l’agent.
-
-Les messages d’erreur ne sont **pas enregistrés** par défaut : le « pourquoi » ne peut donc qu’être déduit.
-**Réglages › Ce qui est enregistré › Garder les messages d’erreur** garde une version courte (300 caractères),
-sur une ligne et nettoyée (clés, jetons, mots de passe et dossier personnel retirés) des erreurs des outils en
-échec — Claude Code, Codex, Antigravity, Qwen Code et OpenCode, pour les prochains échecs.
-
-<img src="docs/media/ask.png" alt="Le tiroir Demander : questions d’exemple, une zone de saisie en bas, et l’historique sous la course" width="900">
-
-### L’histoire du jour
-
-Un agent que tu **as déjà** — Claude Code, Codex, Qwen Code, OpenCode ou GitHub Copilot, en commande, en extension
-d’éditeur ou (pour Claude) dans l’application — écrit l’histoire de tes dernières 24 h : à la demande, et chaque
-jour à l’heure de ton choix (**18 h** par défaut). Si l’app était fermée à ce moment-là, elle est écrite au
-lancement suivant.
-
-<img src="docs/media/story.png" alt="Le tiroir Histoire : une courte histoire du jour avec chronologie, un paragraphe par agent et les points à regarder" width="900">
-
-**Comment Demander et l’histoire restent privés.** L’app calcule un résumé de faits (des chiffres et des noms de
-projets, de modèles, d’outils, de fichiers et de sujets de commits — jamais le texte de tes messages, tes commandes ni tes dossiers).
-L’agent est lancé **une fois par demande, sans aucun outil, dans un dossier vide, sans garder de session**, avec
-la consigne de n’utiliser que ces faits. Rien n’est envoyé avant ton accord, une fois par agent, et tu peux lire
-le résumé exact avant. Aucune clé, rien à installer : c’est ton forfait qui est utilisé.
-
-### Fenêtre de contexte
-
-Chaque carte d’agent montre **à quel point sa fenêtre de contexte est pleine** : la taille de la dernière requête
-(nouveaux tokens plus ceux lus ou écrits dans le cache) face à la taille de la fenêtre du modèle, par exemple
-`91 % · 909K / 1M`. La barre devient ambre à partir de 80 % et rouge à partir de 95 % ; la carte d’un coureur
-en focus ajoute l’évolution sur la session, la part servie par le cache et le nombre de **compactages** (quand le
-contexte chute brutalement). La fenêtre vient de l’agent quand il la donne (Codex, GitHub Copilot), sinon d’une
-petite table de modèles documentés ; pour un modèle absent des deux, la carte indique combien de tokens la requête
-contenait, sans pourcentage, plutôt qu’une valeur devinée. Ce dont le contexte est fait (messages, outils, MCP…)
-n’est écrit sur le disque par aucun agent : ce n’est donc pas affiché.
-
-### Notifications et alertes
-
-Une notification système quand un agent t’attend, demande une validation, devient silencieux, enchaîne les
-erreurs, tourne en rond ou a sa fenêtre de contexte au-delà de 80 % ; un clic dessus t’amène à l’agent. Les boucles et les erreurs affichent aussi une
-bannière rouge sur la course. Chaque type se coupe dans Réglages.
-
-### Mode mini
-
-Réduit l’app à une colonne toujours visible dans un coin de l’écran, une carte compacte par agent, avec une
-épingle « rester au premier plan » facultative.
-
-<img src="docs/media/mini-mode.png" alt="Mode mini : une colonne de cartes d’agents" width="320">
-
-### Workspaces
-
-Pointe l’app vers un dossier (tous les dépôts Git jusqu’à quatre niveaux sont trouvés) ou vers un fichier
-`.code-workspace` de VS Code. Les événements sont rattachés au dépôt où ils ont eu lieu — les worktrees comptent
-pour le clone dont ils dépendent — et le filtre dans la barre au-dessus de la course limite tout à un dépôt. Les
-dépôts sont lus, jamais modifiés, et un changement Git n’est **jamais attribué à un agent** sans preuve.
-
-<img src="docs/media/workspace.png" alt="Le tiroir Dépôts : branche, synchro et activité des agents côte à côte" width="900">
+<img src="docs/media/settings.png" alt="Le panneau des réglages : connecteurs, ce qui est enregistré, rétention, export et effacement" width="900">
 
 ## Agents pris en charge
 
 | Agent | Comment il est observé | Ce que tu dois faire |
 | --- | --- | --- |
-| **Claude Code** | [Hooks HTTP](https://docs.claude.com/en/docs/claude-code/hooks) officiels envoyés au collecteur local, et consommation de tokens lue dans les nouvelles lignes de ses transcriptions (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respecté). | Copier le fragment affiché dans l’onglet **Connecteurs** dans `~/.claude/settings.json`. L’app ne le modifie jamais à ta place. |
-| **Codex** | Les enregistrements JSONL ajoutés dans `~/.codex/sessions` (`CODEX_HOME` respecté). | Rien. |
-| **Antigravity** | Ses fichiers locaux dans `~/.gemini/antigravity`, ouverts en **lecture seule** : la liste des conversations (projet, état, activité) et, pour les sessions récentes, un transcript étape par étape (tokens, outils, échecs). Les anciennes conversations sont chiffrées par Antigravity et n’apparaissent que dans la liste. Antigravity n’enregistre qu’un code pour le modèle sélectionné : l’app demande donc son nom au serveur local d’Antigravity (`127.0.0.1`, lecture seule, voir [Confidentialité](#confidentialité)) ; le modèle est celui sélectionné au moment où une étape a été vue. Le coût est estimé au tarif API quand le modèle a un prix connu. | Rien. |
-| **GitHub Copilot** | Les journaux d’événements de son agent dans `~/.copilot/session-state/<session>/events.jsonl` (`COPILOT_HOME` respecté) : Copilot CLI et les sessions d’agent de VS Code, qui reposent dessus. Tokens, modèle, appels d’outils et échecs. L’ancien panneau Copilot Chat (`chatSessions`) n’est pas lu. | Rien. |
+| **Claude Code** | [Hooks HTTP](https://docs.claude.com/en/docs/claude-code/hooks) officiels envoyés au collecteur local, plus la consommation de tokens lue dans les nouvelles lignes de ses transcriptions (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respecté). | Copie le fragment affiché dans **Réglages › Connecteurs** dans `~/.claude/settings.json`. L'app ne le modifie jamais pour toi. |
+| **Codex** | Enregistrements JSONL ajoutés dans `~/.codex/sessions` (`CODEX_HOME` respecté). | Rien. |
+| **GitHub Copilot** | Deux sources, en lecture seule : les journaux d'événements de son agent dans `~/.copilot/session-state/<session>/events.jsonl` (Copilot CLI et sessions agent de VS Code ; `COPILOT_HOME` respecté), et le panneau Copilot Chat de VS Code (sa base locale `session-store.db` : les tours et les fichiers touchés, jamais le texte de l'assistant). | Rien. |
+| **Antigravity** | Ses fichiers locaux dans `~/.gemini/antigravity`, ouverts en **lecture seule** : la liste des conversations et, pour les sessions récentes, une transcription pas à pas (tokens, outils, échecs). Antigravity n'enregistre qu'un code pour le modèle choisi ; l'app demande donc son nom au serveur local d'Antigravity (`127.0.0.1`, lecture seule, voir [Confidentialité](#confidentialité)). | Rien. |
 | **OpenCode** | Sa base SQLite locale (`~/.local/share/opencode/opencode*.db`, `OPENCODE_DB` / `OPENCODE_DATA_DIR` respectés), ouverte en **lecture seule**. | Rien. |
-| **Qwen Code** | Les enregistrements JSONL ajoutés dans `~/.qwen/projects/<projet>/chats`. | Rien. |
+| **Qwen Code** | Enregistrements de discussion JSONL ajoutés dans `~/.qwen/projects/<projet>/chats`. | Rien. |
+| **Reasonix** | Ses fichiers de session dans `~/.reasonix/projects/<projet>/sessions/*.wire.jsonl` (écrits par Reasonix Studio), en lecture seule. | Rien. |
+| **Cursor** | Hooks Cursor envoyés au collecteur local. | Copie le fragment affiché dans **Réglages › Connecteurs**. |
 
-Sous Windows, `~` correspond à `%USERPROFILE%`. Les connecteurs à journaux se placent à la
-fin des fichiers existants et n’observent que les nouveaux enregistrements : l’historique
-antérieur au lancement de l’app n’est pas importé.
+Sous Windows, `~` désigne `%USERPROFILE%`. Les connecteurs qui lisent des journaux commencent à la fin
+des fichiers existants et n'observent que les nouveaux enregistrements : l'historique d'avant le
+lancement de l'app n'est pas importé. La première lecture du panneau Copilot Chat fait pareil : une
+carte Copilot Chat apparaît donc avec ta prochaine conversation.
 
-Un connecteur Cursor (hooks) existe dans le moteur natif mais est masqué dans l’interface
-pour l’instant. GitHub Copilot, Cline, Roo Code, Continue et Aider ne sont **pas** encore
-connectés — voir [ajouter un agent](#ajouter-ton-agent).
+Pas encore branchés : Continue, Cline, Roo Code, Aider et Gemini CLI. Les sessions lancées dans un
+agent cloud ou une application de bureau qui ne laisse rien sur ton ordinateur ne peuvent pas être
+observées. Pour ajouter un agent, voir [ajouter un connecteur](#ajouter-ton-propre-agent).
 
 ## Confidentialité
 
-Tout reste sur ton ordinateur. L’app ne fait aucune requête réseau de son propre chef : elle ne
-fait que recevoir des hooks sur `127.0.0.1`. Les seules exceptions sont l’**histoire du jour** et **Demander**,
-désactivées tant que tu ne les autorises pas pour un agent : l’app lance alors cet agent (déjà
-installé, avec sa propre connexion) une seule fois, sans outil, dans un dossier vide, sur un
-résumé de chiffres et de noms ; l’agent l’envoie à son fournisseur comme tout ce que tu lui
-écris. Tu peux lire le résumé exact avant d’accepter.
+Tout reste sur ton ordinateur. L'app ne fait aucune requête réseau de son propre chef : elle ne fait
+que recevoir des hooks sur `127.0.0.1`.
 
-**Une requête locale vers Antigravity.** Ses fichiers ne contiennent qu’un code interne pour le modèle sélectionné : pour afficher son nom (et estimer un coût), l’app interroge le serveur de langage d’Antigravity sur `127.0.0.1` (lecture seule), avec le jeton avec lequel cette app a été lancée, lu dans la liste des processus et gardé en mémoire pour cette seule requête. Seuls les noms de modèles sont conservés. Rien ne se passe si Antigravity ne tourne pas.
+**Une requête locale vers Antigravity.** Ses fichiers ne contiennent qu'un code interne pour le modèle choisi ; pour afficher son nom, l'app interroge le serveur de langage d'Antigravity sur `127.0.0.1` (lecture seule), avec le jeton avec lequel cette application a été lancée, lu dans la liste des processus et gardé en mémoire le temps de cette requête. Seuls les noms de modèles sont conservés. Rien ne se passe si Antigravity ne tourne pas.
 
-**Enregistré par défaut** — le *déroulé* du travail : quel agent, quelle session, quel outil,
-quel chemin de fichier, quand, combien de temps, succès ou échec, nom du modèle et nombres de
-tokens fournis par l’agent lui-même.
+**Enregistré par défaut** — la *forme* du travail : quel agent, quelle session, quel outil,
+quel chemin de fichier, quand, combien de temps, succès ou échec, nom du modèle et nombre de
+tokens rapportés par l'agent lui-même.
 
-**Sur option** (Réglages, désactivé par défaut) — le texte de tes messages aux agents, et les
-commandes lancées par les agents. Les deux peuvent contenir des secrets : à activer en
-connaissance de cause.
+**Sur option** (Réglages, désactivé par défaut) — le texte de tes prompts, les commandes shell
+que lancent les agents, et une version courte et nettoyée des messages d'erreur (clés, jetons, mots de
+passe et ton dossier personnel retirés). Ils peuvent contenir des secrets ; active-les en connaissance de cause.
 
-**Jamais enregistré** — les réponses des agents, leurs raisonnements, les sorties et résultats
-des outils, le contenu des fichiers, les chemins des transcriptions.
+**Jamais enregistré** — les réponses des agents, leur raisonnement, les sorties et résultats d'outils,
+le contenu des fichiers, les chemins des transcriptions.
 
-- Les événements sont stockés dans une base SQLite locale, dans le dossier de données de
-  l’application (`~/Library/Application Support/dev.repowatcher.agentobserver/` sur macOS,
-  `%LOCALAPPDATA%\dev.repowatcher.agentobserver\` sur Windows).
-- La durée de conservation se règle (de 7 jours à illimitée) ; les événements plus anciens
-  sont supprimés au démarrage puis toutes les heures. L’historique peut être exporté en JSON
-  ou effacé depuis les Réglages.
-- Le collecteur de hooks écoute uniquement sur `127.0.0.1:43821` et refuse toute requête sans
-  le jeton propre à l’installation, généré au premier lancement.
+- Les événements sont stockés dans une base SQLite locale, dans le dossier de données de l'OS
+  (`~/Library/Application Support/dev.repowatcher.agentobserver/` sous macOS,
+  `%LOCALAPPDATA%\dev.repowatcher.agentobserver\` sous Windows).
+- La rétention est réglable (7 jours à pour toujours) ; les événements plus anciens sont purgés au
+  démarrage puis toutes les heures. L'historique peut être exporté en JSON ou effacé depuis les Réglages.
+- Le collecteur de hooks n'écoute que sur `127.0.0.1:43821` et refuse les requêtes sans le jeton
+  propre à l'installation, généré au premier lancement.
 
-Voir [SECURITY.md](SECURITY.md) pour le modèle de menace et le signalement des vulnérabilités.
+Voir [SECURITY.md](SECURITY.md) pour le modèle de menace et le signalement d'une vulnérabilité.
 
 ## Installation
 
-Télécharge le dernier installateur sur la [page Releases](https://github.com/jcalhinho/agent-observer/releases)
-et vérifie-le avec le fichier `SHA256SUMS.txt` de la même release.
+Télécharge le dernier installateur depuis la [page des versions](https://github.com/jcalhinho/agent-observer/releases)
+et vérifie-le avec `SHA256SUMS.txt` de la même version.
 
 | Plateforme | Fichier |
 | --- | --- |
 | macOS, Apple Silicon (M1 et suivants) | `Agent-Observer_<version>_macos-arm64.dmg` |
 | macOS, Intel | `Agent-Observer_<version>_macos-x64.dmg` |
-| Windows 10/11, installation utilisateur (recommandé) | `Agent-Observer_<version>_windows-x64-setup.exe` |
-| Windows 10/11, MSI pour déploiement géré | `Agent-Observer_<version>_windows-x64.msi` |
+| Windows 10/11, installation par utilisateur (recommandée) | `Agent-Observer_<version>_windows-x64-setup.exe` |
+| Windows 10/11, MSI pour le déploiement géré | `Agent-Observer_<version>_windows-x64.msi` |
 
 > [!IMPORTANT]
-> Les premières versions ne sont **pas encore signées** (ni Apple Developer ID, ni certificat
-> de signature Windows) : ton système va donc t’avertir la première fois. Les étapes
-> ci-dessous sont la manière standard d’ouvrir une app en laquelle tu as confiance. En cas de
-> doute, [compile-la toi-même](#compiler-depuis-les-sources). Sur un poste professionnel,
-> respecte la politique de ton entreprise plutôt que de la contourner.
+> Les premières versions ne sont **pas signées** avec un Developer ID Apple ni un certificat de
+> signature Windows ; ton système t'avertira donc au premier lancement. Les étapes ci-dessous sont la
+> façon habituelle d'ouvrir une application de confiance. Dans le doute, [compile-la depuis les sources](#compiler-depuis-les-sources).
+> Sur un ordinateur professionnel, suis la politique logicielle de ton organisation plutôt que de la contourner.
 
 ### macOS
 
 1. Ouvre le `.dmg` et glisse **Agent Observer** dans **Applications**.
-2. Lance-la une première fois depuis **Applications** : macOS indique qu’il ne peut pas
-   vérifier le développeur.
-3. Autorise-la, selon ta version de macOS :
-   - **macOS 15 Sequoia et suivants :** clique sur **OK**, ouvre **Réglages Système →
-     Confidentialité et sécurité**, descends jusqu’au message concernant l’app et clique sur
-     **Ouvrir quand même**, puis confirme avec ton mot de passe.
-   - **macOS 14 et antérieurs :** dans le Finder, **clic droit (ou Contrôle-clic) sur l’app →
-     Ouvrir**, puis **Ouvrir** dans la fenêtre.
+2. Ouvre-le une première fois depuis **Applications**. macOS dit qu'il ne peut pas vérifier le développeur.
+3. Autorise-le, selon ta version de macOS :
+   - **macOS 15 Sequoia et suivants :** clique sur **Terminé**, ouvre **Réglages Système → Confidentialité et
+     sécurité**, descends jusqu'au message concernant l'app et clique sur **Ouvrir quand même**, puis
+     confirme avec ton mot de passe.
+   - **macOS 14 et antérieurs :** dans le Finder, **clic droit (ou Contrôle-clic) sur l'app → Ouvrir**,
+     puis **Ouvrir** dans la boîte de dialogue.
 
-Ce n’est à faire qu’une fois. Si macOS affirme que l’app **« est endommagée et ne peut pas
-être ouverte »**, c’est l’attribut de quarantaine posé au téléchargement d’une app non signée,
-pas un vrai dommage. Retire-le dans le Terminal :
+Tu ne le fais qu'une fois. Si macOS dit que l'app **« est endommagée et ne peut pas être ouverte »**,
+c'est l'indicateur de quarantaine d'un téléchargement non signé, pas un vrai dommage. Retire-le dans
+le Terminal :
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/RepoWatcher Agent Observer.app"
@@ -281,15 +166,14 @@ xattr -dr com.apple.quarantine "/Applications/RepoWatcher Agent Observer.app"
 
 ### Windows
 
-1. Lance `…-setup.exe`. Il installe l’app pour l’utilisateur courant, sans droits
-   administrateur.
-2. Si **Microsoft Defender SmartScreen** affiche *« Windows a protégé votre ordinateur »*,
-   clique sur **Informations complémentaires → Exécuter quand même**.
-3. WebView2 est déjà présent sur Windows 10/11 ; l’installateur le télécharge s’il manque.
+1. Lance `…-setup.exe`. Il s'installe pour l'utilisateur courant, sans droits d'administrateur.
+2. Si **Microsoft Defender SmartScreen** affiche *« Windows a protégé votre PC »*, clique sur
+   **Informations complémentaires → Exécuter quand même**.
+3. WebView2 est déjà présent sous Windows 10/11 ; l'installateur le récupère s'il manque.
 
-Tu utilises l’app sous Windows et quelque chose cloche ? [`docs/WINDOWS.md`](docs/WINDOWS.md) (en anglais) est une courte checklist de ce qu’on doit voir pour chaque agent.
+Quelque chose te semble bizarre sous Windows ? [`docs/WINDOWS.md`](docs/WINDOWS.md) est une courte liste de ce qu'on peut attendre pour chaque agent.
 
-Vérifie l’empreinte dans PowerShell avant de le lancer :
+Vérifie la somme de contrôle dans PowerShell avant de lancer :
 
 ```powershell
 Get-FileHash .\Agent-Observer_*_windows-x64-setup.exe -Algorithm SHA256
@@ -297,119 +181,98 @@ Get-FileHash .\Agent-Observer_*_windows-x64-setup.exe -Algorithm SHA256
 
 ### Premier lancement
 
-1. Onglet **Connecteurs** : vérifie que tes agents sont détectés. Pour Claude Code, copie le
-   fragment affiché dans `~/.claude/settings.json` (le jeton qu’il contient est propre à cet
+1. Ouvre les **Réglages** (en haut à droite) et vérifie que tes agents sont détectés. Pour Claude Code,
+   copie le fragment affiché dans `~/.claude/settings.json` (le jeton qu'il contient est propre à cet
    ordinateur).
-2. **Workspace** (en haut à gauche) : choisis le dossier qui contient tes projets.
-3. Travaille normalement avec tes agents : le tableau de bord se remplit tout seul. Le bouton
-   **?** explique chaque statut et chaque chiffre.
+2. Travaille comme d'habitude avec tes agents — les cartes se remplissent toutes seules.
 
-Une seule instance tourne à la fois : la relancer ramène la fenêtre existante au premier plan.
+Une seule instance tourne à la fois : relancer l'app ramène la fenêtre existante au premier plan.
 
 ## Compiler depuis les sources
 
 Prérequis : [Node.js 22](https://nodejs.org/), [Rust](https://rustup.rs/) stable (1.85 ou
 plus) et les [prérequis Tauri 2](https://v2.tauri.app/start/prerequisites/) de ton système
-(Xcode Command Line Tools sur macOS ; Microsoft C++ Build Tools et WebView2 sur Windows ;
-WebKitGTK 4.1 sur Linux).
+(Xcode Command Line Tools sous macOS ; Microsoft C++ Build Tools et WebView2 sous Windows ;
+WebKitGTK 4.1 sous Linux).
 
 ```bash
 git clone https://github.com/jcalhinho/agent-observer.git
 cd agent-observer
 npm ci
-npm run desktop:dev      # développement, rechargement à chaud
+npm run desktop:dev      # développement, avec rechargement à chaud
 npm run desktop:build    # installateurs dans target/release/bundle/
 ```
 
-Sur macOS, `npm run desktop:install-mac` compile l’app et l’installe dans `/Applications`.
-Linux compile mais n’est pas encore empaqueté ni officiellement pris en charge.
+Tests : `npm test` dans `apps/desktop` pour l'interface, `cargo test` dans `apps/desktop/src-tauri` pour le Rust.
+Linux compile depuis les sources mais n'est pas encore empaqueté ni officiellement pris en charge.
+[`COMPRENDRE.md`](COMPRENDRE.md) est une visite du code en trois minutes.
 
 ## Architecture
 
 ```
-CLI des agents ──hooks (HTTP, 127.0.0.1 + jeton)───────┐
-               ──journaux locaux / SQLite (lecture seule)┤
-                                                         ▼
-                 Connecteurs Rust (apps/desktop/src-tauri/src/*_sessions.rs, codex_rollout.rs, …)
-                                                         │  SessionEvent (crates/session-events)
-                                                         ▼
-                 Stockage SQLite + commandes/événements Tauri (src-tauri/src/main.rs)
-                                                         │
-                                                         ▼
-                 UI React (apps/desktop/src/ui) — cartes, mode mini, course, analyse, workspaces
+CLI des agents ──hooks (HTTP, 127.0.0.1 + jeton)──┐
+               ──journaux locaux / SQLite (lecture seule)──┤
+                                                  ▼
+                      Lecteurs Rust (apps/desktop/src-tauri/src/*_sessions.rs, codex_rollout.rs, copilot_chat.rs, …)
+                                                  │  SessionEvent (crates/session-events)
+                                                  ▼
+                      Base SQLite + commandes/événements Tauri (src-tauri/src/main.rs)
+                                                  │
+                                                  ▼
+                      Interface React (apps/desktop/src/ui) — un écran, une carte par agent
 ```
 
-- **`crates/session-events`** — le modèle d’événement commun à tous les connecteurs,
-  indépendant des fournisseurs. Chaque valeur mesurée porte son origine (`Provider`,
-  `LocalObservation`, `Derived`, `Estimated`) : un connecteur omet ce qu’il ne peut pas
-  observer plutôt que de l’inventer.
-- **Connecteurs** (`apps/desktop/src-tauri/src/`) — un module Rust par agent, qui transforme
-  ses hooks, journaux JSONL ou lignes SQLite en `SessionEvent`, en écartant le contenu privé
-  avant tout enregistrement.
-- **Coquille de bureau** — Tauri 2 : collecteur local (axum), stockage SQLite (rusqlite),
-  lecture des workspaces et de Git (lecture seule), conservation.
-- **UI** — React 19 + Vite, graphiques en SVG, course en three.js via react-three-fiber. La
-  logique pure (statuts, analyse, prix, rattachement aux dépôts) vit dans des modules `.ts`
-  testés avec Vitest.
+- **`crates/session-events`** — le modèle d'événement commun à tous les lecteurs, sans lien avec un
+  fournisseur. Chaque valeur mesurée porte son origine (`Provider`, `LocalObservation`, `Derived`,
+  `Estimated`) : un lecteur omet ce qu'il ne peut pas observer plutôt que de l'inventer.
+- **Lecteurs** (`apps/desktop/src-tauri/src/`) — un module Rust par agent qui transforme ses hooks,
+  journaux JSONL ou lignes SQLite en `SessionEvent`, en écartant le contenu privé avant tout stockage.
+- **Coque de bureau** — Tauri 2 : le collecteur en boucle locale (axum) et la base SQLite (rusqlite).
+- **Interface** — React 19 + Vite. L'état d'un agent (`agentPulse.ts`), la détection de boucle, le
+  remplissage du contexte et les totaux de session vivent dans de simples modules `.ts` testés avec Vitest.
 
-## Ajouter ton agent
+## Ajouter ton propre agent
 
-Deux façons d’intégrer un nouvel agent :
-
-- **API HTTP locale** — envoyer des événements au collecteur local depuis un
-  script, un hook ou un plugin, dans n’importe quel langage. Documentée dans
-  [`docs/CONNECTORS.md`](docs/CONNECTORS.md).
-- **Connecteur natif** — un module Rust dans l’app. Voir
+- **API HTTP locale** — envoie des événements au collecteur local depuis un script,
+  un hook ou un plugin, dans n'importe quel langage. Documentée dans [`docs/CONNECTORS.md`](docs/CONNECTORS.md).
+- **Lecteur natif** — un module Rust dans l'app de bureau. Voir
   [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-connector).
-
-Un prix de modèle manquant ou faux ? Ouvre une [issue « prix de modèle »](https://github.com/jcalhinho/agent-observer/issues/new?template=model_price.yml)
-avec un lien vers la page de tarifs officielle du fournisseur.
 
 ## FAQ
 
-**Est-ce que mon code ou mes messages partent quelque part ?**
-Non. Aucune télémétrie et aucune requête réseau de l’app elle-même. Tes messages et les commandes
-ne sont même pas enregistrés localement, sauf si tu l’actives. Si tu demandes l’histoire du jour,
-un résumé de chiffres et de noms (jamais tes messages, tes commandes ni tes dossiers) passe par
-l’agent que tu as choisi, vers son fournisseur — seulement après ton accord, et tu peux le lire
-avant.
+**Envoie-t-il mon code ou mes prompts quelque part ?**
+Non. Il n'y a aucune télémétrie et l'app ne fait aucune requête réseau de son propre chef. Les prompts
+et les commandes ne sont même pas stockés localement tant que tu ne les actives pas.
 
-**Est-ce que ça ralentit mes agents ?**
-Les connecteurs à journaux lisent seulement les nouvelles lignes de fichiers que les agents
-écrivent déjà. Les hooks de Claude Code sont des appels HTTP avec un délai de 2 secondes ; si
-l’app est fermée, Claude Code continue normalement.
+**Ralentit-il mes agents ?**
+Les lecteurs de journaux ne lisent que les nouvelles lignes de fichiers que les agents écrivent déjà.
+Les hooks de Claude Code sont des appels HTTP sans attente de réponse, avec un délai de 2 secondes ;
+si l'app est fermée, Claude Code continue simplement.
 
-**Pourquoi le coût est-il « estimé » ?**
-Il est calculé à partir des prix publics et des tokens déclarés par l’agent. Abonnements,
-forfaits, remises et tarifs batch sont inconnus de l’app. Un modèle sans prix sourcé n’affiche
-aucun coût.
+**Pourquoi une carte n'affiche-t-elle pas de tokens ?**
+Parce que cet agent ne les rapporte pas dans ce que l'app peut lire. L'app affiche *non fourni*
+plutôt qu'une estimation.
 
-**Pourquoi l’agent X n’affiche-t-il pas de tokens ?**
-Parce qu’il ne les fournit pas dans ce que l’app peut lire. L’app affiche *non fourni* plutôt
-qu’une estimation.
-
-**Voit-il les sessions commencées avant son lancement ?**
-Non. Les connecteurs observent l’activité à partir du lancement de l’app ; l’historique
-antérieur n’est pas importé. Tout ce qui est observé ensuite reste disponible, selon ta durée
-de conservation.
+**Voit-il les sessions lancées avant que j'ouvre l'app ?**
+Non. Les lecteurs observent la nouvelle activité à partir du moment où l'app tourne ; l'historique
+antérieur n'est pas importé. Tout ce qui est observé ensuite reste disponible, dans la limite de ta rétention.
 
 **Le port 43821 est déjà utilisé.**
-Une autre copie de l’app (ou autre chose) l’occupe. Une seule instance peut recevoir les
-hooks ; l’onglet Connecteurs affiche l’état du collecteur.
+Une autre copie de l'app (ou autre chose) l'occupe. Une seule instance peut collecter les hooks ;
+Réglages › Connecteurs montre l'état du collecteur.
 
-**Pourquoi l’app n’est-elle pas signée ?**
-Les certificats de signature coûtent de l’argent et du temps ; la chaîne de publication est
-prête à signer et notariser dès qu’ils seront disponibles. En attendant, chaque release est
-compilée par GitHub Actions depuis le tag et accompagnée de ses empreintes SHA-256.
+**Pourquoi l'app n'est-elle pas signée ?**
+Les certificats de signature coûtent de l'argent et du temps ; la chaîne de publication est prête à
+signer et notariser dès qu'ils seront disponibles. En attendant, chaque version est livrée avec ses
+sommes SHA-256 et construite par GitHub Actions depuis la source taguée.
 
 ## Contribuer
 
-Signalements de bugs, demandes de connecteurs, prix de modèles, traductions et code sont tous
-bienvenus : commence par [CONTRIBUTING.md](CONTRIBUTING.md). Chaque participant s’engage à
-respecter le [Code de conduite](CODE_OF_CONDUCT.md).
+Rapports de bugs, demandes de connecteurs, traductions et code sont les bienvenus — commence
+par [CONTRIBUTING.md](CONTRIBUTING.md). Toute personne participante doit respecter le
+[Code de conduite](CODE_OF_CONDUCT.md).
 
 ## Licence
 
-[MIT](LICENSE). Agent Observer est un projet indépendant, sans lien avec Anthropic, OpenAI,
-Google, Alibaba ou le projet OpenCode. Les noms de produits appartiennent à leurs
-propriétaires.
+[MIT](LICENSE). Agent Observer est un projet indépendant, non affilié à Anthropic, OpenAI, Google,
+GitHub, Alibaba ni au projet OpenCode. Les noms de produits appartiennent à leurs propriétaires.

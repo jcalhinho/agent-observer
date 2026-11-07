@@ -2,18 +2,18 @@
 
 # Agent Observer
 
-**See what your coding agents are doing — and which one needs you — without sending anything anywhere.**
+**See what your coding agents are doing — and which one needs you — on one simple screen, without sending anything anywhere.**
 
-A local desktop app for macOS and Windows that watches Claude Code, Codex, Antigravity,
-GitHub Copilot, OpenCode and Qwen Code work on your machine, live.
+A local desktop app for macOS and Windows that watches Claude Code, Codex, GitHub Copilot,
+Antigravity, OpenCode, Qwen Code and Reasonix work on your machine, live.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[Download](#install) · [Features](#features) · [Privacy](#privacy) · [Build from source](#build-from-source) · [Contributing](CONTRIBUTING.md) · [Français](README.fr.md)
+[Download](#install) · [What you see](#what-you-see) · [Privacy](#privacy) · [Build from source](#build-from-source) · [Contributing](CONTRIBUTING.md) · [Français](README.fr.md)
 
-<img src="docs/media/deck.png" alt="Agent Observer: a bar of tabs on top, the 3D race with its dock of agents, then charts and history side by side" width="900">
+<img src="docs/media/screen.png" alt="Agent Observer: one screen with a card per agent, the most urgent first" width="900">
 
 </div>
 
@@ -27,52 +27,30 @@ command for five minutes is not. Agent Observer answers one question at a glance
 **who needs me right now?**
 
 It only **observes**. It never drives an agent, never edits your code, never modifies an
-agent's settings for you, and has no telemetry. The only time anything leaves your computer is when
-you ask for the daily story: then an agent you already have is run once and talks to its own
-provider, as it always does.
+agent's settings for you, and has no telemetry. It makes no network request of its own.
 
 > **Status:** early (0.x). The interface is available in **English and French** (it follows
-> your system language; change it in Settings). Contributions are welcome.
+> your system language; change it in Settings).
 
-## Features
+## What you see
 
-### The window: the race, then your data
+One screen, one card per agent. The most urgent cards come first. Each card answers eight
+questions, and nothing else:
 
-The top bar holds every **tab**. Under it, the **race** takes at most **half** of the window (drag the
-line under it to shrink it); under the race, the **workbench** shows **charts** and **history** side
-by side for the period you choose.
+| # | Question | What the card shows |
+| --- | --- | --- |
+| 1 | **Who needs me?** | The state in one word, coloured by urgency. |
+| 2 | **Who is working?** | Counted in the top bar, next to the number of agents that need you. |
+| 3 | **What is it doing?** | The tool in progress and its file or command. |
+| 4 | **Since when?** | How long ago the last activity was. |
+| 5 | **Where?** | The project folder (`~` for your home folder, "deduced" when it comes from a file path). |
+| 6 | **Is it going wrong?** | A detected loop or a series of failures, shown instead of the activity, in colour. |
+| 7 | **How much does it use?** | Session tokens, and a bar showing how full the context window is. |
+| 8 | **Which model?** | The latest model the agent reported (a `+` and a dashed chip when several were used), otherwise the configured one. The way it was launched (terminal, VS Code…) is shown next to it when known. |
 
-<img src="docs/media/overview.png" alt="Agent Observer: a bar of tabs, the 3D race with a dock of agents, then charts and history side by side" width="900">
+<img src="docs/media/card.png" alt="One agent card: state, activity, folder, model, tokens and context bar" width="420">
 
-### The race and the dock: who needs you
-
-The race is a low-poly 3D stadium where each agent is a runner. Every event makes it hop, a failed tool
-makes it fall and get back up, the end of a turn sends it to the finish line (and, a few seconds later, back to the start), an agent that waits for you
-raises a hand, one that goes round in circles runs in circles. Everything is rounded and soft, and cheap
-to draw: **Settings › Display › 3D race quality** (*Light*, *Automatic*, *Smooth*) trades sharpness for
-speed on slower computers. A 2D version exists for machines without WebGL, and the race respects the
-system's *reduced motion* setting. Distance is an activity indicator, never a completion percentage.
-
-The scene carries more than movement, all computed from what the agents report:
-
-| You see | It means |
-| --- | --- |
-| **Hurdles** on the track | One where a tool failed during the turn in progress; a blocked agent has a wall of two bars. They go when the turn ends. |
-| **Flags** behind the start line | One per 30 minutes of the session. |
-| The colour of the **cap** | The family of the model in use (Claude, Gemini, GPT, Qwen, GLM, DeepSeek, Copilot; grey when unknown). |
-| A **spotlight** and a few seconds of camera | An agent that starts needing you. The camera leans in, then the wide shot returns. |
-| **Confetti** / **fireworks** | 3 clean turns in a row / 6, or 3 after 30 minutes. An ordinary turn is not celebrated. |
-| The **board** above the stands | Each agent, its state and its session time. |
-| The **sky** | Follows your computer's time (dawn, day, dusk with floodlights, starry night); **Settings › Display › Race sky** fixes it. |
-
-**Click a runner** to bring the camera close and open its card (session, token flow, failures, last actions,
-*Go to the agent*); Esc or a click elsewhere closes it. The **▶ button** in the top bar replays the last hour
-in 30 seconds.
-
-Along the bottom of the race, one **chip per agent**, the ones that need attention first: what it is doing,
-in which repository, how long ago. Click a chip to **go to the agent**; the small "i" opens its details.
-
-| Status | Meaning |
+| State | Meaning |
 | --- | --- |
 | **Going in circles** | It repeats the same actions without progress (same command, same file, same sequence) — it burns tokens for nothing. |
 | **Blocked** | At least two tools failed in a row. |
@@ -80,142 +58,60 @@ in which repository, how long ago. Click a chip to **go to the agent**; the smal
 | **Waiting for you** | Its last turn has finished; it is ready for your next message. |
 | **Working** | Events arrived in the last 45 seconds. |
 | **Idle** | No recent activity. |
-| **Not seen yet** | Nothing received — check its connector. |
+| **Not seen yet** | Nothing received — check its connector. Listed in a small footer. |
 
-Go to the agent brings its terminal, editor or desktop app (Claude Desktop, the Codex app, the VS Code and
-Cursor extensions, Terminal, iTerm2, Windows Terminal…) to the front. If the agent has stopped, its session
-is started again where it was seen, using only what is installed (its command line, its desktop app, or an
-editor with its extension).
+The context bar turns amber from 80 % and red from 95 %. The window comes from the agent when it
+reports it, otherwise from a small table of documented models; for an unknown model the card shows
+the token count and no percentage rather than a guess.
 
-### Charts and history, by period or by day
+### Settings
 
-The bar above them picks the period: the last **15 minutes**, **1 hour**, **24 hours**, **everything**, or a
-**calendar day** (arrows and a date picker) — anything still in the local history, 30 days by default.
+The button in the top bar opens a panel that slides in; close it and you are back on the single screen.
 
-- **Charts**: activity and tokens over time, who acts the most and who fails, tools, files, turn durations,
-  repositories. An **estimated** cost is shown for models with a published price in
-  [`pricing.ts`](apps/desktop/src/ui/pricing.ts) — always "≈ $ at API price", never a bill (a per-agent
-  setting calls it *value consumed* if you use a subscription). A value an agent does not report is shown as
-  not provided, never guessed.
-- **History**: the sessions of that period; pick one for its summary (duration, turns, tools, failures,
-  tokens, cost, commits made during it) and its full timeline, which can be limited to what **needs a look**.
+- **Connectors**: which agents are detected, and how to connect them (for Claude Code, the settings
+  fragment to copy).
+- **What is recorded**: prompts, shell commands and error messages are off by default.
+- **Retention**: from 7 days to forever.
+- **Export / erase** your local history.
+- **Language**: English or French.
 
-<img src="docs/media/day.png" alt="A past day chosen in the period bar: the charts and the history show that day only" width="900">
-
-### Drawers: everything else
-
-Each tab in the top bar opens a **drawer** that slides in from an edge — the icon next to the tab's name
-shows which. Drag its inner edge to resize it, **pin** it so it keeps its place, press `Esc` to close the loose
-ones.
-
-| Edge | Tabs |
-| --- | --- |
-| **Left** | **Agents** (every card in full) · **Repositories** (branch, sync, agents per repository) |
-| **Right** | **Story** (the 24 h story and report) · **Ask** (question the history) |
-| **Top** | **Connectors** · **Settings** · **Help** |
-
-<img src="docs/media/agents.png" alt="The Agents drawer open on the left: one full card per agent" width="900">
-
-### Ask: question the history
-
-**Ask** answers questions like *"why were there errors this afternoon?"* or *"which agent worked the most?"*
-with an agent you **already have**, for the period chosen under the race. The app selects the facts (sessions,
-failures, waits, loops, costs); the answer cites the sessions it relies on as `[s3]` — a click opens them in
-the history — and may end with **suggested next steps** you can copy to an agent. The app never sends
-anything to an agent for you.
-
-Each session in the facts lists the **files its agent edited** (so an answer can name them) and, for the main
-sessions, the **subjects of the Git commits made while it ran** (read locally). That is how a question like
-*"was this a fix or a feature?"* can be answered — as an inference: no agent records it, and a commit made during
-a session is not proven to be the agent's.
-
-Error messages are **not recorded** by default, so "why" can only be inferred. **Settings › What is recorded ›
-Keep error messages** records a short (300 characters), single-line, cleaned version (keys, tokens, passwords
-and your home folder removed) of the errors of failed tools — Claude Code, Codex, Antigravity, Qwen Code and OpenCode, for failures from now on.
-
-<img src="docs/media/ask.png" alt="The Ask drawer: example questions, an input at the bottom, and the history under the race" width="900">
-
-### The daily story
-
-An agent you **already have** — Claude Code, Codex, Qwen Code, OpenCode or GitHub Copilot, as a command, an editor
-extension or (for Claude) the desktop app — writes the story of your last 24 hours: on demand, and every day at
-a time you choose (**18:00** by default). If the app was closed at that time, it is written at the next launch.
-
-<img src="docs/media/story.png" alt="The Story drawer: a short story of the day with a timeline, per-agent paragraphs and things worth a look" width="900">
-
-**How Ask and the story stay private.** The app computes a summary of facts (numbers and the names of projects,
-models, tools, files and commit subjects — never the text of your messages, your commands or your folders). The agent is run
-**once per request, with every tool switched off, in an empty folder, with no session kept**, and told to use
-only those facts. Nothing is sent before you agree, once per agent, and you can read the exact summary first.
-No key is needed and nothing extra is installed: it uses your plan.
-
-### Context window
-
-Each agent card shows **how full the context window is**: the size of the latest request (new tokens plus
-those read from or written to the cache) against the size of the model's window, for example
-`91 % · 909K / 1M`. The bar turns amber from 80 % and red from 95 %; the card of a focused runner adds the
-trend over the session, the share served from the cache and the number of **compactions** (when the context
-falls sharply). The window comes from the agent when it reports it (Codex, GitHub Copilot) and otherwise from
-a small table of documented models; for a model that is in neither, the card says how many tokens the request
-held and shows no percentage rather than a guess. What the context is made of (messages, tools, MCP…) is not
-written to disk by any agent, so it is not shown.
-
-### Notifications and alerts
-
-A system notification when an agent waits for you, asks for approval, goes silent, keeps failing, goes round
-in circles or has its context window past 80 %; clicking it takes you to the agent. Loops and errors also raise a red banner over the race. Every
-kind can be switched off in Settings.
-
-### Mini mode
-
-Shrinks the app to a single always-visible column in a corner of the screen, one compact card per agent, with
-an optional "keep on top" pin.
-
-<img src="docs/media/mini-mode.png" alt="Mini mode: a column of agent cards" width="320">
-
-### Workspaces
-
-Point the app at a folder (every Git repository up to four levels deep is found) or at a VS Code
-`.code-workspace` file. Events are attached to the repository they happened in — worktrees count for the clone
-they belong to — and the filter in the bar over the race scopes everything to one repository. Repositories are
-read, never written, and Git changes are **never attributed to an agent** without evidence.
-
-<img src="docs/media/workspace.png" alt="The Repositories drawer: branch, sync state and agent activity side by side" width="900">
+<img src="docs/media/settings.png" alt="The settings panel: connectors, what is recorded, retention, export and erase" width="900">
 
 ## Supported agents
 
 | Agent | How it is observed | What you have to do |
 | --- | --- | --- |
-| **Claude Code** | Official [HTTP hooks](https://docs.claude.com/en/docs/claude-code/hooks) posted to the local collector, plus token usage read from new lines of its transcripts (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respected). | Copy the settings fragment shown in the **Connectors** tab into `~/.claude/settings.json`. The app never edits it for you. |
+| **Claude Code** | Official [HTTP hooks](https://docs.claude.com/en/docs/claude-code/hooks) posted to the local collector, plus token usage read from new lines of its transcripts (`~/.claude/projects/**.jsonl`, `CLAUDE_CONFIG_DIR` respected). | Copy the settings fragment shown in **Settings › Connectors** into `~/.claude/settings.json`. The app never edits it for you. |
 | **Codex** | Appended JSONL rollout records in `~/.codex/sessions` (`CODEX_HOME` respected). | Nothing. |
-| **Antigravity** | Its local files in `~/.gemini/antigravity`, opened **read-only**: the list of conversations (project, state, activity) and, for recent sessions, a step-by-step transcript (tokens, tools, failures). Older conversations are encrypted by Antigravity and only appear through the list. Antigravity only records a code for the selected model, so the app asks Antigravity's own local server (`127.0.0.1`, read-only, see [Privacy](#privacy)) for its name; the model is the one selected when a step was seen. Cost is estimated at API rates when the model is priced. | Nothing. |
-| **GitHub Copilot** | The event logs of its agent in `~/.copilot/session-state/<session>/events.jsonl` (`COPILOT_HOME` respected): Copilot CLI and the agent sessions of VS Code, which run on it. Tokens, model, tool calls and failures. The older Copilot Chat panel (`chatSessions`) is not read. | Nothing. |
+| **GitHub Copilot** | Two sources, both read-only: the event logs of its agent in `~/.copilot/session-state/<session>/events.jsonl` (Copilot CLI and the agent sessions of VS Code; `COPILOT_HOME` respected), and the Copilot Chat panel of VS Code (its local `session-store.db`: turns and files touched, never the assistant's text). | Nothing. |
+| **Antigravity** | Its local files in `~/.gemini/antigravity`, opened **read-only**: the list of conversations and, for recent sessions, a step-by-step transcript (tokens, tools, failures). Antigravity only records a code for the selected model, so the app asks Antigravity's own local server (`127.0.0.1`, read-only, see [Privacy](#privacy)) for its name. | Nothing. |
 | **OpenCode** | Its local SQLite database (`~/.local/share/opencode/opencode*.db`, `OPENCODE_DB` / `OPENCODE_DATA_DIR` respected), opened **read-only**. | Nothing. |
 | **Qwen Code** | Appended JSONL chat records in `~/.qwen/projects/<project>/chats`. | Nothing. |
+| **Reasonix** | Its session files in `~/.reasonix/projects/<project>/sessions/*.wire.jsonl` (written by Reasonix Studio), read-only. | Nothing. |
+| **Cursor** | Cursor hooks posted to the local collector. | Copy the fragment shown in **Settings › Connectors**. |
 
 On Windows, `~` is `%USERPROFILE%`. Log-based connectors start at the end of existing files
-and observe new records only: history from before the app was started is not imported.
+and observe new records only: history from before the app was started is not imported. The first
+read of the Copilot Chat panel does the same, so a Copilot Chat card appears with your next conversation.
 
-A Cursor hooks connector exists in the native runtime but is hidden from the interface for
-now. GitHub Copilot, Cline, Roo Code, Continue and Aider are **not** connected yet — see
-[adding a connector](#add-your-own-agent).
+Not connected yet: Continue, Cline, Roo Code, Aider and Gemini CLI. Sessions run in a cloud
+agent or a desktop app that keeps nothing on your computer cannot be observed. To add an
+agent, see [adding a connector](#add-your-own-agent).
 
 ## Privacy
 
 Everything stays on your computer. The app makes no network request of its own: it only
-receives hooks on `127.0.0.1`. The only exceptions are the **daily story** and **Ask**, which are off until you
-allow them for an agent: the app then runs that agent (already installed, with its own login)
-once, with no tools, in an empty folder, on a summary of numbers and names; the agent sends it
-to its provider like anything you type to it. You can read the exact summary before agreeing.
+receives hooks on `127.0.0.1`.
 
-**One local request to Antigravity.** Its files hold only an internal code for the selected model, so, to show its name (and estimate a cost), the app asks Antigravity's own language server on `127.0.0.1` (read-only), using the token that app was started with, read from the process list and kept in memory for that one request. Only model names are kept from the answer. Nothing happens if Antigravity is not running.
+**One local request to Antigravity.** Its files hold only an internal code for the selected model, so, to show its name, the app asks Antigravity's own language server on `127.0.0.1` (read-only), using the token that app was started with, read from the process list and kept in memory for that one request. Only model names are kept from the answer. Nothing happens if Antigravity is not running.
 
 **Recorded by default** — the *shape* of the work: which agent, which session, which tool,
 which file path, when, how long, success or failure, model name and the token counts the
 agent itself reports.
 
-**Opt-in** (Settings, off by default) — the text of your prompts, and the shell commands
-agents run. Both can contain secrets; enable them knowingly.
+**Opt-in** (Settings, off by default) — the text of your prompts, the shell commands
+agents run, and a short cleaned version of error messages (keys, tokens, passwords and your
+home folder removed). These can contain secrets; enable them knowingly.
 
 **Never recorded** — agent responses, reasoning / thinking, tool outputs and results, file
 contents, transcript paths.
@@ -284,12 +180,10 @@ Get-FileHash .\Agent-Observer_*_windows-x64-setup.exe -Algorithm SHA256
 
 ### First launch
 
-1. **Connectors** tab: check that your agents are detected. For Claude Code, copy the
+1. Open **Settings** (top right) and check that your agents are detected. For Claude Code, copy the
    displayed fragment into `~/.claude/settings.json` (the token in it is specific to this
    computer).
-2. **Workspace** (top left): choose the folder that contains your projects.
-3. Work as usual with your agents — the dashboard fills itself. The **?** button explains
-   every status and number.
+2. Work as usual with your agents — the cards fill themselves.
 
 Only one instance runs at a time: launching it again brings the existing window forward.
 
@@ -308,8 +202,9 @@ npm run desktop:dev      # development, with hot reload
 npm run desktop:build    # installers in target/release/bundle/
 ```
 
-On macOS, `npm run desktop:install-mac` builds the app and installs it into `/Applications`.
-Linux builds from source but is not packaged or officially supported yet.
+Tests: `npm test` in `apps/desktop` for the interface, `cargo test` in `apps/desktop/src-tauri` for the Rust side.
+Linux builds from source but is not packaged or officially supported yet. [`COMPRENDRE.md`](COMPRENDRE.md)
+(in French) is a three-minute tour of the code.
 
 ## Architecture
 
@@ -317,69 +212,54 @@ Linux builds from source but is not packaged or officially supported yet.
 agent CLIs ──hooks (HTTP, 127.0.0.1 + token)──┐
            ──local logs / SQLite (read-only)──┤
                                               ▼
-                      Rust connectors (apps/desktop/src-tauri/src/*_sessions.rs, codex_rollout.rs, …)
+                      Rust readers (apps/desktop/src-tauri/src/*_sessions.rs, codex_rollout.rs, copilot_chat.rs, …)
                                               │  SessionEvent (crates/session-events)
                                               ▼
                       SQLite store + Tauri commands/events (src-tauri/src/main.rs)
                                               │
                                               ▼
-                      React UI (apps/desktop/src/ui) — cards, mini mode, race, analytics, workspaces
+                      React UI (apps/desktop/src/ui) — one screen, one card per agent
 ```
 
-- **`crates/session-events`** — the provider-neutral event model shared by every connector.
+- **`crates/session-events`** — the provider-neutral event model shared by every reader.
   Each measured value carries its origin (`Provider`, `LocalObservation`, `Derived`,
-  `Estimated`): a connector omits what
-  it cannot observe rather than inventing it.
-- **Connectors** (`apps/desktop/src-tauri/src/`) — one Rust module per agent that turns its
+  `Estimated`): a reader omits what it cannot observe rather than inventing it.
+- **Readers** (`apps/desktop/src-tauri/src/`) — one Rust module per agent that turns its
   hooks, JSONL logs or SQLite rows into `SessionEvent`s, dropping private content before
   anything is stored.
-- **Desktop shell** — Tauri 2: the loopback collector (axum), the SQLite store (rusqlite),
-  workspace and Git inspection (read-only), retention.
-- **UI** — React 19 + Vite, charts in SVG, the race in three.js via react-three-fiber.
-  Pure logic (statuses, analytics, pricing, workspace matching) lives in plain `.ts` modules
-  with Vitest tests.
+- **Desktop shell** — Tauri 2: the loopback collector (axum) and the SQLite store (rusqlite).
+- **UI** — React 19 + Vite. The state of an agent (`agentPulse.ts`), loop detection, context
+  usage and session totals live in plain `.ts` modules with Vitest tests.
 
 ## Add your own agent
 
-There are two ways to bring a new agent in:
-
 - **Local HTTP API** — post events to the local collector from a script,
   a hook or a plugin, in any language. Documented in [`docs/CONNECTORS.md`](docs/CONNECTORS.md).
-- **Native connector** — a Rust module in the desktop app. See
+- **Native reader** — a Rust module in the desktop app. See
   [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-connector).
-
-Missing or wrong model price? Open a [model price issue](https://github.com/jcalhinho/agent-observer/issues/new?template=model_price.yml)
-with a link to the provider's official pricing page.
 
 ## FAQ
 
 **Does it send my code or prompts anywhere?**
 No. There is no telemetry and the app makes no network request of its own. Prompts and
-commands are not even stored locally unless you turn them on. If you ask for the daily story,
-a summary of numbers and names (never your messages, commands or folders) goes through the agent
-you chose, to its provider — only after you agreed, and you can read it first.
+commands are not even stored locally unless you turn them on.
 
 **Does it slow my agents down?**
-Log connectors only read new lines of files the agents already write. Claude Code hooks are
+Log readers only read new lines of files the agents already write. Claude Code hooks are
 fire-and-forget HTTP calls with a 2-second timeout; if the app is closed, Claude Code just
 carries on.
 
-**Why is the cost "estimated"?**
-It is computed from public list prices and the token counts the agent reports. Subscriptions,
-plans, discounts and batch pricing are unknown to the app. Models without a sourced price
-show no cost at all.
-
-**Why doesn't it show token counts for agent X?**
+**Why doesn't a card show token counts?**
 Because that agent doesn't report them in what the app can read. The app shows *not
 provided* rather than an estimate.
 
 **Can it see sessions started before I opened it?**
-No. Connectors observe new activity from the moment the app runs; earlier history is not
+No. Readers observe new activity from the moment the app runs; earlier history is not
 imported. Everything observed since then stays available, within your retention setting.
 
 **Port 43821 is already in use.**
 Another copy of the app (or something else) holds it. Only one instance can collect hooks;
-the Connectors tab shows the collector status.
+Settings › Connectors shows the collector status.
 
 **Why isn't the app signed?**
 Code-signing certificates cost money and time; the release pipeline is ready to sign and
@@ -388,11 +268,11 @@ is built by GitHub Actions from the tagged source.
 
 ## Contributing
 
-Bug reports, connector requests, model prices, translations and code are all welcome — start
+Bug reports, connector requests, translations and code are all welcome — start
 with [CONTRIBUTING.md](CONTRIBUTING.md). Everyone taking part is expected to follow the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
 [MIT](LICENSE). Agent Observer is an independent project, not affiliated with Anthropic,
-OpenAI, Google, Alibaba or the OpenCode project. Product names belong to their owners.
+OpenAI, Google, GitHub, Alibaba or the OpenCode project. Product names belong to their owners.
