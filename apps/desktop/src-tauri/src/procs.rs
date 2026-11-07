@@ -22,7 +22,10 @@ pub struct ProcInfo {
 
 /// Un instantane de tous les processus, avec ce qu'il nous en faut.
 pub fn snapshot() -> Vec<ProcInfo> {
-    let mut system = System::new();
+    // Depuis sysinfo 0.40, `System::new` peut échouer : sans instantané, aucune correspondance.
+    let Ok(mut system) = System::new() else {
+        return Vec::new();
+    };
     system.refresh_processes_specifics(
         ProcessesToUpdate::All,
         true,

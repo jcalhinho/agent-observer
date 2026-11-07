@@ -56,7 +56,12 @@ fn run_git(dir: &Path, args: &[&str]) -> Option<String> {
         .arg("-C")
         .arg(dir)
         // Un depot pieges peut declarer un programme `core.fsmonitor` : on l'interdit.
-        .args(["-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false"])
+        .args([
+            "-c",
+            "core.fsmonitor=false",
+            "-c",
+            "core.untrackedCache=false",
+        ])
         .args(args)
         .env("GIT_OPTIONAL_LOCKS", "0")
         .env("GIT_TERMINAL_PROMPT", "0")
@@ -164,7 +169,12 @@ pub fn snapshot(path: &str) -> Result<RepositorySnapshot, String> {
         .ok_or_else(|| "not a git repository".to_owned())?;
     let status = run_git(
         dir,
-        &["status", "--porcelain=v1", "--branch", "--untracked-files=normal"],
+        &[
+            "status",
+            "--porcelain=v1",
+            "--branch",
+            "--untracked-files=normal",
+        ],
     )
     .ok_or_else(|| "git status failed".to_owned())?;
     let (branch, ahead, behind) = status
@@ -214,7 +224,10 @@ pub fn reveal(path: &str) -> Result<(), String> {
     let folder = if target.is_dir() {
         target
     } else {
-        target.parent().filter(|parent| parent.is_dir()).ok_or_else(|| "no such folder".to_owned())?
+        target
+            .parent()
+            .filter(|parent| parent.is_dir())
+            .ok_or_else(|| "no such folder".to_owned())?
     };
     #[cfg(target_os = "macos")]
     let program = "open";
@@ -240,19 +253,40 @@ mod tests {
 
     #[test]
     fn reads_the_branch_line() {
-        assert_eq!(parse_branch_line("## main...origin/main [ahead 2, behind 1]"), (Some("main".into()), Some(2), Some(1)));
-        assert_eq!(parse_branch_line("## main...origin/main [ahead 3]"), (Some("main".into()), Some(3), Some(0)));
-        assert_eq!(parse_branch_line("## main...origin/main"), (Some("main".into()), Some(0), Some(0)));
-        assert_eq!(parse_branch_line("## feature/x"), (Some("feature/x".into()), None, None));
+        assert_eq!(
+            parse_branch_line("## main...origin/main [ahead 2, behind 1]"),
+            (Some("main".into()), Some(2), Some(1))
+        );
+        assert_eq!(
+            parse_branch_line("## main...origin/main [ahead 3]"),
+            (Some("main".into()), Some(3), Some(0))
+        );
+        assert_eq!(
+            parse_branch_line("## main...origin/main"),
+            (Some("main".into()), Some(0), Some(0))
+        );
+        assert_eq!(
+            parse_branch_line("## feature/x"),
+            (Some("feature/x".into()), None, None)
+        );
         assert_eq!(parse_branch_line("## HEAD (no branch)"), (None, None, None));
-        assert_eq!(parse_branch_line("## No commits yet on main"), (Some("main".into()), None, None));
+        assert_eq!(
+            parse_branch_line("## No commits yet on main"),
+            (Some("main".into()), None, None)
+        );
     }
 
     #[test]
     fn reads_changed_files() {
         let list = parse_changed("## main\n M src/a.rs\n?? new file.txt\nR  old.rs -> new.rs\n");
         assert_eq!(list.len(), 3);
-        assert_eq!(list[0], ChangedFile { path: "src/a.rs".into(), status: "M".into() });
+        assert_eq!(
+            list[0],
+            ChangedFile {
+                path: "src/a.rs".into(),
+                status: "M".into()
+            }
+        );
         assert_eq!(list[1].status, "??");
         assert_eq!(list[2].status, "R");
     }
@@ -277,7 +311,14 @@ mod tests {
             let status = Command::new("git")
                 .arg("-C")
                 .arg(&dir)
-                .args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"])
+                .args([
+                    "-c",
+                    "user.name=t",
+                    "-c",
+                    "user.email=t@t",
+                    "-c",
+                    "commit.gpgsign=false",
+                ])
                 .args(args)
                 .output()
                 .unwrap();
@@ -294,8 +335,16 @@ mod tests {
         assert_eq!(shot.branch.as_deref(), Some("main"));
         assert_eq!(shot.ahead, None);
         assert_eq!(shot.changed_total, 2);
-        assert!(shot.changed_files.iter().any(|file| file.path == "a.txt" && file.status == "M"));
-        assert!(shot.changed_files.iter().any(|file| file.path == "b.txt" && file.status == "??"));
+        assert!(
+            shot.changed_files
+                .iter()
+                .any(|file| file.path == "a.txt" && file.status == "M")
+        );
+        assert!(
+            shot.changed_files
+                .iter()
+                .any(|file| file.path == "b.txt" && file.status == "??")
+        );
         assert_eq!(shot.recent_commits.len(), 1);
         assert_eq!(shot.recent_commits[0].subject, "first commit");
         assert_eq!(shot.project_hash.len(), 16);
