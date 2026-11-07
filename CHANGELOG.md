@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-07
+
+### Added
+- **Richer agent cards.** Each card now shows turns, tool calls and failures, files edited and duration, the
+  token breakdown (cache read, cache write, new input, output) with the **cache hit rate**, an estimated cost and
+  **what the cache saved**, the context curve with compactions, a 15-minute activity strip and the most used tools.
+- **Totals strip and filters.** Tokens, cache hit rate, estimated cost, saved by cache and tool calls across agents,
+  and an All / Active / Need you filter.
+- **Detail panel.** Click a card for the full token and cost breakdown, models, tools, files touched and a timeline.
+- **Collisions.** A warning when two agents edit the same file, or work in the same project folder, within minutes.
+- **Native notifications and dock badge** when an agent loops, is blocked, stalls or finishes waiting for you
+  (only while the window is not focused; off with one switch in Settings).
+- **Pace and daily budget.** Tokens per minute, estimated dollars per hour and the cost of the current turn on each
+  card; an optional daily budget with a "close to" and "over" alert.
+- **Latest request per agent** (only if prompt capture is on) shown as the card's goal.
+- **Cache trend.** A warning when the cache hit rate collapses, plus a curve in the detail panel.
+- **History.** Per-day cost, tokens and cache over 7, 14 or 30 days, split by agent and by project.
+- **Git state per card** (branch, ahead/behind, changed files, recent commits) from read-only `git` calls with a
+  timeout, and an "Open folder" button (folders only, never files).
+- **Demo mode.** Open the interface with `?demo` to see it filled with made-up events, without any agent.
+
+### Changed
+- New look for the single screen: softer panels, status pills, per-agent colour accents.
+
 ## [0.12.2] - 2026-11-02
 
 ### Added

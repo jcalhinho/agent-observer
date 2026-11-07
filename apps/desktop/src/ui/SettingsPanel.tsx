@@ -21,7 +21,10 @@ const retentionOptions = (): Array<[number, string]> => [
  * Le seul panneau de l'app : brancher les agents, choisir ce qui est enregistré et combien de
  * temps, exporter ou effacer. Il se referme et on revient à l'écran unique.
  */
-export function SettingsPanel({ onClose, onConfigure, onExport, onClear }: {
+export type AlertSettings = { notifications: boolean; onNotifications: (value: boolean) => void; budget: number; onBudget: (value: number) => void };
+
+export function SettingsPanel({ onClose, onConfigure, onExport, onClear, alerts }: {
+  alerts: AlertSettings;
   onClose: () => void;
   onConfigure: (setup: ConnectorSetup) => void;
   onExport: () => Promise<string | null>;
@@ -112,6 +115,21 @@ export function SettingsPanel({ onClose, onConfigure, onExport, onClear }: {
               : <small>{t("lu automatiquement", "read automatically")}</small>}
           </li>)}
         </ul>
+      </section>
+
+      <section>
+        <h3>{t("Alertes", "Alerts")}</h3>
+        <Toggle
+          checked={alerts.notifications}
+          disabled={false}
+          onChange={alerts.onNotifications}
+          title={t("Notifications système", "System notifications")}
+          hint={t("Quand un agent tourne en rond, se bloque, se tait ou finit, ou que deux agents touchent au même fichier. Rien n’est envoyé tant que la fenêtre est au premier plan.", "When an agent goes in circles, gets blocked, goes quiet or finishes, or two agents touch the same file. Nothing is sent while the window is in front.")}
+        />
+        <label className="row">
+          <span>{t("Budget du jour (coût estimé)", "Daily budget (estimated cost)")}<small>{t("0 pour désactiver. Alerte à 80 % puis au dépassement, au tarif API.", "0 to turn off. Alerts at 80 % then when exceeded, at API list price.")}</small></span>
+          <input type="number" min={0} step={1} inputMode="decimal" className="budget-input" value={alerts.budget || ""} placeholder="0" onChange={(event) => alerts.onBudget(Math.max(0, Number(event.target.value) || 0))} aria-label={t("Budget du jour en dollars", "Daily budget in dollars")} />
+        </label>
       </section>
 
       <section>

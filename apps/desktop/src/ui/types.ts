@@ -35,6 +35,8 @@ export type RepositorySnapshot = {
   ahead: number | null;
   behind: number | null;
   changed_files: Array<{ path: string; status: string }>;
+  /** Nombre total de fichiers modifiés, au-delà de la liste plafonnée. */
+  changed_total: number;
   recent_commits: Array<{ short_id: string; subject: string; relative_time: string }>;
 };
 

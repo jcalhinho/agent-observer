@@ -3,6 +3,7 @@ import { locale, t } from "./i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { save } from "@tauri-apps/plugin-dialog";
+import { demoEvents, isDemo } from "./demo";
 import { isActiveProvider } from "./providers";
 import { compareEventsNewestFirst, type SessionEvent } from "./types";
 
@@ -25,6 +26,12 @@ export function useObserver() {
   const [loadingOlder, setLoadingOlder] = useState(false);
 
   useEffect(() => {
+    // `?demo` : des événements fictifs, pour voir l'écran sans agent branché.
+    if (isDemo()) {
+      setCollectorState("demo");
+      setEvents(demoEvents());
+      return;
+    }
     let stopEvents: (() => void) | undefined;
     let stopErrors: (() => void) | undefined;
     const refreshStatus = () => invoke<string>("collector_status").then(setCollectorState).catch(() => setCollectorState("preview"));

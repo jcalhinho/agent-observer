@@ -34,21 +34,42 @@ agent's settings for you, and has no telemetry. It makes no network request of i
 
 ## What you see
 
-One screen, one card per agent. The most urgent cards come first. Each card answers eight
-questions, and nothing else:
+One screen: a **totals strip** on top, then **one card per agent**, the most urgent first. A filter
+(**All / Active / Need you**) narrows the board. Click a card to open its detail.
 
-| # | Question | What the card shows |
-| --- | --- | --- |
-| 1 | **Who needs me?** | The state in one word, coloured by urgency. |
-| 2 | **Who is working?** | Counted in the top bar, next to the number of agents that need you. |
-| 3 | **What is it doing?** | The tool in progress and its file or command. |
-| 4 | **Since when?** | How long ago the last activity was. |
-| 5 | **Where?** | The project folder (`~` for your home folder, "deduced" when it comes from a file path). |
-| 6 | **Is it going wrong?** | A detected loop or a series of failures, shown instead of the activity, in colour. |
-| 7 | **How much does it use?** | Session tokens, and a bar showing how full the context window is. |
-| 8 | **Which model?** | The latest model the agent reported (a `+` and a dashed chip when several were used), otherwise the configured one. The way it was launched (terminal, VS Code…) is shown next to it when known. |
+**The totals strip** adds up the latest session of each agent: tokens, cache hit rate, estimated
+cost, what the cache saved, and tool calls (with failures and files edited).
 
-<img src="docs/media/card.png" alt="One agent card: state, activity, folder, model, tokens and context bar" width="420">
+<img src="docs/media/card.png" alt="One agent card: state, activity, figures, tokens and cache, cost, context, tools" width="420">
+
+**Each card** shows:
+
+| Block | What it shows |
+| --- | --- |
+| **State** | One word, coloured by urgency, with the age of the last activity. |
+| **Activity** | The tool in progress and its file or command. A detected loop or a series of failures replaces it, in colour. |
+| **Where, how, which model** | The project folder (`~` for your home folder, "inferred" when it comes from a file path), how the agent was launched (terminal, VS Code…), the latest model it reported (`+N` and a dashed chip when several were used) and how long the open turn has lasted. |
+| **Session figures** | Turns, tool calls (with failures), distinct files edited, duration. |
+| **Tokens and cache** | Total tokens, the **cache hit rate**, and a bar splitting them into cache read, cache write, new input and output. |
+| **Cost** | An estimate at the models' public API price, and **what the cache saved** compared with the same requests without any cache. |
+| **Context** | How full the context window is, how many times the agent compacted it, and how the size grew over the session. |
+| **Activity strip** | Events per minute over the last 15 minutes. |
+| **Tools** | The most used tools, with their failure counts. |
+| **Goal** | The latest request you gave the agent (only with prompt capture on). |
+| **Collisions** | A warning when another agent edits the same file or works in the same folder. |
+| **Git** | Branch, commits ahead/behind, changed files — read-only `git` calls, 4 s timeout. |
+| **Pace** | Tokens per minute, estimated $/h, cost of the current turn; a warning when the cache hit rate collapses. |
+
+**The detail panel** (click a card) adds the full token breakdown, the price table behind the estimate,
+the context curve, the models seen, a table of tools, the files touched (read or edited) and a timeline
+of the latest actions. Every figure says where it comes from: reported by the agent, derived, or estimated.
+
+<img src="docs/media/detail.png" alt="The detail panel of one agent" width="900">
+
+Figures the agent does not report are shown as *not reported* or "—", never invented. The cost is an
+estimate at API list prices: a subscription (Claude, Copilot…) is not billed that way, and a model missing
+from the price table is left out, so the cost shows "≥" when part of the session could not be priced.
+The cache hit rate only exists for agents that report cache reads (for example Claude Code and Reasonix).
 
 | State | Meaning |
 | --- | --- |
@@ -64,6 +85,9 @@ The context bar turns amber from 80 % and red from 95 %. The window comes from t
 reports it, otherwise from a small table of documented models; for an unknown model the card shows
 the token count and no percentage rather than a guess.
 
+**Try it without any agent:** run `npm run dev` in `apps/desktop` and open `http://127.0.0.1:1420/?demo`.
+It fills the screen with made-up events (nothing is read or written).
+
 ### Settings
 
 The button in the top bar opens a panel that slides in; close it and you are back on the single screen.
@@ -74,8 +98,6 @@ The button in the top bar opens a panel that slides in; close it and you are bac
 - **Retention**: from 7 days to forever.
 - **Export / erase** your local history.
 - **Language**: English or French.
-
-<img src="docs/media/settings.png" alt="The settings panel: connectors, what is recorded, retention, export and erase" width="900">
 
 ## Supported agents
 
@@ -218,7 +240,7 @@ agent CLIs ──hooks (HTTP, 127.0.0.1 + token)──┐
                       SQLite store + Tauri commands/events (src-tauri/src/main.rs)
                                               │
                                               ▼
-                      React UI (apps/desktop/src/ui) — one screen, one card per agent
+                      React UI (apps/desktop/src/ui) — one screen: totals, one card per agent, a detail panel
 ```
 
 - **`crates/session-events`** — the provider-neutral event model shared by every reader.
@@ -229,7 +251,7 @@ agent CLIs ──hooks (HTTP, 127.0.0.1 + token)──┐
   anything is stored.
 - **Desktop shell** — Tauri 2: the loopback collector (axum) and the SQLite store (rusqlite).
 - **UI** — React 19 + Vite. The state of an agent (`agentPulse.ts`), loop detection, context
-  usage and session totals live in plain `.ts` modules with Vitest tests.
+  usage, session totals and the cache and cost figures (`insights.ts`) live in plain `.ts` modules with Vitest tests.
 
 ## Add your own agent
 
@@ -249,9 +271,14 @@ Log readers only read new lines of files the agents already write. Claude Code h
 fire-and-forget HTTP calls with a 2-second timeout; if the app is closed, Claude Code just
 carries on.
 
-**Why doesn't a card show token counts?**
+**Why doesn't a card show token counts, or a cache rate?**
 Because that agent doesn't report them in what the app can read. The app shows *not
-provided* rather than an estimate.
+reported* rather than an estimate.
+
+**Is the cost what I am billed?**
+No. It is what the same tokens would cost at each model's public API price, so it is a
+yardstick, not an invoice. Subscriptions are billed differently, and a model that is not in the
+price table is left out (the cost then shows "≥").
 
 **Can it see sessions started before I opened it?**
 No. Readers observe new activity from the moment the app runs; earlier history is not

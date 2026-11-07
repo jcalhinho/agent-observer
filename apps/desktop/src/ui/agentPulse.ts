@@ -1,7 +1,9 @@
 import { narrateEvent, type Narration } from "./activity-copy";
 import { contextUsage, type ContextUsage } from "./contextUsage";
 import { detectLoop, type LoopFinding } from "./loopDetector";
-import { summarizeSession } from "./sessionSummary";
+import { burnRate, cacheTrend, costSince, type Burn, type CacheTrend, type Spend } from "./analysis";
+import { costInsight, type CostInsight } from "./insights";
+import { summarizeSession, type SessionSummary } from "./sessionSummary";
 import type { SessionEvent } from "./types";
 
 /** Outils qui ecrivent : sert a compter les fichiers touches. */
@@ -61,6 +63,22 @@ export type AgentPulse = {
   spark: number[];
   /** How full the context window is, when the agent reports the size of its requests. */
   context: ContextUsage | null;
+  /** Le résumé complet de la session en cours : outils, fichiers, tokens, modèles. */
+  summary: SessionSummary | null;
+  /** Coût estimé et économie due au cache, quand les modèles sont connus de la table des prix. */
+  cost: CostInsight | null;
+  /** Les dernières actions de la session, la plus récente d'abord. */
+  timeline: PulseAction[];
+  /** Début de la session en cours. */
+  sessionStartedAt: number | null;
+  /** Ce que le dernier message de l'utilisateur demandait, quand la capture des prompts est activée. */
+  goal: { text: string; at: number } | null;
+  /** Le rythme de consommation sur les 15 dernières minutes. */
+  burn: Burn | null;
+  /** Ce que le tour en cours a coûté jusqu'ici. */
+  turnSpend: Spend | null;
+  /** Comment le taux de cache évolue, et s'il vient de s'effondrer. */
+  cacheTrend: CacheTrend | null;
 };
 
 const WORKING_WINDOW_MS = 45_000;
@@ -68,6 +86,7 @@ const STALLED_AFTER_MS = 2 * 60_000;
 const WAITING_WINDOW_MS = 30 * 60_000;
 const BLOCKED_WINDOW_MS = 10 * 60_000;
 const SPARK_MINUTES = 15;
+const TIMELINE_LENGTH = 40;
 
 function isTurnEnd(event: SessionEvent) {
   if (event.kind === "session_ended") return true;
@@ -80,6 +99,13 @@ function isTurnStart(event: SessionEvent) {
   return event.kind === "user_message" || (event.kind === "checkpoint" && (event.outcome ?? "").startsWith("turn-started"));
 }
 
+/** Le dernier message de l'utilisateur, quand son texte a été capturé (réglage facultatif). */
+function latestGoal(events: SessionEvent[]): AgentPulse["goal"] {
+  const message = events.find((event) => event.kind === "user_message" && event.content?.trim());
+  if (!message?.content) return null;
+  return { text: message.content.replace(/\s+/g, " ").trim().slice(0, 160), at: Date.parse(message.occurred_at) };
+}
+
 export function agentPulse(key: string, events: SessionEvent[], now: number): AgentPulse {
   const own = events.filter((event) => event.provider === key).sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at));
   const spark = Array.from({ length: SPARK_MINUTES }, () => 0);
@@ -87,7 +113,7 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
     const age = now - Date.parse(event.occurred_at);
     if (age >= 0 && age < SPARK_MINUTES * 60_000) spark[SPARK_MINUTES - 1 - Math.floor(age / 60_000)] += 1;
   }
-  if (!own.length) return { key, status: "never", lastEventAt: null, current: null, recent: [], turnStartedAt: null, failureStreak: 0, loop: null, session: null, model: null, modelsSeen: [], launchMode: null, project: null, spark, context: null };
+  if (!own.length) return { key, status: "never", lastEventAt: null, current: null, recent: [], turnStartedAt: null, failureStreak: 0, loop: null, session: null, model: null, modelsSeen: [], launchMode: null, project: null, spark, context: null, summary: null, cost: null, timeline: [], sessionStartedAt: null, goal: null, burn: null, turnSpend: null, cacheTrend: null };
 
   const latest = own[0];
   const lastEventAt = Date.parse(latest.occurred_at);
@@ -129,6 +155,12 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
   else status = "idle";
 
   const summary = summarizeSession(sessionEvents);
+  const timeline: PulseAction[] = [];
+  for (const event of sessionEvents) {
+    const narration = narrateEvent(event);
+    if (narration) timeline.push({ ...narration, id: event.event_id, at: Date.parse(event.occurred_at) });
+    if (timeline.length >= TIMELINE_LENGTH) break;
+  }
   // `own` va du plus recent au plus ancien : le premier modele rencontre est
   // donc celui de la derniere reponse.
   const reported = sessionEvents.map((event) => event.model?.value).filter((value): value is string => Boolean(value));
@@ -158,7 +190,15 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
     },
     project: { project_path: latest.project_path, file_path: latest.file_path, project_hash: latest.project_hash ?? null },
     spark,
-    context: contextUsage(own)
+    context: contextUsage(own),
+    summary,
+    cost: summary ? costInsight(sessionEvents, summary) : null,
+    timeline,
+    sessionStartedAt: summary ? Date.parse(summary.startedAt) : null,
+    goal: latestGoal(sessionEvents),
+    burn: burnRate(sessionEvents, now),
+    turnSpend: turnOpen && turnStartedAt !== null ? costSince(sessionEvents, turnStartedAt) : null,
+    cacheTrend: cacheTrend(sessionEvents)
   };
 }
 

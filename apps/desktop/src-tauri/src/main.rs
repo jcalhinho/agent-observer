@@ -6,6 +6,7 @@ mod claude_transcripts;
 mod codex_rollout;
 mod copilot_chat;
 mod copilot_sessions;
+mod git_info;
 mod models;
 mod no_window;
 mod opencode_sessions;
@@ -452,6 +453,20 @@ fn export_session_history(
     Ok(count)
 }
 
+/// L'etat git du dossier d'un agent : branche, avance/retard, fichiers modifies. Lecture seule.
+#[tauri::command]
+async fn repository_snapshot(path: String) -> Result<git_info::RepositorySnapshot, String> {
+    tauri::async_runtime::spawn_blocking(move || git_info::snapshot(&path))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+/// Ouvre le dossier d'un agent dans le gestionnaire de fichiers (jamais un fichier).
+#[tauri::command]
+fn reveal_in_file_manager(path: String) -> Result<(), String> {
+    git_info::reveal(&path)
+}
+
 #[tauri::command]
 fn collector_status(state: tauri::State<'_, CollectorState>) -> String {
     state
@@ -887,6 +902,8 @@ fn main() {
             load_session_events,
             export_session_history,
             collector_status,
+            repository_snapshot,
+            reveal_in_file_manager,
             update_capture_policy,
             retention_policy,
             update_retention_policy,

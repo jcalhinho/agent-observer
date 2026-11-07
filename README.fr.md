@@ -34,21 +34,44 @@ réglages d'un agent à ta place, et n'envoie aucune télémétrie. Il ne fait a
 
 ## Ce que tu vois
 
-Un écran, une carte par agent. Les cartes les plus urgentes passent devant. Chaque carte répond à
-huit questions, et à rien d'autre :
+Un écran : un **bandeau de totaux** en haut, puis **une carte par agent**, les plus urgentes devant. Un
+filtre (**Tous / Actifs / T'attendent**) réduit le plateau. Un clic sur une carte ouvre son détail.
 
-| # | Question | Ce que montre la carte |
-| --- | --- | --- |
-| 1 | **Qui m'attend ?** | L'état en un mot, coloré selon l'urgence. |
-| 2 | **Qui travaille ?** | Compté dans la barre du haut, à côté du nombre d'agents qui t'attendent. |
-| 3 | **Que fait-il ?** | L'outil en cours et son fichier ou sa commande. |
-| 4 | **Depuis quand ?** | L'âge de la dernière activité. |
-| 5 | **Où ?** | Le dossier du projet (`~` pour ton dossier personnel, « déduit » quand il vient d'un chemin de fichier). |
-| 6 | **Ça tourne mal ?** | Une boucle détectée ou des échecs en série, affichés à la place de l'activité, en couleur. |
-| 7 | **Combien ça consomme ?** | Les tokens de la session, et une barre de remplissage de la fenêtre de contexte. |
-| 8 | **Quel modèle ?** | Le dernier modèle rapporté par l'agent (un `+` et une pastille en pointillés s'il en a utilisé plusieurs), sinon celui qui est configuré. La façon dont il a été lancé (terminal, VS Code…) s'affiche à côté quand elle est connue. |
+**Le bandeau de totaux** additionne la dernière session de chaque agent : tokens, taux de cache, coût
+estimé, ce que le cache a fait économiser, et appels d'outils (avec échecs et fichiers modifiés).
 
-<img src="docs/media/card.png" alt="Une carte d'agent : état, activité, dossier, modèle, tokens et barre de contexte" width="420">
+<img src="docs/media/card.png" alt="Une carte d'agent : état, activité, chiffres, tokens et cache, coût, contexte, outils" width="420">
+
+**Chaque carte** montre :
+
+| Bloc | Ce qu'il montre |
+| --- | --- |
+| **État** | Un mot, coloré selon l'urgence, avec l'âge de la dernière activité. |
+| **Activité** | L'outil en cours et son fichier ou sa commande. Une boucle détectée ou des échecs en série la remplacent, en couleur. |
+| **Où, comment, quel modèle** | Le dossier du projet (`~` pour ton dossier personnel, « déduit » quand il vient d'un chemin de fichier), la façon dont l'agent a été lancé (terminal, VS Code…), le dernier modèle rapporté (`+N` et une pastille en pointillés s'il en a utilisé plusieurs) et la durée du tour en cours. |
+| **Chiffres de la session** | Tours, appels d'outils (avec échecs), fichiers distincts modifiés, durée. |
+| **Tokens et cache** | Total des tokens, **taux de cache**, et une barre qui les répartit en cache lu, cache écrit, entrée nouvelle et sortie. |
+| **Coût** | Une estimation au tarif API public des modèles, et **ce que le cache a fait économiser** par rapport aux mêmes requêtes sans aucun cache. |
+| **Contexte** | Le remplissage de la fenêtre de contexte, le nombre de compactions, et la croissance de sa taille au fil de la session. |
+| **Bande d'activité** | Les événements par minute sur les 15 dernières minutes. |
+| **Outils** | Les outils les plus utilisés, avec leurs échecs. |
+| **Objectif** | La dernière demande faite à l'agent (seulement si la capture des prompts est activée). |
+| **Collisions** | Un avertissement quand un autre agent modifie le même fichier ou travaille dans le même dossier. |
+| **Git** | Branche, commits en avance/retard, fichiers modifiés — appels `git` en lecture seule, délai de 4 s. |
+| **Rythme** | Tokens par minute, $/h estimés, coût du tour en cours ; alerte quand le taux de cache s'effondre. |
+
+**Le panneau de détail** (clic sur une carte) ajoute la répartition complète des tokens, la table de prix
+derrière l'estimation, la courbe du contexte, les modèles vus, un tableau des outils, les fichiers touchés
+(lus ou modifiés) et une chronologie des dernières actions. Chaque chiffre dit d'où il vient : rapporté par
+l'agent, calculé ou estimé.
+
+<img src="docs/media/detail.png" alt="Le panneau de détail d'un agent" width="900">
+
+Un chiffre que l'agent ne rapporte pas s'affiche *non rapporté* ou « — », jamais inventé. Le coût est une
+estimation aux prix API : un abonnement (Claude, Copilot…) ne facture pas ainsi, et un modèle absent de la
+table de prix est laissé de côté, d'où le « ≥ » quand une partie de la session n'a pas pu être chiffrée. Le
+taux de cache n'existe que pour les agents qui rapportent leurs lectures de cache (par exemple Claude Code
+et Reasonix).
 
 | État | Sens |
 | --- | --- |
@@ -64,6 +87,9 @@ La barre de contexte passe à l'orange dès 80 % et au rouge dès 95 %. La fenê
 quand il la rapporte, sinon d'une petite table de modèles documentés ; pour un modèle inconnu, la carte
 affiche le nombre de tokens et aucun pourcentage plutôt qu'une supposition.
 
+**L'essayer sans aucun agent :** lance `npm run dev` dans `apps/desktop` et ouvre
+`http://127.0.0.1:1420/?demo`. L'écran se remplit d'événements fictifs (rien n'est lu ni écrit).
+
 ### Réglages
 
 Le bouton de la barre du haut ouvre un panneau qui glisse ; referme-le et tu reviens à l'écran unique.
@@ -74,8 +100,6 @@ Le bouton de la barre du haut ouvre un panneau qui glisse ; referme-le et tu rev
 - **Rétention** : de 7 jours à pour toujours.
 - **Exporter / effacer** ton historique local.
 - **Langue** : français ou anglais.
-
-<img src="docs/media/settings.png" alt="Le panneau des réglages : connecteurs, ce qui est enregistré, rétention, export et effacement" width="900">
 
 ## Agents pris en charge
 
@@ -249,9 +273,14 @@ Les lecteurs de journaux ne lisent que les nouvelles lignes de fichiers que les 
 Les hooks de Claude Code sont des appels HTTP sans attente de réponse, avec un délai de 2 secondes ;
 si l'app est fermée, Claude Code continue simplement.
 
-**Pourquoi une carte n'affiche-t-elle pas de tokens ?**
-Parce que cet agent ne les rapporte pas dans ce que l'app peut lire. L'app affiche *non fourni*
+**Pourquoi une carte n'affiche-t-elle pas de tokens, ou de taux de cache ?**
+Parce que cet agent ne les rapporte pas dans ce que l'app peut lire. L'app affiche *non rapporté*
 plutôt qu'une estimation.
+
+**Le coût affiché est-il ce qu'on me facture ?**
+Non. C'est ce que les mêmes tokens coûteraient au tarif API public de chaque modèle : un repère, pas une
+facture. Les abonnements se facturent autrement, et un modèle absent de la table de prix est laissé de côté
+(le coût affiche alors « ≥ »).
 
 **Voit-il les sessions lancées avant que j'ouvre l'app ?**
 Non. Les lecteurs observent la nouvelle activité à partir du moment où l'app tourne ; l'historique
