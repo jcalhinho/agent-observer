@@ -2,7 +2,7 @@ import { useEffect, type CSSProperties } from "react";
 import { FolderOpen, X } from "lucide-react";
 import type { AgentPulse } from "./agentPulse";
 import type { Collision } from "./analysis";
-import { statusInfo, since, placeOf, tokenSegments } from "./AgentCard";
+import { statusInfo, since, placeOf, tokenSegments } from "./AgentBar";
 import { t } from "./i18n";
 import { cacheHitRate, compact, duration, percent, usd } from "./insights";
 import { ProviderMark } from "./ProviderBadges";

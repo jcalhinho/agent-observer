@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-07
+
+### Added
+- **Light / dark theme button.** The light theme is a light grey, with no white background.
+- **Shrink to a column.** The button is back in the top bar: a narrow window in the corner of the screen,
+  optionally kept on top, with the same bars.
+
+### Changed
+- **One bar per agent, stacked in a column**, instead of a grid of cards. The figures line up across agents;
+  alerts, git, model and pace sit on a second line. The gradient edge now runs around the whole bar.
+
 ## [0.13.0] - 2026-11-07
 
 ### Added

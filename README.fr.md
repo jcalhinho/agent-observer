@@ -34,7 +34,7 @@ réglages d'un agent à ta place, et n'envoie aucune télémétrie. Il ne fait a
 
 ## Ce que tu vois
 
-Un écran : un **bandeau de totaux** en haut, puis **une carte par agent**, les plus urgentes devant. Un
+Un écran : un **bandeau de totaux** en haut, puis **une barre par agent, en colonne**, les plus urgentes devant. Un
 filtre (**Tous / Actifs / T'attendent**) réduit le plateau. Un clic sur une carte ouvre son détail.
 
 **Le bandeau de totaux** additionne la dernière session de chaque agent : tokens, taux de cache, coût

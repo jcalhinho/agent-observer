@@ -34,7 +34,7 @@ agent's settings for you, and has no telemetry. It makes no network request of i
 
 ## What you see
 
-One screen: a **totals strip** on top, then **one card per agent**, the most urgent first. A filter
+One screen: a **totals strip** on top, then **one bar per agent, in a column**, the most urgent first. A filter
 (**All / Active / Need you**) narrows the board. Click a card to open its detail.
 
 **The totals strip** adds up the latest session of each agent: tokens, cache hit rate, estimated

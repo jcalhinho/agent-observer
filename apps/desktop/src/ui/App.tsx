@@ -1,6 +1,6 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Activity, Coins, Database, History as HistoryIcon, Settings2, TriangleAlert, Wallet, Wrench, Zap } from "lucide-react";
-import { AgentCard } from "./AgentCard";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Activity, Coins, Database, History as HistoryIcon, Maximize2, Minimize2, Moon, Pin, PinOff, Settings2, Sun, TriangleAlert, Wallet, Wrench, Zap } from "lucide-react";
+import { AgentBar } from "./AgentBar";
 import { AgentDetail } from "./AgentDetail";
 import { budgetState, dailyTotals, detectCollisions, localDay } from "./analysis";
 import { CollectorStatus } from "./CollectorStatus";
@@ -13,9 +13,11 @@ import { agentName, useAgents } from "./providers";
 import { SettingsPanel } from "./SettingsPanel";
 import { needsYou, useAgentPulses } from "./useAgentPulses";
 import { useAlerts } from "./useAlerts";
+import { enterMiniWindow, leaveMiniWindow, setMiniPinned } from "./miniWindow";
 import { revealFolder, useGit } from "./useGit";
 import { useHistory } from "./useHistory";
 import { useObserver } from "./useObserver";
+import { useTheme } from "./useTheme";
 
 type Filter = "all" | "active" | "attention";
 
@@ -29,7 +31,7 @@ function Kpi({ icon, label, value, sub, tone, title }: { icon: ReactNode; label:
 
 /**
  * L'écran unique. En haut, qui travaille et qui t'attend, puis les totaux de tous les agents
- * (tokens, cache, coût estimé). En dessous, une carte par agent, les plus urgents en premier ;
+ * (tokens, cache, coût estimé). En dessous, une barre par agent, en colonne, les plus urgents en premier ;
  * un clic ouvre le détail. Les réglages sont dans leur propre panneau.
  */
 export function App() {
@@ -45,6 +47,15 @@ export function App() {
   const [period, setPeriod] = useState(7);
   const [notifications, setNotifications] = usePreference("notifications", true, isBoolean);
   const [budget, setBudget] = usePreference("dailyBudget", 0, isNumber);
+  const [theme, toggleTheme] = useTheme();
+  const [mini, setMini] = usePreference("mini-mode", false, isBoolean);
+  const [pinned, setPinned] = usePreference("mini-pinned", true, isBoolean);
+
+  // Au démarrage en mode réduit, la fenêtre reprend sa place dans le coin de l'écran.
+  useEffect(() => { if (mini) void enterMiniWindow(pinned); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const goMini = () => { setMini(true); void enterMiniWindow(pinned); };
+  const leaveMini = () => { setMini(false); void leaveMiniWindow(); };
+  const togglePin = () => { setPinned(!pinned); void setMiniPinned(!pinned); };
 
   const seen = useMemo(() => pulses.filter((pulse) => pulse.status !== "never"), [pulses]);
   const unseen = useMemo(() => pulses.filter((pulse) => pulse.status === "never"), [pulses]);
@@ -71,22 +82,25 @@ export function App() {
     ["attention", t("T’attendent", "Need you"), attention]
   ];
 
-  return <div className="app">
+  return <div className={`app ${mini ? "mini" : ""}`}>
     <header className="top">
       <div className="top-id">
         <span className="logo" aria-hidden="true"><Activity size={14} /></span>
-        <b>Agent Observer</b>
-        <CollectorStatus state={observer.collectorState} />
+        {!mini && <b>Agent Observer</b>}
+        <CollectorStatus state={observer.collectorState} compact={mini} />
       </div>
       <div className="top-counts" aria-live="polite">
         <span className="count working"><i />{working} <small>{t("au travail", "working")}</small></span>
-        <span className={`count need ${attention ? "on" : ""}`}><i />{attention} <small>{t("t’attendent", "need you")}</small></span>
+        <span className={`count need ${attention ? "on" : ""}`}><i />{attention} <small>{mini ? t("à voir", "to check") : t("t’attendent", "need you")}</small></span>
       </div>
       {budget > 0 && spentToday !== null && <span className={`count spend ${budgetLevel}`} title={t("Coût estimé d’aujourd’hui, au tarif API, face à ton budget", "Today's estimated cost, at API list price, against your budget")}><Wallet size={12} />≈ {usd(spentToday)}<small>/ {usd(budget)}</small></span>}
-      <button className="icon-button" onClick={() => setHistoryOpen(true)} aria-label={t("Historique", "History")} title={t("Historique par jour", "History by day")}><HistoryIcon size={15} /></button>
-      <button className="icon-button" onClick={() => setSettings(true)} aria-label={t("Réglages", "Settings")} title={t("Réglages et connecteurs", "Settings and connectors")}>
-        <Settings2 size={15} />
-      </button>
+      <div className="top-actions">
+        <button className="icon-button" onClick={toggleTheme} aria-label={theme === "dark" ? t("Passer au thème clair", "Switch to the light theme") : t("Passer au thème sombre", "Switch to the dark theme")} title={theme === "dark" ? t("Thème clair", "Light theme") : t("Thème sombre", "Dark theme")}>{theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}</button>
+        {!mini && <button className="icon-button" onClick={() => setHistoryOpen(true)} aria-label={t("Historique", "History")} title={t("Historique par jour", "History by day")}><HistoryIcon size={15} /></button>}
+        {!mini && <button className="icon-button" onClick={() => setSettings(true)} aria-label={t("Réglages", "Settings")} title={t("Réglages et connecteurs", "Settings and connectors")}><Settings2 size={15} /></button>}
+        {mini && <button className="icon-button" onClick={togglePin} aria-pressed={pinned} title={pinned ? t("La fenêtre reste au premier plan — cliquer pour l’en retirer", "The window stays on top — click to release it") : t("Garder la fenêtre au premier plan", "Keep the window on top")}>{pinned ? <Pin size={15} /> : <PinOff size={15} />}</button>}
+        <button className="icon-button" onClick={mini ? leaveMini : goMini} aria-label={mini ? t("Revenir au tableau de bord complet", "Back to the full dashboard") : t("Réduire en colonne", "Shrink to a column")} title={mini ? t("Revenir au tableau de bord complet", "Back to the full dashboard") : t("Réduire en colonne, au premier plan", "Shrink to a column, on top")}>{mini ? <Maximize2 size={15} /> : <Minimize2 size={15} />}</button>
+      </div>
     </header>
 
     {(budgetLevel === "near" || budgetLevel === "over" || collisions.length > 0) && <section className="alerts" role="status" aria-label={t("Alertes", "Alerts")}>
@@ -100,7 +114,7 @@ export function App() {
       </div>)}
     </section>}
 
-    {seen.length > 0 && <section className="kpis" aria-label={t("Totaux de la dernière session de chaque agent", "Totals over each agent’s latest session")}>
+    {!mini && seen.length > 0 && <section className="kpis" aria-label={t("Totaux de la dernière session de chaque agent", "Totals over each agent’s latest session")}>
       <Kpi icon={<Zap size={12} />} label="Tokens" value={totals.tokens === null ? "—" : compact(totals.tokens)} sub={totals.output !== null ? t(`dont ${compact(totals.output)} écrits`, `${compact(totals.output)} written`) : t("non rapportés", "not reported")} title={t("Tokens lus (cache compris) et écrits, sur la session la plus récente de chaque agent.", "Tokens read (cache included) and written, over each agent’s latest session.")} />
       <Kpi icon={<Database size={12} />} label={t("Cache", "Cache")} value={totals.cacheHit === null ? "—" : percent(totals.cacheHit)} sub={totals.cacheHit === null ? t("aucun agent ne le rapporte", "no agent reports it") : t("du prompt servi par le cache", "of the prompt served from cache")} tone={totals.cacheHit !== null && totals.cacheHit >= 0.8 ? "good" : undefined} title={t("Part des tokens lus qui viennent du cache du fournisseur (moins cher). Seuls les agents qui le rapportent comptent.", "Share of tokens read that come from the provider cache (cheaper). Only agents that report it count.")} />
       <Kpi icon={<Coins size={12} />} label={t("Coût estimé", "Estimated cost")} value={totals.cost === null ? "—" : `${totals.costPartial ? "≥ " : "≈ "}${usd(totals.cost)}`} sub={totals.cost === null ? t("modèles hors table des prix", "models not in the price table") : totals.costPartial ? t("certains modèles non chiffrés", "some models not priced") : t("au tarif API", "at API list price")} title={t("Au tarif API public des modèles. Un abonnement (Claude, Copilot…) ne facture pas ainsi.", "At the models’ public API price. A subscription (Claude, Copilot…) is not billed this way.")} />
@@ -108,21 +122,21 @@ export function App() {
       <Kpi icon={<Wrench size={12} />} label={t("Outils", "Tool calls")} value={totals.toolCalls} sub={totals.failures > 0 ? t(`${totals.failures} échec(s) · ${totals.filesChanged} fichier(s) modifié(s)`, `${totals.failures} failed · ${totals.filesChanged} file(s) edited`) : t(`${totals.filesChanged} fichier(s) modifié(s)`, `${totals.filesChanged} file(s) edited`)} tone={totals.failures > 0 ? "bad" : undefined} />
     </section>}
 
-    {seen.length > 1 && <nav className="toolbar" aria-label={t("Filtrer les agents", "Filter agents")}>
+    {!mini && seen.length > 1 && <nav className="toolbar" aria-label={t("Filtrer les agents", "Filter agents")}>
       <div className="segmented" role="group">
         {filters.map(([key, label, count]) => <button key={key} className={filter === key ? "on" : ""} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}<b>{count}</b></button>)}
       </div>
       <small>{t("Chiffres de la session la plus récente de chaque agent", "Figures cover each agent’s latest session")}</small>
     </nav>}
 
-    <main className="board">
+    <main className="board bars">
       {seen.length
         ? shown.length
-          ? shown.map((pulse) => <AgentCard key={pulse.key} pulse={pulse} now={now} onOpen={setOpenKey} git={gitOf(pulse)} collisions={collisionsOf(pulse.key)} />)
+          ? shown.map((pulse) => <AgentBar key={pulse.key} pulse={pulse} now={now} onOpen={setOpenKey} git={gitOf(pulse)} collisions={collisionsOf(pulse.key)} />)
           : <div className="empty"><b>{t("Personne ici", "Nobody here")}</b><p>{t("Aucun agent ne correspond à ce filtre en ce moment.", "No agent matches this filter right now.")}</p></div>
         : <div className="empty">
             <b>{t("En attente d’un agent", "Waiting for an agent")}</b>
-            <p>{t("Lance une session avec un de tes agents : sa carte apparaîtra ici en quelques secondes.", "Start a session with one of your agents: its card will show up here within seconds.")}</p>
+            <p>{t("Lance une session avec un de tes agents : sa barre apparaîtra ici en quelques secondes.", "Start a session with one of your agents: its bar will show up here within seconds.")}</p>
             <button className="button primary" onClick={() => setSettings(true)}>{t("Brancher un agent", "Connect an agent")}</button>
           </div>}
     </main>

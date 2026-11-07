@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { placeOf } from "./AgentCard";
+import { placeOf } from "./AgentBar";
 
 describe("placeOf", () => {
   it("prend le dernier segment du repertoire de travail", () => {
