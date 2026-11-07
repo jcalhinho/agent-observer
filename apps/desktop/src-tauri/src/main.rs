@@ -408,14 +408,6 @@ fn decode_stored_events(payloads: &[String]) -> Vec<SessionEvent> {
         .collect()
 }
 
-#[derive(Serialize)]
-struct AnalyticsEvents {
-    events: Vec<SessionEvent>,
-    /// Events stored in the window, which may exceed what was returned.
-    total: usize,
-    truncated: bool,
-}
-
 #[tauri::command]
 fn export_session_history(
     state: tauri::State<'_, CollectorState>,

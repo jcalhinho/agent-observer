@@ -20,7 +20,7 @@ use session_events::{DataOrigin, EventKind, Provider, SessionEvent, Sourced};
 use std::{
     collections::HashSet,
     env,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -140,7 +140,7 @@ impl CopilotChatMonitor {
     fn read_turns(
         &mut self,
         connection: &Connection,
-        path: &PathBuf,
+        path: &Path,
         capture_prompts: bool,
         first_pass: bool,
     ) -> Vec<SessionEvent> {
@@ -168,7 +168,7 @@ impl CopilotChatMonitor {
             let (session_id, turn_index, user_message, assistant_response, timestamp) = row;
             if !self
                 .seen_turns
-                .insert((path.clone(), session_id.clone(), turn_index))
+                .insert((path.to_path_buf(), session_id.clone(), turn_index))
             {
                 continue;
             }
@@ -200,7 +200,7 @@ impl CopilotChatMonitor {
     fn read_files(
         &mut self,
         connection: &Connection,
-        path: &PathBuf,
+        path: &Path,
         first_pass: bool,
     ) -> Vec<SessionEvent> {
         let Ok(mut statement) = connection.prepare(
@@ -225,7 +225,7 @@ impl CopilotChatMonitor {
             let (session_id, file_path, tool_name, first_seen_at) = row;
             if !self
                 .seen_files
-                .insert((path.clone(), session_id.clone(), file_path.clone()))
+                .insert((path.to_path_buf(), session_id.clone(), file_path.clone()))
             {
                 continue;
             }
@@ -302,6 +302,31 @@ where
 }
 
 #[cfg(test)]
+impl CopilotChatMonitor {
+    /// Comme `poll`, mais sur une base precise : `database_paths()` depend du
+    /// systeme, et un test ne doit pas lire le VS Code de la machine.
+    fn poll_path(&mut self, path: &Path, capture_prompts: bool) -> Vec<SessionEvent> {
+        let Ok(connection) = Connection::open_with_flags(
+            path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        ) else {
+            return Vec::new();
+        };
+        let _ = connection.busy_timeout(BUSY_TIMEOUT);
+        if !has_table(&connection, "sessions") || !has_table(&connection, "turns") {
+            return Vec::new();
+        }
+        let first_pass = self.primed.insert(path.to_path_buf());
+        let mut events = self.read_turns(&connection, path, capture_prompts, first_pass);
+        if has_table(&connection, "session_files") {
+            events.extend(self.read_files(&connection, path, first_pass));
+        }
+        events.sort_by_key(|event| event.occurred_at);
+        events
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use rusqlite::Connection;
@@ -311,7 +336,8 @@ mod tests {
     /// du projet creent ainsi leurs fichiers de test : pas de dependance de
     /// developpement, juste le dossier temporaire du systeme.
     fn database() -> PathBuf {
-        let path = env::temp_dir().join(format!("agent-observer-copilot-chat-{}.db", Uuid::new_v4()));
+        let path =
+            env::temp_dir().join(format!("agent-observer-copilot-chat-{}.db", Uuid::new_v4()));
         let connection = Connection::open(&path).unwrap();
         connection
             .execute_batch(
@@ -334,7 +360,7 @@ mod tests {
         path
     }
 
-    fn add_turn(path: &PathBuf, index: i64, at: &str) {
+    fn add_turn(path: &Path, index: i64, at: &str) {
         let connection = Connection::open(path).unwrap();
         connection
             .execute(
@@ -404,7 +430,10 @@ mod tests {
         let with = other.poll_path(&path, true);
         assert_eq!(with[0].content.as_deref(), Some("ma question"));
         // La reponse de l'assistant n'est jamais conservee.
-        assert!(with.iter().all(|event| event.content.as_deref() != Some("sa reponse")));
+        assert!(
+            with.iter()
+                .all(|event| event.content.as_deref() != Some("sa reponse"))
+        );
     }
 
     #[test]
@@ -440,31 +469,10 @@ mod tests {
     #[test]
     fn a_missing_database_is_not_an_error() {
         let mut monitor = CopilotChatMonitor::default();
-        assert!(monitor.poll_path(&PathBuf::from("/nulle/part.db"), false).is_empty());
-    }
-}
-
-#[cfg(test)]
-impl CopilotChatMonitor {
-    /// Comme `poll`, mais sur une base precise : `database_paths()` depend du
-    /// systeme, et un test ne doit pas lire le VS Code de la machine.
-    fn poll_path(&mut self, path: &PathBuf, capture_prompts: bool) -> Vec<SessionEvent> {
-        let Ok(connection) = Connection::open_with_flags(
-            path,
-            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-        ) else {
-            return Vec::new();
-        };
-        let _ = connection.busy_timeout(BUSY_TIMEOUT);
-        if !has_table(&connection, "sessions") || !has_table(&connection, "turns") {
-            return Vec::new();
-        }
-        let first_pass = self.primed.insert(path.clone());
-        let mut events = self.read_turns(&connection, path, capture_prompts, first_pass);
-        if has_table(&connection, "session_files") {
-            events.extend(self.read_files(&connection, path, first_pass));
-        }
-        events.sort_by_key(|event| event.occurred_at);
-        events
+        assert!(
+            monitor
+                .poll_path(&PathBuf::from("/nulle/part.db"), false)
+                .is_empty()
+        );
     }
 }
