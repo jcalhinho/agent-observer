@@ -26,6 +26,13 @@
 #   WINDOWS_TIMESTAMP_URL         optional, defaults to DigiCert's timestamp server
 # (For a cloud HSM such as Azure Trusted Signing, replace the thumbprint in the
 # "Configure Windows signing" step by a bundle.windows.signCommand.)
+#
+# In-app updates — off until both are set (generate the pair with `npx tauri signer generate`):
+#   TAURI_SIGNING_PRIVATE_KEY           secret: the private key (contents of the .key file)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  secret: its password, if it has one
+#   TAURI_UPDATER_PUBKEY                repository variable (not a secret): contents of the .key.pub file
+# The builds then sign their update files and the release gets a latest.json; installed apps find
+# it at releases/latest/download/latest.json once the release is published.
 
 name: Release
 
@@ -114,6 +121,35 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Configure in-app updates
+        id: updater
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$SIGNING_KEY" ]]; then
+            echo "::notice::No updater signing key: this build will not update itself."
+            echo "config=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ -z "$PUBKEY" ]]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is set but the TAURI_UPDATER_PUBKEY variable is not."
+            exit 1
+          fi
+          config="$RUNNER_TEMP/updater.json"
+          node -e '
+            const [file, pubkey, repo] = process.argv.slice(1);
+            require("fs").writeFileSync(file, JSON.stringify({
+              bundle: { createUpdaterArtifacts: true },
+              plugins: { updater: { pubkey, endpoints: [`https://github.com/${repo}/releases/latest/download/latest.json`] } }
+            }));
+          ' "$config" "$PUBKEY" "$GH_REPO"
+          echo "Update files will be signed."
+          echo "config=$config" >> "$GITHUB_OUTPUT"
+
       - name: Type-check and test the UI
         run: |
           npm run desktop:typecheck
@@ -135,6 +171,9 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          UPDATER_CONFIG: ${{ steps.updater.outputs.config }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           # Tauri reacts to these variables being set at all: drop the empty ones.
@@ -167,7 +206,11 @@ jobs:
             echo "::notice::No Apple certificate configured: building an unsigned (ad-hoc) app."
           fi
 
-          npm run tauri --workspace "$DESKTOP_WORKSPACE" -- build --target "$TARGET"
+          # No update key: leave Tauri's signing variables unset rather than empty.
+          [[ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]] || unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          updater=()
+          [[ -n "$UPDATER_CONFIG" ]] && updater=(--config "$UPDATER_CONFIG")
+          npm run tauri --workspace "$DESKTOP_WORKSPACE" -- build --target "$TARGET" ${updater[@]+"${updater[@]}"}
 
       - name: Collect the macOS installer
         if: runner.os == 'macOS'
@@ -176,6 +219,7 @@ jobs:
           TARGET: ${{ matrix.target }}
           LABEL: ${{ matrix.label }}
           VERSION: ${{ steps.version.outputs.version }}
+          UPDATER_CONFIG: ${{ steps.updater.outputs.config }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -186,6 +230,15 @@ jobs:
           fi
           mkdir -p release-assets
           cp "${dmgs[0]}" "release-assets/Agent-Observer_${VERSION}_${LABEL}.dmg"
+          if [[ -n "$UPDATER_CONFIG" ]]; then
+            updates=(target/"$TARGET"/release/bundle/macos/*.app.tar.gz)
+            if (( ${#updates[@]} != 1 )) || [[ ! -f "${updates[0]}.sig" ]]; then
+              echo "::error::Expected one signed .app.tar.gz update file."
+              exit 1
+            fi
+            cp "${updates[0]}" "release-assets/Agent-Observer_${VERSION}_${LABEL}.app.tar.gz"
+            cp "${updates[0]}.sig" "release-assets/Agent-Observer_${VERSION}_${LABEL}.app.tar.gz.sig"
+          fi
           ls -l release-assets
 
       # -------------------------------------------------------------- Windows
@@ -226,11 +279,17 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
           SIGNING_CONFIG: ${{ steps.windows-signing.outputs.config }}
+          UPDATER_CONFIG: ${{ steps.updater.outputs.config }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          # No update key: leave Tauri's signing variables unset rather than empty.
+          [[ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]] || unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
           signing=()
-          [[ -n "$SIGNING_CONFIG" ]] && signing=(--config "$SIGNING_CONFIG")
-          npm run tauri --workspace "$DESKTOP_WORKSPACE" -- build --target "$TARGET" "${signing[@]}"
+          [[ -n "$SIGNING_CONFIG" ]] && signing+=(--config "$SIGNING_CONFIG")
+          [[ -n "$UPDATER_CONFIG" ]] && signing+=(--config "$UPDATER_CONFIG")
+          npm run tauri --workspace "$DESKTOP_WORKSPACE" -- build --target "$TARGET" ${signing[@]+"${signing[@]}"}
 
       - name: Collect the Windows installers
         if: runner.os == 'Windows'
@@ -239,6 +298,7 @@ jobs:
           TARGET: ${{ matrix.target }}
           LABEL: ${{ matrix.label }}
           VERSION: ${{ steps.version.outputs.version }}
+          UPDATER_CONFIG: ${{ steps.updater.outputs.config }}
         run: |
           $bundle = Join-Path $env:GITHUB_WORKSPACE "target/$env:TARGET/release/bundle"
           $setup = @(Get-ChildItem -LiteralPath (Join-Path $bundle "nsis") -Filter "*-setup.exe" -File)
@@ -249,6 +309,12 @@ jobs:
           New-Item -ItemType Directory -Force -Path release-assets | Out-Null
           Copy-Item -LiteralPath $setup[0].FullName -Destination "release-assets/Agent-Observer_$($env:VERSION)_$($env:LABEL)-setup.exe"
           Copy-Item -LiteralPath $msi[0].FullName -Destination "release-assets/Agent-Observer_$($env:VERSION)_$($env:LABEL).msi"
+          if ($env:UPDATER_CONFIG) {
+            # The updater runs the NSIS installer it downloads, after checking this signature.
+            $signature = "$($setup[0].FullName).sig"
+            if (-not (Test-Path -LiteralPath $signature)) { throw "The NSIS installer has no .sig update signature." }
+            Copy-Item -LiteralPath $signature -Destination "release-assets/Agent-Observer_$($env:VERSION)_$($env:LABEL)-setup.exe.sig"
+          }
           Get-ChildItem release-assets
 
       # ---------------------------------------------------------------- Linux
@@ -258,9 +324,16 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
+          UPDATER_CONFIG: ${{ steps.updater.outputs.config }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          npm run tauri --workspace "$DESKTOP_WORKSPACE" -- build --target "$TARGET"
+          # No update key: leave Tauri's signing variables unset rather than empty.
+          [[ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]] || unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          updater=()
+          [[ -n "$UPDATER_CONFIG" ]] && updater=(--config "$UPDATER_CONFIG")
+          npm run tauri --workspace "$DESKTOP_WORKSPACE" -- build --target "$TARGET" ${updater[@]+"${updater[@]}"}
 
       - name: Collect the Linux packages
         if: runner.os == 'Linux'
@@ -269,6 +342,7 @@ jobs:
           TARGET: ${{ matrix.target }}
           LABEL: ${{ matrix.label }}
           VERSION: ${{ steps.version.outputs.version }}
+          UPDATER_CONFIG: ${{ steps.updater.outputs.config }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -281,6 +355,10 @@ jobs:
           mkdir -p release-assets
           cp "${debs[0]}" "release-assets/Agent-Observer_${VERSION}_${LABEL}.deb"
           cp "${images[0]}" "release-assets/Agent-Observer_${VERSION}_${LABEL}.AppImage"
+          if [[ -n "$UPDATER_CONFIG" ]]; then
+            [[ -f "${images[0]}.sig" ]] || { echo "::error::The AppImage has no .sig update signature."; exit 1; }
+            cp "${images[0]}.sig" "release-assets/Agent-Observer_${VERSION}_${LABEL}.AppImage.sig"
+          fi
           ls -l release-assets
 
       # --------------------------------------------------------------- shared
@@ -322,6 +400,19 @@ jobs:
           bash packaging/homebrew/render-cask.sh "$VERSION" "$(sum macos-arm64)" "$(sum macos-x64)" "$GH_REPO" > release-assets/agent-observer.rb
           cat release-assets/agent-observer.rb
 
+      - name: Write latest.json for in-app updates
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if compgen -G "release-assets/*.sig" > /dev/null; then
+            bash packaging/updater/render-latest-json.sh "$VERSION" "$GH_REPO" release-assets > release-assets/latest.json
+            cat release-assets/latest.json
+          else
+            echo "::notice::No signed update files: no latest.json, installed apps will not be offered this release."
+          fi
+
       - name: Attach the MCP server
         run: cp tools/mcp/agent-observer-mcp.mjs release-assets/agent-observer-mcp.mjs
 
@@ -359,7 +450,7 @@ jobs:
 
           MCP server for your agents (read-only, Node 18+): \`agent-observer-mcp.mjs\` — see the README.
 
-          Homebrew (experimental, unsigned app): copy \`agent-observer.rb\` to \`Casks/\` in a \`homebrew-tap\` repository, then \`brew install --cask <owner>/tap/agent-observer\`.
+          Homebrew (experimental, unsigned app): \`agent-observer.rb\` is the cask. When the tap is set up (see the README), publishing this release copies it there; then \`brew install --cask <owner>/tap/agent-observer\`.
 
           Verify your download against \`SHA256SUMS.txt\`. If this build is not signed yet, see
           [how to open it on macOS and Windows](https://github.com/${GH_REPO}/blob/main/README.md#install).
@@ -367,6 +458,10 @@ jobs:
           See [CHANGELOG.md](https://github.com/${GH_REPO}/blob/${TAG}/CHANGELOG.md) for the details.
 
           EOF
+
+          if [[ -f release-assets/latest.json ]]; then
+            printf '%s\n\n' "Already installed? This version is offered in Settings → Updates once the release is published." >> notes.md
+          fi
 
           prerelease=()
           [[ "$TAG" == *-* ]] && prerelease=(--prerelease)

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
 import { loadConnectorSetup, type ConnectorSetup } from "./ConnectorDialog";
 import { DiagnosticSection } from "./DiagnosticSection";
+import { UpdatesSection } from "./UpdatesSection";
 import { currentLang, locale, setLang, t, type Lang } from "./i18n";
 import { ProviderMark } from "./ProviderBadges";
 import { activeProviders } from "./providers";
@@ -193,6 +194,8 @@ export function SettingsPanel({ onClose, onConfigure, onExport, onClear, alerts 
           </select>
         </label>
       </section>
+
+      <UpdatesSection />
 
       <DiagnosticSection />
     </aside>

@@ -33,6 +33,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use session_events::{DataOrigin, EventKind, Provider, SessionEvent, Sourced};
 use std::{
+    collections::HashMap,
     fs,
     io::{BufWriter, Write},
     net::SocketAddr,
@@ -910,6 +911,33 @@ fn diagnostic(state: tauri::State<'_, CollectorState>) -> Diagnostic {
     }
 }
 
+/// Whether this build can update itself (see `updates_configured`).
+struct UpdatesEnabled(bool);
+
+/// True when the build carries an updater public key and at least one address to check.
+fn updates_configured(plugins: &HashMap<String, serde_json::Value>) -> bool {
+    let Some(updater) = plugins.get("updater") else {
+        return false;
+    };
+    let pubkey = updater
+        .get("pubkey")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|key| !key.trim().is_empty());
+    let endpoints = updater
+        .get("endpoints")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|list| {
+            list.iter()
+                .any(|item| item.as_str().is_some_and(|url| !url.trim().is_empty()))
+        });
+    pubkey && endpoints
+}
+
+#[tauri::command]
+fn updates_available(updates: tauri::State<'_, UpdatesEnabled>) -> bool {
+    updates.0
+}
+
 /// The interface reports how many agents need you; the tray icon only shows it.
 #[tauri::command]
 fn set_tray_status(
@@ -1152,7 +1180,22 @@ fn main() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            // Updates are switched on only by a release built with a signing key, which writes the
+            // public key and the address of `latest.json` into `plugins.updater`.
+            let updates = updates_configured(&app.config().plugins.0)
+                && match app
+                    .handle()
+                    .plugin(tauri_plugin_updater::Builder::new().build())
+                {
+                    Ok(()) => true,
+                    Err(error) => {
+                        eprintln!("updates unavailable: {error}");
+                        false
+                    }
+                };
+            app.manage(UpdatesEnabled(updates));
             let config_dir = app.path().app_config_dir()?;
             fs::create_dir_all(&config_dir)?;
             let token_path = config_dir.join("collector-token");
@@ -1339,6 +1382,7 @@ fn main() {
             subscription_limits,
             set_tray_status,
             diagnostic,
+            updates_available,
             update_capture_policy,
             retention_policy,
             update_retention_policy,
@@ -1366,6 +1410,26 @@ mod tests {
         assert!(!bearer_matches(&headers, "abc"));
         headers.insert(header::AUTHORIZATION, "abc".parse().unwrap());
         assert!(!bearer_matches(&headers, "abc"));
+    }
+
+    #[test]
+    fn updates_need_a_public_key_and_an_address() {
+        let config = |value: serde_json::Value| -> HashMap<String, serde_json::Value> {
+            serde_json::from_value(value).unwrap()
+        };
+        assert!(!updates_configured(&config(json!({}))));
+        assert!(!updates_configured(&config(
+            json!({ "updater": { "pubkey": "", "endpoints": ["https://x/latest.json"] } })
+        )));
+        assert!(!updates_configured(&config(
+            json!({ "updater": { "pubkey": "abc", "endpoints": [] } })
+        )));
+        assert!(!updates_configured(&config(
+            json!({ "updater": { "pubkey": "abc" } })
+        )));
+        assert!(updates_configured(&config(
+            json!({ "updater": { "pubkey": "abc", "endpoints": ["https://x/latest.json"] } })
+        )));
     }
 
     #[test]
