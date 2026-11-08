@@ -415,9 +415,9 @@ mod tests {
             &root,
             LogFile::Tokens,
             &[
-                r#"{"eventName":"tokensGenerated","schema":"0.2.0","timestamp":"2026-11-08T10:00:00.000Z","userId":"","userAgent":"Visual Studio Code/1.99.0 (Continue/1.2.0)","selectedProfileId":"local","model":"claude-sonnet-4-5","provider":"anthropic","promptTokens":1200,"generatedTokens":80}"#,
+                r#"{"eventName":"tokensGenerated","schema":"0.2.0","timestamp":"2026-11-08T10:00:00.000Z","userId":"","userAgent":"Visual Studio Code/1.99.0 (Continue/1.2.0)","selectedProfileId":"local","model":"claude-sonnet-5-5","provider":"anthropic","promptTokens":1200,"generatedTokens":80}"#,
                 r#"{"eventName":"tokensGenerated","schema":"0.2.0","timestamp":"2026-11-08T10:00:20.000Z","userId":"","userAgent":"x","selectedProfileId":"local","model":"codestral-latest","provider":"mistral","promptTokens":300,"generatedTokens":12}"#,
-                r#"{"eventName":"tokensGenerated","schema":"0.2.0","timestamp":"2026-11-08T10:00:30.000Z","userId":"","userAgent":"x","selectedProfileId":"local","model":"claude-sonnet-4-5","provider":"anthropic","promptTokens":1500,"generatedTokens":40}"#,
+                r#"{"eventName":"tokensGenerated","schema":"0.2.0","timestamp":"2026-11-08T10:00:30.000Z","userId":"","userAgent":"x","selectedProfileId":"local","model":"claude-sonnet-5-5","provider":"anthropic","promptTokens":1500,"generatedTokens":40}"#,
             ],
         );
         append(
@@ -445,7 +445,7 @@ mod tests {
         assert_eq!(answer.project_path.as_deref(), Some("/Users/ana/My App"));
         assert_eq!(
             answer.model.as_ref().map(|model| model.value.as_str()),
-            Some("claude-sonnet-4-5")
+            Some("claude-sonnet-5-5")
         );
         assert_eq!(
             answer
@@ -508,14 +508,14 @@ mod tests {
             &root,
             LogFile::Tokens,
             &[
-                r#"{"timestamp":"2026-11-08T10:00:00.000Z","model":"claude-sonnet-4-5","provider":"anthropic","promptTokens":10,"generatedTokens":2}"#,
+                r#"{"timestamp":"2026-11-08T10:00:00.000Z","model":"claude-sonnet-5-5","provider":"anthropic","promptTokens":10,"generatedTokens":2}"#,
             ],
         );
         let events = monitor.poll();
         assert_eq!(events.len(), 1);
         assert_eq!(
             events[0].model.as_ref().map(|model| model.value.as_str()),
-            Some("claude-sonnet-4-5")
+            Some("claude-sonnet-5-5")
         );
         assert_eq!(
             events[0].input_tokens.as_ref().map(|value| value.value),

@@ -5,7 +5,7 @@ const CODEX = providerById("codex").eventKey;
 const CURSOR = providerById("cursor").eventKey;
 const GEMINI = providerById("gemini").eventKey;
 
-export type SourcedValue<T> = { value: T; origin: string };
+type SourcedValue<T> = { value: T; origin: string };
 
 export type SummaryEvent = {
   event_id: string;
@@ -27,11 +27,11 @@ export type SummaryEvent = {
 };
 
 /** Which observed signal a turn count is based on; differs per connector. */
-export type TurnBasis = "codex_turn_started" | "cursor_stop" | "user_message";
+type TurnBasis = "codex_turn_started" | "cursor_stop" | "user_message";
 
-export type ToolUsage = { name: string | null; count: number; failed: number };
-export type FileTouch = { path: string; events: number; changed: boolean; tools: string[] };
-export type ModelSeen = { name: string; origins: string[]; events: number };
+type ToolUsage = { name: string | null; count: number; failed: number };
+type FileTouch = { path: string; events: number; changed: boolean; tools: string[] };
+type ModelSeen = { name: string; origins: string[]; events: number };
 
 export type TokenTotals = {
   /** Uncached input when the connector reports cache tokens apart, all input otherwise. */

@@ -5,7 +5,7 @@
 **See what your coding agents are doing — and which one needs you — on one screen, without sending anything anywhere.**
 
 A local desktop app for macOS, Windows and Linux that watches Claude Code, Codex, GitHub Copilot,
-Antigravity, OpenCode, Qwen Code, Reasonix and Cursor work on your machine, live.
+Antigravity, OpenCode, Qwen Code, Reasonix, Cursor and Continue work on your machine, live.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
@@ -13,7 +13,7 @@ Antigravity, OpenCode, Qwen Code, Reasonix and Cursor work on your machine, live
 
 [Install](#install) · [Connect your agents](#connect-your-agents) · [What you see](#what-you-see) · [Reading the numbers](#reading-the-numbers) · [MCP server](#for-your-agents-a-read-only-mcp-server) · [Privacy](#privacy-and-data) · [Troubleshooting](#troubleshooting) · [Develop](#build-from-source-and-develop) · [Français](README.fr.md)
 
-<img src="docs/media/screen.png" alt="Agent Observer: one screen with a bar per agent, the most urgent first" width="900">
+<img src="docs/media/demo.gif" alt="Agent Observer in demo mode: the screen, the agents that need you, the bars grouped by project, an agent's detail and earlier sessions, the history, the diagnostic" width="900">
 
 </div>
 
@@ -23,7 +23,7 @@ Antigravity, OpenCode, Qwen Code, Reasonix and Cursor work on your machine, live
 
 - [Why](#why)
 - [Quick start](#quick-start)
-- [Install](#install) — one line, installers, macOS, Windows, Linux, Homebrew, update, uninstall
+- [Install](#install) — one line, installers, macOS, Windows, Linux, Homebrew, updates, uninstall
 - [Connect your agents](#connect-your-agents) — Claude Code, Cursor, the agents read automatically
 - [What you see](#what-you-see) — top bar, alerts, bars, states, detail, status bar, history, column mode
 - [Reading the numbers](#reading-the-numbers) — what every figure means and where it comes from
@@ -45,7 +45,8 @@ not. Agent Observer answers one question at a glance: **who needs me right now?*
 what each agent costs, how full its context is, and how close you are to your subscription limits.
 
 It only **observes**. It never drives an agent, never edits your code, never modifies an agent's
-settings for you, and has no telemetry. It makes no network request of its own.
+settings for you, and has no telemetry. It makes no network request of its own, except the update
+check you start yourself (see [Updates](#update-and-uninstall)).
 
 > **Status:** early (0.x). The interface is in **English and French**; it follows your system language
 > and can be changed in Settings.
@@ -57,7 +58,7 @@ settings for you, and has no telemetry. It makes no network request of its own.
    curl -fsSL https://raw.githubusercontent.com/jcalhinho/agent-observer/main/install.sh | bash
    ```
    On Windows, run the `-setup.exe` from the [Releases page](https://github.com/jcalhinho/agent-observer/releases).
-2. **Open the app.** Codex, Copilot, Antigravity, OpenCode, Qwen Code and Reasonix are picked up
+2. **Open the app.** Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix and Continue are picked up
    automatically. For **Claude Code** (and Cursor), open **Settings › Agents › Configure** and paste the
    block it shows into the agent's settings file — see [Connect your agents](#connect-your-agents).
 3. **Work as usual.** Each agent gets a bar as soon as it does something. The most urgent come first.
@@ -134,15 +135,22 @@ Check a download in PowerShell: `Get-FileHash .\Agent-Observer_*_windows-x64-set
 
 ### Linux
 
-- **Debian / Ubuntu:** `sudo apt install ./Agent-Observer_<version>_linux-x64.deb` (pulls `libwebkit2gtk-4.1-0` and `libgtk-3-0`).
+- **Debian / Ubuntu:** `sudo apt install ./Agent-Observer_<version>_linux-x64.deb` (pulls `libwebkit2gtk-4.1-0`, `libgtk-3-0` and `libayatana-appindicator3-1`).
 - **Any distribution:** `chmod +x Agent-Observer_<version>_linux-x64.AppImage && ./Agent-Observer_<version>_linux-x64.AppImage`
   (needs FUSE 2). The AppImage is built on Ubuntu 22.04 and runs on systems at least as recent.
 
 ### Homebrew (experimental)
 
-Each release carries `agent-observer.rb`, a cask for a personal tap: put it in `Casks/` of a
-`<you>/homebrew-tap` repository, then `brew install --cask <you>/tap/agent-observer`. Homebrew is
-phasing out apps that are not signed by Apple, so this may stop working until the app is signed.
+Each release carries `agent-observer.rb`, a cask for a personal tap. With a `<you>/homebrew-tap`
+repository and the `HOMEBREW_TAP_TOKEN` secret set (see [Release](#release)), publishing a release copies
+it to `Casks/` of the tap; then:
+
+```bash
+brew install --cask <you>/tap/agent-observer
+```
+
+Without the secret, copy the file to `Casks/` yourself. Homebrew is phasing out apps that are not signed
+by Apple, so this may stop working until the app is signed.
 
 ### First launch
 
@@ -151,7 +159,11 @@ the logo says **Collecting** when the local collector is listening. Then [connec
 
 ### Update and uninstall
 
-- **Update:** run the install line again, or install the new release over the old one. Your history is kept.
+- **Update:** in a release built with an update signing key, **Settings › Updates › Check** looks for a
+  newer published release, and **Install and restart** downloads it, checks its signature against the key
+  built into the app, installs it and restarts. The app contacts GitHub only when you click. Otherwise (and
+  always works): run the install line again, or install the new release over the old one. Your history is
+  kept either way.
 - **Uninstall:** delete the app (macOS: drag it to the Bin; Windows: *Settings › Apps*; Linux:
   `sudo apt remove repo-watcher-agent-observer` or delete the AppImage). To remove your data too, delete the
   folders listed in [Where your data lives](#where-your-data-lives), and remove the hooks and status line you
@@ -169,6 +181,7 @@ the logo says **Collecting** when the local collector is listening. Then [connec
 | **OpenCode** | Its SQLite database (`~/.local/share/opencode/opencode*.db`; `OPENCODE_DB` / `OPENCODE_DATA_DIR` respected), read-only. | Nothing. |
 | **Qwen Code** | Appended chat records in `~/.qwen/projects/<project>/chats`. | Nothing. |
 | **Reasonix** | Its session files in `~/.reasonix/projects/<project>/sessions/*.wire.jsonl`, read-only. | Nothing. |
+| **Continue** (VS Code) | The local logs the extension writes for each answer, model call and tool call (`~/.continue/dev_data/0.2.0/*.jsonl`; `CONTINUE_GLOBAL_DIR` respected), and the project folder of each chat from `~/.continue/sessions/<id>.json`. See [Continue](#continue). | Nothing. |
 
 On Windows, `~` is `%USERPROFILE%`. **Settings › Agents › Configure** shows, for each agent, the folder it
 reads and whether it was found.
@@ -205,15 +218,37 @@ The hooks read this installation's key from its file and forward each event to t
 (PowerShell on Windows, `python3` on macOS and Linux); they give up after 3 seconds if the app is closed.
 Cursor does not report tokens, so its bars show "not reported" for them.
 
-### Not connected yet
+### Continue
 
-Continue, Cline, Roo Code, Aider and Gemini CLI. Sessions run in a cloud agent or in a desktop app that
-keeps nothing on your computer cannot be observed. To add an agent, see
-[Add a connector](#add-a-connector).
+Continue writes three local logs, read as they grow:
+
+- `chatInteraction.jsonl` — one line per chat answer: its session and the model's title. The question and
+  the answer it also contains are never read into an event.
+- `tokensGenerated.jsonl` — one line per model call: the model and the tokens **Continue counts itself with
+  its tokenizer** (not the provider's figures), so they are marked estimated and the cost shows **≈**. A line
+  has no session: it is tied to the chat answer that follows it within 30 seconds from the same provider.
+  Autocomplete, edit and title calls are not tied to an answer and are not counted.
+- `toolUsage.jsonl` — one line per tool call: its name, whether you accepted it and whether it succeeded
+  (never its arguments or output). It has no session either: it belongs to the chat of the latest answer.
+
+Continue does not report cache reads, and nothing marks the start of a turn (your message is not in
+these logs): its turn count stays at 0 and no work time is shown.
+
+### Not connected
+
+- **Gemini CLI** — replaced by Antigravity in this app; nothing of it is read.
+- **Cline, Roo Code** — Cline is moving its task storage to a new format (its source has a reader for
+  the "pre-SDK" format next to the new one); a connector will follow once the format is settled.
+- **Aider** — it keeps a chat history file in each repository, with no common place to watch.
+
+Sessions run in a cloud agent or in a desktop app that keeps nothing on your computer cannot be observed.
+To add an agent, see [Add a connector](#add-a-connector).
 
 ## What you see
 
 ### The screen
+
+<img src="docs/media/screen.png" alt="The whole window: alerts, totals, one bar per agent, the status bar" width="900">
 
 - **Top bar** — the collector status, the counts (**working**, **need you**), today's spend against your
   daily budget when you set one, and four buttons: **light / dark theme**, **history**, **settings**,
@@ -222,7 +257,8 @@ keeps nothing on your computer cannot be observed. To add an agent, see
   over its limit, two agents editing the same file or working in the same folder (with a link to open it).
 - **Totals strip** — the latest session of each agent added up: tokens, cache hit rate, estimated cost,
   what the cache saved, tool calls (with failures and files edited).
-- **Filter** — **All / Active / Need you**.
+- **Filter** — **All / Active / Need you**, and **By project**: the bars grouped under the name of their
+  project folder, in the same order (remembered).
 - **One bar per agent**, the most urgent first (going in circles, blocked, silent, waiting for you,
   working, idle). Click a bar, or press Enter on it, to open its detail.
 - **Status bar** — always at the bottom (see below).
@@ -274,9 +310,12 @@ Click a bar. The panel opens with:
 3. **Session overview**, where every figure has its definition underneath: requests, tokens in and out,
    cache hit with the exact hit and miss counts, work time, estimated cost, context window.
 4. **Session**: last activity, duration, turns, events, files edited, tool failures.
-5. **Tokens, cache and cost**: the full breakdown, the cost without cache, what the cache saved, and the
+5. **Earlier sessions**: the 20 most recent before this one, read from the local database — when each
+   started, how long it ran (first to last event), its project, tool calls and failures, tokens and
+   estimated cost.
+6. **Tokens, cache and cost**: the full breakdown, the cost without cache, what the cache saved, and the
    price table behind the estimate.
-6. **Cache trend**, **pace**, **context curve** (with compactions), **models**, a **table of tools**, the
+7. **Cache trend**, **pace**, **context curve** (with compactions), **models**, a **table of tools**, the
    **files touched** (read or edited) and a **timeline** of the latest actions.
 
 <img src="docs/media/detail.png" alt="The detail panel of one agent" width="900">
@@ -301,7 +340,9 @@ The clock button in the top bar. Choose **Today, 7, 30 or 90 days**:
 - **Breakdown by agent, model or project.**
 
 Days with usage but no priced cost are flagged: they are not free days, their model is just not in the
-price table. History reads the local database; its depth is your retention setting.
+price table. History asks the local database for what it adds up (events with tokens, tool failures, and
+one row per session and quarter of an hour to count sessions), not every event; its depth is your
+retention setting.
 
 ### Column mode and theme
 
@@ -310,6 +351,13 @@ price table. History reads the local database; its depth is your retention setti
   the full window back, at its previous size and place. The app remembers the mode for the next launch.
 - **Light / dark theme** — the sun / moon button. The light theme is a light grey, with no white background.
   The choice is remembered.
+
+### Menu bar / notification area
+
+The app puts an icon in the macOS menu bar, the Windows notification area or the Linux tray. On macOS and
+Linux it shows how many agents need you (nothing when none do); its tooltip and menu say the same in
+words, and the menu opens the window or quits the app. On Linux it needs `libayatana-appindicator3`; without
+it the app runs without the icon.
 
 ## Reading the numbers
 
@@ -330,9 +378,9 @@ shows **≥**.
 | **This turn** | Estimated cost since the start of the open turn. |
 | **Context** | What the next request would carry (the latest prompt size) ÷ the model's context window. Amber from 80 %, red from 95 %. The window comes from the agent when it reports it, otherwise from a table of documented models; for an unknown model no percentage is shown. |
 | **Compactions** | How many times the agent shrank its context. |
-| **Turns** | Messages you sent (Codex: its turn markers; Cursor: its `stop` events). |
+| **Turns** | Messages you sent (Codex: its turn markers; Cursor: its `stop` events; Continue: not reported, 0). |
 | **Requests** | Model responses that reported their usage. |
-| **Work time** | The sum of the turns, from each message to the last activity before the next one: tool and approval waits included, pauses between turns not. Not shown for Cursor (no turn marker). |
+| **Work time** | The sum of the turns, from each message to the last activity before the next one: tool and approval waits included, pauses between turns not. Not shown for Cursor and Continue (no turn marker). |
 | **Duration** | Wall-clock time between the first and the last event of the session. |
 | **Files edited** | Distinct files changed by an edit / write / patch tool or reported as changed. |
 
@@ -380,6 +428,8 @@ The gear button opens a panel; `Esc` or a click outside closes it.
 | **How long** | Retention: 7 days, 30 days (default), 90 days, 1 year or keep everything. Older events are purged at startup and every hour. |
 | **My data** | **Export** your whole history to a `.json` file (an array of events); **erase** it. |
 | **Language** | System language, English or French. |
+| **Updates** | Only in a release built with an update signing key: the installed version, **Check**, then **Install and restart**. |
+| **Diagnostic** | For each agent, where its connector reads and whether that place exists, how many events it brought since launch and when the last one arrived; the collector, the local database (size, events, dates, retention) and the requests the collector refused. **Copy diagnostic** puts it in a text for a bug report, with your home folder replaced by `~` and no message or command in it. |
 
 ## For your agents: a read-only MCP server
 
@@ -438,7 +488,9 @@ server) and **Cursor** hooks. Agents observed by reading files cannot be followe
 
 ## Privacy and data
 
-Everything stays on your computer. The app makes **no network request of its own**. On `127.0.0.1`
+Everything stays on your computer. The app makes **no network request of its own**, except, in a release
+built with an update signing key, the update check and download you start from **Settings › Updates**
+(GitHub only). On `127.0.0.1`
 only, with a per-installation key, it receives hooks (Claude Code, Cursor) and the optional Claude Code
 status line, and answers the read-only activity summary used by the MCP server. It runs read-only
 `git status` and `git log` in the project folders of your agents (with `core.fsmonitor` off, no optional
@@ -470,9 +522,11 @@ read-only activity summary also refuses any request that comes from a web page. 
 
 ## Troubleshooting
 
-**An agent does not show up.** Open **Settings › Agents › Configure** next to it: it says which folder the app reads and whether
-it was found. Run the agent once, and send it a message: readers only see *new* activity. For Claude Code
-and Cursor, check that the hooks block is merged in the right file and that the app was open.
+**An agent does not show up.** Open **Settings › Diagnostic**: for each agent it says which folder the app
+reads, whether it was found, and how many events arrived since launch; a count of refused requests means
+hooks are sent with a wrong or missing key (copy the block again). Run the agent once, and send it a
+message: readers only see *new* activity. For Claude Code and Cursor, check that the hooks block is merged
+in the right file and that the app was open. **Copy diagnostic** gives a text to paste in a bug report.
 
 **Claude Code shows up, but without tokens.** Tokens come from its transcripts in `~/.claude/projects`
 (or `CLAUDE_CONFIG_DIR`). If the agent runs on another machine, its tokens are not visible.
@@ -543,21 +597,31 @@ cargo test --workspace --locked
 Build the interface once before `cargo clippy` / `cargo test`, otherwise Tauri stops with
 *"frontendDist … doesn't exist"*.
 
+**End-to-end (Linux, also in CI).** `bash apps/desktop/scripts/e2e.sh target/debug/repowatcher-agent-observer`
+starts the real app under Xvfb in a throw-away home folder, sends it hooks and a status line, writes a Codex
+log, and checks the collector, the key, the activity summary (no prompt text in it, web pages refused) and
+the MCP server. It needs `xvfb`, `curl` and Node.
+
 ### Project layout
 
 ```
 apps/desktop/
   src/ui/                 React interface: App.tsx (the screen), AgentBar.tsx, AgentDetail.tsx, History.tsx,
-                          SettingsPanel.tsx; pure logic with Vitest tests next to it: agentPulse.ts (states),
-                          loopDetector.ts, contextUsage.ts, sessionSummary.ts, insights.ts (cache, cost),
-                          analysis.ts (collisions, pace, budget, days), limitsView.ts, pricing.ts, i18n.ts
+                          SettingsPanel.tsx (with DiagnosticSection.tsx, UpdatesSection.tsx); pure logic with
+                          Vitest tests next to it: agentPulse.ts (states), loopDetector.ts, contextUsage.ts,
+                          sessionSummary.ts, insights.ts (cache, cost), analysis.ts (collisions, pace, budget,
+                          days), pastSessions.ts, projectGroups.ts, diagnosticView.ts, limitsView.ts,
+                          notifyRules.ts, pricing.ts, i18n.ts
+  scripts/e2e.sh          the end-to-end test of the real app (Linux, Xvfb)
   src-tauri/src/          Rust: main.rs (collector, SQLite store, commands), one reader per agent
                           (claude_transcripts.rs, codex_rollout.rs, copilot_sessions.rs, copilot_chat.rs,
-                          antigravity_sessions.rs, opencode_sessions.rs, qwen_sessions.rs, reasonix_sessions.rs),
-                          limits.rs, activity.rs, git_info.rs, redact.rs
+                          antigravity_sessions.rs, opencode_sessions.rs, qwen_sessions.rs, reasonix_sessions.rs,
+                          continue_sessions.rs), limits.rs, activity.rs, git_info.rs, redact.rs,
+                          diagnostics.rs (counts for the diagnostic), tray.rs (menu bar icon)
 crates/session-events/    the provider-neutral event model shared by every reader
 tools/mcp/                the read-only MCP server and its tests
 packaging/homebrew/       the cask generator used by the release workflow
+packaging/updater/        writes the latest.json of the in-app updater
 install.sh                the one-line installer
 docs/                     CONNECTORS (add an agent), DESIGN (UI rules), REMOTE, WINDOWS, media
 ```
@@ -607,10 +671,20 @@ page and the date you read it — see [CONTRIBUTING.md](CONTRIBUTING.md).
 2. Tag it and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z` (the tag must match the version).
 3. The *Release* workflow builds macOS (arm64, x64), Windows and Linux, writes `SHA256SUMS.txt`, the
    Homebrew cask and attaches the MCP server, and opens a **draft** release.
-4. **Publish** the draft: `install.sh` and `releases/latest` only see published releases.
+4. **Publish** the draft: `install.sh`, `releases/latest` and the in-app updater only see published releases.
+   Publishing also runs the *Homebrew tap* workflow.
 
-Signing is switched on by repository secrets (Apple Developer ID and notarization, Windows certificate):
-see the header of [`.github/workflows/release.yml`](.github/workflows/release.yml).
+Everything below is optional and switched on by repository secrets and variables:
+
+| What | Set | Effect |
+| --- | --- | --- |
+| In-app updates | secret `TAURI_SIGNING_PRIVATE_KEY` (+ `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if it has one), variable `TAURI_UPDATER_PUBKEY` — make the pair with `npx tauri signer generate -w ~/.tauri/agent-observer.key` | The builds sign their update files, the release gets a `latest.json`, and the app shows **Settings › Updates**. Keep the private key safe: losing it means users must reinstall by hand once. |
+| Homebrew tap | secret `HOMEBREW_TAP_TOKEN` (fine-grained, *Contents: read and write* on the tap only); variable `HOMEBREW_TAP_REPO` if the tap is not `<owner>/homebrew-tap` | Publishing a release copies its cask to `Casks/agent-observer.rb` in the tap. |
+| macOS signing | Apple Developer ID and notarization secrets | Signed and notarized app. |
+| Windows signing | certificate secrets | Signed installers. |
+
+The headers of [`.github/workflows/release.yml`](.github/workflows/release.yml) and
+[`.github/workflows/homebrew.yml`](.github/workflows/homebrew.yml) list every name.
 
 ## Contributing
 

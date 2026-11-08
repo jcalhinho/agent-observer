@@ -24,7 +24,7 @@ export type Collision = {
   lastAt: number;
 };
 
-export const COLLISION_WINDOW_MS = 20 * 60_000;
+const COLLISION_WINDOW_MS = 20 * 60_000;
 const REPO_ACTIVE_MS = 10 * 60_000;
 
 /** Un dossier trop général (`/`, `~`) ne dit rien d'un dépôt partagé. */
@@ -137,7 +137,7 @@ export type Burn = {
   usdPerHour: number | null;
 };
 
-export const BURN_WINDOW_MS = 15 * 60_000;
+const BURN_WINDOW_MS = 15 * 60_000;
 
 /**
  * Le rythme sur les 15 dernières minutes (ou depuis le début de la session si elle est plus jeune).
@@ -166,7 +166,7 @@ export function costSince(events: SummaryEvent[], since: number): Spend | null {
 /* ------------------------------------------------------------------ budget */
 
 export type BudgetState = "none" | "ok" | "near" | "over";
-export const NEAR_BUDGET = 0.8;
+const NEAR_BUDGET = 0.8;
 
 export function budgetState(spent: number | null, limit: number | null): BudgetState {
   if (!limit || limit <= 0 || spent === null) return "none";

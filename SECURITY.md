@@ -42,6 +42,10 @@ In scope — please report:
 - **The desktop shell**: Tauri capability or CSP weaknesses, script injection in the UI from
   observed data (file names, tool names, prompts).
 - **Release integrity**: problems with how installers and checksums are built and published.
+- **In-app updates** (releases built with an update signing key): installing an update that is not
+  signed by the project's key, downgrades, or the check being made without the user clicking it.
+- **The diagnostic** (*Settings › Diagnostic*, *Copy diagnostic*): private text or an unmasked home folder
+  in the copied text.
 
 Out of scope:
 
@@ -54,6 +58,9 @@ Out of scope:
 
 ## How Agent Observer limits exposure
 
+- The app makes no network request of its own; in a release built with an update signing key, the
+  update check runs only when the user clicks **Check**, and an update is installed only if its minisign
+  signature matches the public key built into the app.
 - The collector binds to the loopback interface only and requires a random per-installation
   bearer token on every request, compared without early exit. `GET /v1/activity` also refuses any
   request carrying an `Origin` header (a web page), and only returns metadata: never prompt text,

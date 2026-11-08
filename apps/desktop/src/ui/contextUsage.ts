@@ -14,7 +14,7 @@ export type ContextEvent = {
   context_window?: { value: number } | null;
 };
 
-export type ContextState = "ok" | "warn" | "full" | "unknown";
+type ContextState = "ok" | "warn" | "full" | "unknown";
 
 export type ContextUsage = {
   /** Tokens in the latest request of the latest session. */
@@ -35,8 +35,8 @@ export type ContextUsage = {
   windowSource: "reported" | "table" | "observed" | null;
 };
 
-export const WARN_AT = 0.8;
-export const FULL_AT = 0.95;
+const WARN_AT = 0.8;
+const FULL_AT = 0.95;
 const MAX_POINTS = 30;
 const COMPACTION_DROP = 0.6;
 const COMPACTION_MIN = 30_000;

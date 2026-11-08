@@ -73,7 +73,7 @@ export function tokenSegments(pulse: AgentPulse): Segment[] {
   ];
 }
 
-export function modelTitle(pulse: AgentPulse, configured: string | null | undefined) {
+function modelTitle(pulse: AgentPulse, configured: string | null | undefined) {
   if (pulse.modelsSeen.length > 1) return t(`Modèle de la dernière réponse. Dans cette session : ${pulse.modelsSeen.join(", ")}.`, `Model of the latest response. In this session: ${pulse.modelsSeen.join(", ")}.`);
   if (pulse.model) return t("Modèle de la dernière réponse", "Model of the latest response");
   return configured ? t("Modèle choisi dans les réglages de l’agent ; aucune réponse encore observée", "Model selected in the agent’s settings; no response observed yet") : "";

@@ -17,7 +17,7 @@
 // - Cache prices apply only to tokens a connector reports apart as cache
 //   reads or writes; connectors report uncached input in `input_tokens`.
 
-export type PriceTier = {
+type PriceTier = {
   /**
    * Highest prompt size (uncached input + cache reads + cache writes of one
    * request) this tier applies to; absent on an open-ended last tier. Vendors
@@ -32,7 +32,7 @@ export type PriceTier = {
 };
 
 /** Discount applied outside peak hours (DeepSeek). Public holidays are not modelled: they count as peak. */
-export type OffPeakRule = {
+type OffPeakRule = {
   multiplier: number;
   /** Peak windows as [start, end) UTC hours, Monday to Friday. */
   peakHoursUtc: Array<[number, number]>;

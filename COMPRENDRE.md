@@ -38,8 +38,9 @@ fichiers, en lecture seule.
 
 - **Claude Code** pousse ses événements par des hooks, vers un petit serveur
   local protégé par un jeton.
-- **Les six autres** (Codex, Copilot, Antigravity, Qwen Code, OpenCode,
-  Reasonix) sont lus depuis leurs fichiers de session, surveillés en continu.
+- **Les sept autres** (Codex, Copilot, Antigravity, Qwen Code, OpenCode,
+  Reasonix, Continue) sont lus depuis leurs fichiers de session ou journaux,
+  surveillés en continu.
 - **Cursor** passe aussi par un hook.
 
 ## Où est quoi
@@ -48,11 +49,13 @@ fichiers, en lecture seule.
 
 | Fichier | Rôle |
 |---|---|
-| `claude_transcripts.rs`, `codex_rollout.rs`, `copilot_sessions.rs`, `antigravity_sessions.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`, `reasonix_sessions.rs` | un lecteur par agent, c'est le cœur du projet |
+| `claude_transcripts.rs`, `codex_rollout.rs`, `copilot_sessions.rs`, `copilot_chat.rs`, `antigravity_sessions.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`, `reasonix_sessions.rs`, `continue_sessions.rs` | un lecteur par agent, c'est le cœur du projet |
 | `main.rs` | le serveur local, la base SQLite, les commandes de l'interface |
 | `limits.rs` | les limites d'abonnement rapportées par Codex et Claude Code |
 | `activity.rs` | le résumé d'activité en lecture seule (pour le serveur MCP) |
 | `git_info.rs` | l'état git d'un dossier, en lecture seule |
+| `diagnostics.rs` | les compteurs du diagnostic (événements par agent, requêtes refusées) |
+| `tray.rs` | l'icône de la barre des menus et son menu |
 | `models.rs` | le modèle configuré pour chaque agent |
 | `redact.rs` | le nettoyage des messages d'erreur |
 | `procs.rs` | les processus locaux et leurs ports |
@@ -68,7 +71,11 @@ lecteurs remplissent. Si tu ne lis qu'un fichier du projet, lis celui-là.
 | `App.tsx` | l'écran unique : la barre du haut, les alertes, les barres, la barre d'état |
 | `AgentBar.tsx` | la barre d'un agent |
 | `AgentDetail.tsx` | le panneau de détail d'un agent |
-| `History.tsx` | l'historique par jour |
+| `History.tsx` | l'historique par jour (`useHistory.ts` : la requête filtrée à la base) |
+| `pastSessions.ts` | les sessions précédentes d'un agent, dans son détail |
+| `projectGroups.ts` | le rangement des barres par projet |
+| `DiagnosticSection.tsx`, `diagnosticView.ts` | le diagnostic des réglages et son texte à copier |
+| `UpdatesSection.tsx` | la mise à jour intégrée (versions signées seulement) |
 | `analysis.ts` | collisions, rythme, budget, totaux par jour |
 | `limitsView.ts` | l'affichage des limites d'abonnement |
 | `SettingsPanel.tsx` | le panneau des réglages et des connecteurs |

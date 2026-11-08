@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-08
+
+### Added
+- **Continue connector** (VS Code). The app reads the local logs Continue writes for each chat answer, model
+  call and tool call (`~/.continue/dev_data/0.2.0/*.jsonl`, `CONTINUE_GLOBAL_DIR` respected), and the project
+  folder of each chat from `~/.continue/sessions/<id>.json`. Tokens are the ones Continue counts with its own
+  tokenizer, so they are marked estimated; autocomplete is not counted. The text of questions, answers and
+  tools is never read into an event. The format comes from Continue's source (`core/data/log.ts` and the 0.2.0
+  schemas), with fixtures in the tests.
+- **Menu bar / notification area icon** with the number of agents that need you (macOS and Linux show the
+  number next to the icon); its menu opens the window or quits. On Linux it needs `libayatana-appindicator3`,
+  which the `.deb` now declares; without it the app runs without the icon.
+- **Settings › Diagnostic**: for each agent, where its connector reads and whether that place exists, the
+  events it brought since launch and when the last one arrived; the collector, the local database (size,
+  events, dates, retention) and the requests the collector refused. **Copy diagnostic** gives a text for a bug
+  report, home folder replaced by `~`, no message or command.
+- **Earlier sessions** in an agent's detail: its 20 most recent sessions from the local database, with start,
+  span, project, tool calls and failures, tokens and estimated cost.
+- **By project**: a button groups the bars under the name of their project folder, in the same order.
+- **In-app updates, for signed releases.** When the release is built with an update signing key
+  (`TAURI_SIGNING_PRIVATE_KEY` secret and `TAURI_UPDATER_PUBKEY` variable), Settings › Updates checks for a
+  newer published release when you click, verifies its signature, installs it and restarts. The release gets a
+  `latest.json` (`packaging/updater/render-latest-json.sh`). Without the key nothing changes.
+- **Homebrew tap, automated.** With a `HOMEBREW_TAP_TOKEN` secret, publishing a release copies its cask to
+  `Casks/agent-observer.rb` of `<owner>/homebrew-tap` (`.github/workflows/homebrew.yml`).
+- **End-to-end test** of the real app in CI (Linux, under Xvfb): `apps/desktop/scripts/e2e.sh` checks the
+  hooks, the key, the status line, the Codex limits, the activity summary and the MCP server.
+- An animated demo at the top of the READMEs (`docs/media/demo.gif`).
+
+### Changed
+- **History is computed from a filtered database query** (`load_history`): only events that carry tokens,
+  tool failures, and one row per session and quarter of an hour to count sessions, instead of reading up to
+  30,000 events page by page. A database index makes per-agent session lookups fast.
+- Screenshots redone for the new screen.
+
+### Fixed
+- When alerts were shown, the filter bar slipped under the agent bars. The window is now a column where only
+  the board takes the remaining height.
+- In English, durations of a day or more read "2 d 3 h" (they read "2 j 3 h").
+- `package-lock.json` no longer lists the 3D packages removed in 0.13.
+
+### Removed
+- `export` on helpers and types used only inside their own file.
+
 ## [0.13.4] - 2026-11-08
 
 ### Added
@@ -583,5 +627,6 @@ First public version.
 - Workspaces, Git repositories and agent databases are only ever read, never written.
 - Agent responses, reasoning, tool outputs and file contents are never persisted.
 
-[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/jcalhinho/agent-observer/compare/v0.13.4...v0.14.0
 [0.1.0]: https://github.com/jcalhinho/agent-observer/releases/tag/v0.1.0

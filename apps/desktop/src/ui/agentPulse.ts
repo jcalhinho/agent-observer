@@ -18,7 +18,7 @@ export type PulseStatus = "looping" | "blocked" | "stalled" | "waiting" | "worki
 
 const PULSE_ORDER: PulseStatus[] = ["looping", "blocked", "stalled", "waiting", "working", "idle", "never"];
 
-export type PulseAction = Narration & { id: string; at: number };
+type PulseAction = Narration & { id: string; at: number };
 
 export type AgentPulse = {
   key: string;

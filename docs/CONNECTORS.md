@@ -1,8 +1,8 @@
 # Connecting an agent
 
 Agent Observer ships with built-in connectors for Claude Code, Codex, Antigravity, GitHub Copilot, OpenCode,
-Qwen Code, Reasonix and Cursor (Gemini CLI is no longer observed: Antigravity replaces it, and nothing of Gemini
-CLI is read any more). A new agent is added as a built-in connector, in Rust.
+Qwen Code, Reasonix, Cursor and Continue (Gemini CLI is no longer observed: Antigravity replaces it, and nothing
+of Gemini CLI is read any more). A new agent is added as a built-in connector, in Rust.
 
 > The open local API (`POST /v1/events` and custom connectors) was removed in 0.13 with the move to a
 > single screen. The collector now only accepts the hooks of Claude Code and Cursor, the optional Claude
@@ -12,8 +12,8 @@ CLI is read any more). A new agent is added as a built-in connector, in Rust.
 ## Built-in connector (Rust)
 
 Built-in connectors live in `apps/desktop/src-tauri/src/`, one module per agent
-(`codex_rollout.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`,
-`claude_transcripts.rs`). They follow the same pattern:
+(`codex_rollout.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`, `continue_sessions.rs`,
+`claude_transcripts.rs`…). They follow the same pattern:
 
 1. **Find the data the agent already writes** (logs, local database) or receives (hooks). Never
    change the agent's settings; read-only access.
@@ -26,7 +26,12 @@ Built-in connectors live in `apps/desktop/src-tauri/src/`, one module per agent
 5. **Spawn the monitor** in `main.rs` and add the agent to `Provider` in `crates/session-events`
    and to the provider table in `apps/desktop/src/ui/providers.ts` (keys must match — a test checks it).
 6. **Test with fixtures** built in the test (see the `tests` modules of existing connectors) and
-   check the projection on real local data without printing its content.
+   check the projection on real local data without printing its content. Write the fixtures from the
+   agent's **official source code** (its log writer, its schema), and say in the module comment which
+   files of that source the format comes from — as `continue_sessions.rs` does.
+7. **Show it**: add the setup command (`<agent>_setup`, returning the folder read and whether it exists)
+   so **Settings › Agents › Configure** and **Settings › Diagnostic** can say where the connector reads.
+   A new colour in `activeProviders` must pass the palette validator (see the comment there).
 
 Pull requests adding a connector should state which agent versions were tested and what the
 connector cannot observe.

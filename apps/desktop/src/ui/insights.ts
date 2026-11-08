@@ -40,7 +40,7 @@ export function duration(ms: number) {
 }
 
 /** Tokens du prompt, cache compris. */
-export function promptTokens(tokens: TokenTotals): number {
+function promptTokens(tokens: TokenTotals): number {
   return (tokens.input ?? 0) + (tokens.cacheRead ?? 0) + (tokens.cacheWrite ?? 0);
 }
 
