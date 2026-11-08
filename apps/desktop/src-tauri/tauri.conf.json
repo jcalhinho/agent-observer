@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "RepoWatcher Agent Observer",
+  "productName": "Agent Observer",
   "version": "0.14.0",
   "identifier": "dev.repowatcher.agentobserver",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "RepoWatcher · Agent Observer",
+        "title": "Agent Observer",
         "width": 1440,
         "height": 920,
         "minWidth": 1120,
@@ -32,10 +32,20 @@
     "category": "DeveloperTool",
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerHooks": "windows/installer-hooks.nsh"
+      },
+      "wix": {
+        "upgradeCode": "d8a27f53-b00a-59b4-b6e4-2dcfa0ec1e65"
       }
     },
-    "shortDescription": "Suivi local des sessions d'agents IA",
-    "longDescription": "Visualisez les sessions, commandes, tokens et changements de vos agents de code."
+    "linux": {
+      "deb": {
+        "conflicts": ["repo-watcher-agent-observer"],
+        "replaces": ["repo-watcher-agent-observer"]
+      }
+    },
+    "shortDescription": "Local dashboard of what your AI coding agents are doing",
+    "longDescription": "One private screen for Claude Code, Codex, Copilot, Cursor, Continue and other coding agents: who needs you, who is looping, tokens, cache, cost and context."
   }
 }

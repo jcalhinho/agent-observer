@@ -79,7 +79,7 @@ it against the release's `SHA256SUMS.txt`, and installs it:
 
 | System | Installed to | What it does |
 | --- | --- | --- |
-| macOS (Apple Silicon or Intel) | `/Applications/RepoWatcher Agent Observer.app` | Mounts the `.dmg`, closes a running copy, replaces the app, opens it. |
+| macOS (Apple Silicon or Intel) | `/Applications/Agent Observer.app` | Mounts the `.dmg`, closes a running copy, replaces the app, opens it. |
 | Linux x86_64 | `~/.local/bin/agent-observer` | Installs the AppImage (needs FUSE 2: `libfuse2` on Ubuntu). |
 
 Options, as environment variables: `AGENT_OBSERVER_VERSION=0.13.3` (a given version),
@@ -110,7 +110,7 @@ From the [Releases page](https://github.com/jcalhinho/agent-observer/releases); 
 
 ### macOS
 
-1. Open the `.dmg` and drag **RepoWatcher Agent Observer** into **Applications**.
+1. Open the `.dmg` and drag **Agent Observer** into **Applications**.
 2. Open it once from **Applications**. macOS says it cannot verify the developer.
 3. Allow it:
    - **macOS 15 Sequoia and later:** click **Done**, open **System Settings → Privacy & Security**,
@@ -121,7 +121,7 @@ If macOS says the app **"is damaged and can't be opened"**, it is the download q
 unsigned app, not actual damage:
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/RepoWatcher Agent Observer.app"
+xattr -dr com.apple.quarantine "/Applications/Agent Observer.app"
 ```
 
 ### Windows
@@ -164,8 +164,13 @@ the logo says **Collecting** when the local collector is listening. Then [connec
   built into the app, installs it and restarts. The app contacts GitHub only when you click. Otherwise (and
   always works): run the install line again, or install the new release over the old one. Your history is
   kept either way.
+- **The former name.** Before 0.15 the app was called *RepoWatcher Agent Observer*. Updating keeps your
+  settings and history (they are stored under the same identifier) and replaces the former copy: the install
+  line removes it on macOS, Homebrew replaces it, the `.deb` replaces the former package, and the Windows
+  installers remove it. If you installed it by hand on macOS, delete `RepoWatcher Agent Observer` from
+  *Applications*.
 - **Uninstall:** delete the app (macOS: drag it to the Bin; Windows: *Settings › Apps*; Linux:
-  `sudo apt remove repo-watcher-agent-observer` or delete the AppImage). To remove your data too, delete the
+  `sudo apt remove agent-observer` or delete the AppImage). To remove your data too, delete the
   folders listed in [Where your data lives](#where-your-data-lives), and remove the hooks and status line you
   added to your agents' settings.
 

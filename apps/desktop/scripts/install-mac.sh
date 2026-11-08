@@ -4,7 +4,8 @@
 # Only the .app bundle is built: the .dmg step is not needed for a local install.
 set -euo pipefail
 
-APP_NAME="RepoWatcher Agent Observer"
+APP_NAME="Agent Observer"
+LEGACY_APP="/Applications/RepoWatcher Agent Observer.app"   # the name before 0.15
 DEST="/Applications/${APP_NAME}.app"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 TARGET_DIR="${CARGO_TARGET_DIR:-${ROOT}/target}"
@@ -40,9 +41,19 @@ if pgrep -f "${DEST}/Contents/MacOS/" >/dev/null; then
   fi
 fi
 
+# The copy installed under the former name is the same app (same settings and history).
+if pgrep -f "${LEGACY_APP}/Contents/MacOS/" >/dev/null; then
+  osascript -e 'quit app "RepoWatcher Agent Observer"' >/dev/null 2>&1 || true
+  sleep 2
+fi
+
 echo "→ Installation dans ${DEST}"
 rm -rf "${DEST}"
 ditto "${BUILT}" "${DEST}"
+if [[ -d "${LEGACY_APP}" ]]; then
+  rm -rf "${LEGACY_APP}"
+  echo "→ Ancienne copie supprimée : ${LEGACY_APP}"
+fi
 
 if [[ "${OPEN}" == 1 ]]; then
   open "${DEST}"

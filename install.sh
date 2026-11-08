@@ -14,7 +14,9 @@
 set -euo pipefail
 
 REPO="${AGENT_OBSERVER_REPO:-jcalhinho/agent-observer}"
-APP_NAME="RepoWatcher Agent Observer"
+APP_NAME="Agent Observer"
+# Releases before 0.15 named the app "RepoWatcher Agent Observer": that copy is replaced.
+LEGACY_APP_NAME="RepoWatcher Agent Observer"
 DRY_RUN="${AGENT_OBSERVER_DRY_RUN:-0}"
 
 say() { printf '%s\n' "$*"; }
@@ -95,25 +97,38 @@ say "Checksum OK."
 
 # --- install ---------------------------------------------------------------------------------
 if [[ "$os" == "Darwin" ]]; then
-  dest="/Applications/${APP_NAME}.app"
   mounted="$(mktemp -d)"
   hdiutil attach "$work/$asset" -nobrowse -readonly -quiet -mountpoint "$mounted" || fail "could not open the disk image"
-  source_app="$mounted/${APP_NAME}.app"
+  # The disk image of an older release still holds the former name.
+  name="$APP_NAME"
+  [[ -d "$mounted/${name}.app" ]] || name="$LEGACY_APP_NAME"
+  source_app="$mounted/${name}.app"
   [[ -d "$source_app" ]] || fail "the disk image does not contain ${APP_NAME}.app"
+  dest="/Applications/${name}.app"
 
-  # Two copies cannot share the collector port: close the running one first.
-  if pgrep -f "${dest}/Contents/MacOS/" >/dev/null 2>&1; then
+  # Two copies cannot share the collector port: close the running ones first (either name).
+  for running in "$APP_NAME" "$LEGACY_APP_NAME"; do
+    installed="/Applications/${running}.app"
+    pgrep -f "${installed}/Contents/MacOS/" >/dev/null 2>&1 || continue
     say "Closing the running copy…"
-    osascript -e "quit app \"${APP_NAME}\"" >/dev/null 2>&1 || true
+    osascript -e "quit app \"${running}\"" >/dev/null 2>&1 || true
     for _ in $(seq 1 20); do
-      pgrep -f "${dest}/Contents/MacOS/" >/dev/null 2>&1 || break
+      pgrep -f "${installed}/Contents/MacOS/" >/dev/null 2>&1 || break
       sleep 0.5
     done
-    pgrep -f "${dest}/Contents/MacOS/" >/dev/null 2>&1 && fail "quit ${APP_NAME} and run this script again."
-  fi
+    pgrep -f "${installed}/Contents/MacOS/" >/dev/null 2>&1 && fail "quit ${running} and run this script again."
+  done
 
   rm -rf "$dest"
   ditto "$source_app" "$dest"
+  # The copy under the other name is the same app (same settings and history): remove it.
+  for other in "$APP_NAME" "$LEGACY_APP_NAME"; do
+    [[ "$other" == "$name" ]] && continue
+    if [[ -d "/Applications/${other}.app" ]]; then
+      rm -rf "/Applications/${other}.app"
+      say "Removed the former copy: /Applications/${other}.app"
+    fi
+  done
   # curl does not mark downloads as quarantined; clear the flag anyway in case a copy was.
   xattr -dr com.apple.quarantine "$dest" 2>/dev/null || true
   say "Installed: $dest"

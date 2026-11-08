@@ -79,7 +79,7 @@ publiée**, le vérifie avec le `SHA256SUMS.txt` de la version, puis l'installe 
 
 | Système | Installé dans | Ce qu'il fait |
 | --- | --- | --- |
-| macOS (Apple Silicon ou Intel) | `/Applications/RepoWatcher Agent Observer.app` | Monte le `.dmg`, ferme la copie en cours, remplace l'app, l'ouvre. |
+| macOS (Apple Silicon ou Intel) | `/Applications/Agent Observer.app` | Monte le `.dmg`, ferme la copie en cours, remplace l'app, l'ouvre. |
 | Linux x86_64 | `~/.local/bin/agent-observer` | Installe l'AppImage (demande FUSE 2 : `libfuse2` sous Ubuntu). |
 
 Options, en variables d'environnement : `AGENT_OBSERVER_VERSION=0.13.3` (une version précise),
@@ -110,7 +110,7 @@ Sur la [page des versions](https://github.com/jcalhinho/agent-observer/releases)
 
 ### macOS
 
-1. Ouvre le `.dmg` et glisse **RepoWatcher Agent Observer** dans **Applications**.
+1. Ouvre le `.dmg` et glisse **Agent Observer** dans **Applications**.
 2. Ouvre-la une fois depuis **Applications**. macOS dit qu'il ne peut pas vérifier le développeur.
 3. Autorise-la :
    - **macOS 15 Sequoia et suivants :** clique sur **Terminé**, ouvre **Réglages Système → Confidentialité
@@ -121,7 +121,7 @@ Si macOS dit que l'app **« est endommagée et ne peut pas être ouverte »**, c
 d'une app non signée, pas un vrai dommage :
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/RepoWatcher Agent Observer.app"
+xattr -dr com.apple.quarantine "/Applications/Agent Observer.app"
 ```
 
 ### Windows
@@ -165,8 +165,13 @@ du logo indique **Collecte active** quand le collecteur local écoute. Ensuite, 
   la télécharge, vérifie sa signature avec la clé intégrée à l'app, l'installe et relance l'app. L'app ne
   contacte GitHub que quand tu cliques. Sinon (et ça marche toujours) : relance la ligne d'installation, ou
   installe la nouvelle version par-dessus. Ton historique est gardé dans les deux cas.
+- **L'ancien nom.** Avant la 0.15, l'app s'appelait *RepoWatcher Agent Observer*. La mise à jour garde tes
+  réglages et ton historique (ils sont rangés sous le même identifiant) et remplace l'ancienne copie : la ligne
+  d'installation la supprime sous macOS, Homebrew la remplace, le `.deb` remplace l'ancien paquet, et les
+  installateurs Windows la désinstallent. Si tu l'avais installée à la main sous macOS, supprime
+  `RepoWatcher Agent Observer` des *Applications*.
 - **Désinstaller :** supprime l'app (macOS : glisse-la dans la Corbeille ; Windows : *Paramètres › Applications* ;
-  Linux : `sudo apt remove repo-watcher-agent-observer` ou supprime l'AppImage). Pour effacer aussi tes données,
+  Linux : `sudo apt remove agent-observer` ou supprime l'AppImage). Pour effacer aussi tes données,
   supprime les dossiers listés dans [Où sont tes données](#où-sont-tes-données), et retire les hooks et la barre
   d'état ajoutés aux réglages de tes agents.
 

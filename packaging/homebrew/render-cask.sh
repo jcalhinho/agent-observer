@@ -31,13 +31,13 @@ cask "agent-observer" do
 
   depends_on macos: ">= :big_sur"
 
-  app "RepoWatcher Agent Observer.app"
+  app "Agent Observer.app"
 
   # The app is not signed with an Apple Developer ID yet: without this, Gatekeeper refuses to
   # open it after a Homebrew install.
   postflight do
     system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/RepoWatcher Agent Observer.app"]
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Agent Observer.app"]
   end
 
   zap trash: [

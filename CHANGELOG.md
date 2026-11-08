@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   read). Every Monday the DriftGuard job fails if one changed since `.driftguard.lock.json`.
 
 ### Changed
+- **The app is now called Agent Observer** (it was *RepoWatcher Agent Observer*): app name, window, installers,
+  menu entries. The identifier (`dev.repowatcher.agentobserver`) and the binary name do not change, so settings
+  and history are kept. The former copy is replaced: `install.sh` removes it on macOS (and still installs an
+  older release whose image holds the former name), the Homebrew cask points to the new app, the `.deb` is now
+  `agent-observer` and replaces `repo-watcher-agent-observer`, the MSI keeps the former upgrade code, and the
+  NSIS installer runs the former uninstaller in passive mode first, which keeps app data.
 - The DriftGuard scan now fails the check on a retired API (its first run over every severity found nothing).
 
 ## [0.14.0] - 2026-11-08
