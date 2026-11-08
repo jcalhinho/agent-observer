@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- `apps/desktop/README.md`, which still described the old version (100 m race, workspaces, local API); the root
+  READMEs are the reference. The "what was removed" section of `COMPRENDRE.md` and the old areas of the bug
+  report form (race, workspaces) are gone too.
+
 ## [0.13.3] - 2026-11-08
 
 ### Added

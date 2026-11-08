@@ -89,24 +89,3 @@ npm run typecheck    # les types
 npm test             # les tests de l'interface
 cd src-tauri && cargo test   # les tests Rust (après npm run build : Tauri embarque l'interface)
 ```
-
-## Ce qui a été retiré
-
-Le projet avait accumulé beaucoup de choses qui noyaient l'essentiel. Sont
-partis, dans l'ordre : un suivi en 3D, un générateur d'« Histoire » du jour,
-un rapport quotidien, un panneau pour interroger un modèle, le saut vers la
-fenêtre de l'agent, puis les graphiques, l'historique événement par
-événement, la page des dépôts Git, le centre de notifications,
-l'estimation de coût en euros, la coquille à onglets et les connecteurs
-personnalisés (l'API locale `POST /v1/events`).
-
-Sont revenus depuis, sous une forme plus simple : le mode réduit en colonne,
-l'état git sur chaque barre, les notifications natives et un historique par
-jour (pas événement par événement).
-
-La raison est toujours la même : le besoin est de **voir** ce que font les
-agents maintenant. Tout ce qui répondait à « qu'est-ce qui s'est passé » ou
-« combien ça m'a coûté » diluait cette réponse.
-
-L'historique git garde tout. La branche `main` contient la version complète,
-`simplification` l'étape intermédiaire, `refonte` l'écran unique.

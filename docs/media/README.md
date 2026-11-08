@@ -4,12 +4,13 @@ Images used by the READMEs. Keep file names stable: the READMEs link to them.
 
 | File | What it shows | Used in |
 | --- | --- | --- |
-| `screen.png` | The whole window: top bar and a card per agent, with a mix of states (working, waiting for you, blocked). | README hero |
-| `card.png` | One agent card, close up: state, activity, folder, model, tokens, context bar. | What you see |
-| `settings.png` | The settings panel open: connectors, what is recorded, retention, export and erase. | What you see › Settings |
+| `screen.png` | The whole window: alerts, totals, one bar per agent with a mix of states, the status bar. | README hero |
+| `card.png` | One agent bar, close up: state, activity, figures, limits, git, tools. | What you see |
+| `detail.png` | The detail panel of one agent: limits, git, session overview. | What you see |
 
 Guidelines:
 
-- Use a demo workspace: no real client names, private paths, prompts or tokens on screen.
-- Take them from demo data, never your own sessions. 1440 × 900 is enough for the full window; optimise with `oxipng` or `pngquant`.
+- Take them from the demo (`npm run dev` in `apps/desktop`, then `http://127.0.0.1:1420/?demo`), never from
+  your own sessions: no real names, private paths, prompts or keys on screen.
+- 1440 × 940, English interface; optimise with `oxipng` or `pngquant`.
 - Regenerate every image when the design changes: they are part of the documentation.

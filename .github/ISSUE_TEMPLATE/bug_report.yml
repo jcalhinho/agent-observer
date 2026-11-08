@@ -100,14 +100,17 @@ body:
       label: Area
       multiple: true
       options:
-        - Agent cards / statuses
-        - Mini mode
-        - Race
-        - Analytics / tokens / cost
-        - Workspaces / repositories
-        - Sessions / export
-        - Connectors tab / setup
-        - Settings / retention
+        - Agent bars / statuses
+        - Detail panel
+        - Tokens / cache / cost
+        - Subscription limits
+        - Alerts / notifications / budget
+        - History
+        - Git / collisions
+        - Column mode / theme
+        - Connectors / setup
+        - MCP server
+        - Settings / retention / export
         - Installation / launch
         - Other
 
