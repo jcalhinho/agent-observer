@@ -52,7 +52,8 @@ jobs:
             libssl-dev \
             build-essential \
             file \
-            patchelf
+            patchelf \
+            xvfb
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -86,3 +87,11 @@ jobs:
 
       - name: Rust tests
         run: cargo test --workspace --locked
+
+      # The real app under a virtual display: hooks, status line, Codex limits, the read-only
+      # activity summary and the MCP server, checked from the outside.
+      - name: End-to-end test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cargo build -p repowatcher-agent-observer --locked
+          bash apps/desktop/scripts/e2e.sh target/debug/repowatcher-agent-observer
