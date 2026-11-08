@@ -5,6 +5,7 @@ mod antigravity_models;
 mod antigravity_sessions;
 mod claude_transcripts;
 mod codex_rollout;
+mod continue_sessions;
 mod copilot_chat;
 mod copilot_sessions;
 mod diagnostics;
@@ -113,6 +114,14 @@ struct QwenSetup {
 }
 
 #[derive(Serialize)]
+struct ContinueSetup {
+    dev_data_dir: String,
+    available: bool,
+    capture_prompts: bool,
+    capture_commands: bool,
+}
+
+#[derive(Serialize)]
 struct OpenCodeSetup {
     data_dir: String,
     database_paths: Vec<String>,
@@ -201,6 +210,17 @@ fn qwen_setup(state: tauri::State<'_, CollectorState>) -> QwenSetup {
     QwenSetup {
         projects_dir: projects_dir.display().to_string(),
         available: projects_dir.is_dir(),
+        capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
+        capture_commands: state.capture_commands.load(Ordering::Relaxed),
+    }
+}
+
+#[tauri::command]
+fn continue_setup(state: tauri::State<'_, CollectorState>) -> ContinueSetup {
+    let dev_data_dir = continue_sessions::dev_data_dir(&continue_sessions::data_root());
+    ContinueSetup {
+        dev_data_dir: dev_data_dir.display().to_string(),
+        available: dev_data_dir.is_dir(),
         capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
         capture_commands: state.capture_commands.load(Ordering::Relaxed),
     }
@@ -1261,6 +1281,10 @@ fn main() {
                     persist_event(&reasonix_state, event);
                 },
             );
+            let continue_state = state.clone();
+            continue_sessions::spawn(continue_sessions::data_root(), move |event| {
+                persist_event(&continue_state, event);
+            });
             let opencode_state = state.clone();
             let copilot_chat_state = state.clone();
             copilot_chat::spawn(state.capture_prompts.clone(), move |event| {
@@ -1302,6 +1326,7 @@ fn main() {
             configured_models,
             opencode_setup,
             qwen_setup,
+            continue_setup,
             reasonix_setup,
             cursor_setup,
             load_session_events,

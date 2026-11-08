@@ -1,5 +1,5 @@
 
-export type ConnectorKind = "claude" | "codex" | "opencode" | "qwen" | "reasonix" | "cursor" | "antigravity" | "copilot";
+export type ConnectorKind = "claude" | "codex" | "opencode" | "qwen" | "reasonix" | "cursor" | "antigravity" | "copilot" | "continue";
 
 export type Provider = {
   /** Stable UI identifier (React keys, 3D lane ids). */
@@ -31,7 +31,7 @@ export const providers: Provider[] = [
   { id: "reasonix", eventKey: "reasonix", name: "Reasonix", initials: "R", color: "#00a0a0", surface: "#123333", connector: { kind: "reasonix", scope: "Journaux locaux" } },
   { id: "cline", eventKey: "cline", name: "Cline", initials: "C", color: "#efb477", surface: "#3c3023" },
   { id: "roo", eventKey: "roo_code", name: "Roo Code", initials: "R", color: "#80c99c", surface: "#24382c" },
-  { id: "continue", eventKey: "continue", name: "Continue", initials: "↳", color: "#c0c7d4", surface: "#30343c" },
+  { id: "continue", eventKey: "continue", name: "Continue", initials: "↳", color: "#9741b8", surface: "#2f1d3a", connector: { kind: "continue", scope: "Journaux locaux" } },
   { id: "aider", eventKey: "aider", name: "Aider", initials: "A", color: "#f18e8e", surface: "#402727" },
   // Placeholder for the backend key; each custom connector becomes its own provider at runtime.
   { id: "custom", eventKey: "custom", name: "Custom connector", initials: "+", color: "#7d8aa3", surface: "#262b35" }
@@ -44,11 +44,13 @@ export function providerById(id: string): Provider {
 }
 
 /**
- * Agents shown by the app for now, in chart series order. This exact order passed the categorical
- * palette checks (adjacent CVD ΔE ≥ 16, normal-vision ΔE ≥ 15 on #171b22): re-run the validator
- * before reordering or adding one. Other providers stay in the table (backend keys) but are hidden.
+ * Agents shown by the app for now, in chart series order. This exact order passes every check of
+ * the categorical palette validator on #171b22 (dataviz `validate_palette.js --mode dark`): worst
+ * adjacent CVD ΔE 9.8, worst adjacent normal-vision ΔE 19.3, contrast ≥ 3:1; Continue's colour is
+ * also ≥ 15.9 from every other one. Re-run it before reordering or adding one. Other providers stay
+ * in the table (backend keys) but are hidden.
  */
-export const activeProviders: Provider[] = ["claude_code", "antigravity", "codex", "qwen", "opencode", "copilot", "reasonix", "cursor"].map(providerById);
+export const activeProviders: Provider[] = ["claude_code", "antigravity", "codex", "qwen", "opencode", "copilot", "reasonix", "cursor", "continue"].map(providerById);
 
 /** Les agents que l'app affiche, dans l'ordre. */
 export function activeAgents(): Provider[] {

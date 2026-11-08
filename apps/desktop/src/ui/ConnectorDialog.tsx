@@ -12,7 +12,8 @@ type AntigravitySetup = { data_dir: string; available: boolean };
 type QwenSetup = { projects_dir: string; available: boolean };
 type CursorSetup = { endpoint: string; settings_fragment: string };
 type ReasonixSetup = { projects_dir: string; available: boolean };
-type SetupByKind = { cursor: CursorSetup; reasonix: ReasonixSetup; claude: ClaudeSetup; codex: CodexSetup; opencode: OpenCodeSetup; qwen: QwenSetup; antigravity: AntigravitySetup; copilot: CopilotSetup };
+type ContinueSetup = { dev_data_dir: string; available: boolean };
+type SetupByKind = { cursor: CursorSetup; reasonix: ReasonixSetup; claude: ClaudeSetup; codex: CodexSetup; opencode: OpenCodeSetup; qwen: QwenSetup; antigravity: AntigravitySetup; copilot: CopilotSetup; continue: ContinueSetup };
 
 export type ConnectorSetup = { [K in ConnectorKind]: { kind: K; setup: SetupByKind[K] } }[ConnectorKind];
 
@@ -24,7 +25,8 @@ const SETUP_COMMANDS: Record<ConnectorKind, string> = {
   reasonix: "reasonix_setup",
   cursor: "cursor_setup",
   antigravity: "antigravity_setup",
-  copilot: "copilot_setup"
+  copilot: "copilot_setup",
+  continue: "continue_setup"
 };
 
 export async function loadConnectorSetup(kind: ConnectorKind): Promise<ConnectorSetup> {
@@ -41,6 +43,7 @@ export function connectorSource(connector: ConnectorSetup): { path: string; foun
     case "copilot": return { path: connector.setup.sessions_dir, found: connector.setup.available };
     case "qwen": return { path: connector.setup.projects_dir, found: connector.setup.available };
     case "reasonix": return { path: connector.setup.projects_dir, found: connector.setup.available };
+    case "continue": return { path: connector.setup.dev_data_dir, found: connector.setup.available };
     case "opencode": return { path: connector.setup.database_paths.join(" · ") || connector.setup.data_dir, found: connector.setup.available };
   }
 }
@@ -52,6 +55,7 @@ function readOnlyCopy(kind: Exclude<ConnectorKind, "claude" | "cursor">): { name
     case "antigravity": return { name: "Antigravity", how: t("L’app lit en lecture seule les fichiers locaux d’Antigravity : la liste de ses conversations et, pour les sessions récentes, le détail de chaque étape. Les messages et le contenu des fichiers ne sont jamais enregistrés.", "The app reads Antigravity’s local files, read-only: its list of conversations and, for recent sessions, the detail of each step. Messages and file contents are never recorded."), tokens: t("Antigravity fournit les tokens de chaque étape. Pour le modèle, l’app interroge le serveur local d’Antigravity (lecture seule) : coût estimé au tarif API quand le modèle est connu.", "Antigravity reports the tokens of each step. For the model, the app asks Antigravity’s local server (read-only): the cost is estimated at API rates when the model is priced.") };
     case "qwen": return { name: "Qwen Code", how: t("L’app lit les journaux de conversation que Qwen Code écrit pour chaque projet.", "The app reads the conversation logs Qwen Code writes for each project."), tokens: t("Qwen Code fournit les tokens, le modèle et la durée de chaque requête.", "Qwen Code reports the tokens, model and duration of each request.") };
     case "reasonix": return { name: "Reasonix", how: t("L’app lit les journaux de session que Reasonix (Studio ou CLI) écrit pour chaque projet.", "The app reads the session logs Reasonix (Studio or CLI) writes for each project."), tokens: t("Reasonix fournit les tokens, le cache et le modèle de chaque requête.", "Reasonix reports the tokens, cache and model of each request.") };
+    case "continue": return { name: "Continue", how: t("L’app lit les journaux locaux que l’extension Continue écrit à chaque réponse et à chaque outil (dev_data). Le texte des messages, des réponses et des outils n’est jamais enregistré. Les appels d’outils sont rattachés à la conversation de la dernière réponse vue ; seuls les appels écrits après le lancement de l’app sont lus.", "The app reads the local logs the Continue extension writes for each answer and each tool (dev_data). The text of messages, answers and tools is never recorded. Tool calls are tied to the conversation of the latest answer seen; only calls written after the app started are read."), tokens: t("Continue compte lui-même les tokens de chaque réponse avec son tokenizer : ils sont marqués estimés. L’autocomplétion n’est pas comptée.", "Continue counts each answer’s tokens itself with its tokenizer: they are marked estimated. Autocomplete is not counted.") };
     case "opencode": return { name: "OpenCode", how: t("L’app lit la base de données d’OpenCode en lecture seule.", "The app reads OpenCode’s database, read-only."), tokens: t("OpenCode fournit les tokens de chaque réponse.", "OpenCode reports the tokens of each answer.") };
   }
 }

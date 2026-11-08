@@ -143,7 +143,8 @@ export function demoDiagnostic(now: number) {
       antigravity: { path: "/Users/demo/.gemini/antigravity", found: false },
       qwen: { path: "/Users/demo/.qwen/projects", found: false },
       reasonix: { path: "/Users/demo/.reasonix/projects", found: false },
-      opencode: { path: "/Users/demo/.local/share/opencode/opencode.db", found: false }
+      opencode: { path: "/Users/demo/.local/share/opencode/opencode.db", found: false },
+      continue: { path: "/Users/demo/.continue/dev_data/0.2.0", found: false }
     } as Record<string, { path: string; found: boolean }>
   };
 }
