@@ -7,6 +7,7 @@ mod claude_transcripts;
 mod codex_rollout;
 mod copilot_chat;
 mod copilot_sessions;
+mod diagnostics;
 mod git_info;
 mod limits;
 mod models;
@@ -53,6 +54,11 @@ struct CollectorState {
     capture_errors: Arc<AtomicBool>,
     /// Latest subscription usage limits each agent reported (kept in memory only).
     limits: limits::SharedLimits,
+    /// Events per agent and refused requests since launch, for the diagnostic.
+    stats: diagnostics::SharedStats,
+    /// Folder of the SQLite store, for the diagnostic.
+    data_dir: std::path::PathBuf,
+    started_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Serialize)]
@@ -493,6 +499,9 @@ fn persist_event(state: &CollectorState, event: SessionEvent) -> bool {
         return false;
     }
     drop(database);
+    state
+        .stats
+        .record(event.provider.key(), event.occurred_at, chrono::Utc::now());
     let _ = state.app.emit("session-event", event);
     true
 }
@@ -504,6 +513,7 @@ async fn receive_claude_hook(
 ) -> impl IntoResponse {
     let authorized = bearer_matches(request.headers(), &state.token);
     if !authorized {
+        state.stats.reject();
         return StatusCode::UNAUTHORIZED;
     }
 
@@ -511,6 +521,7 @@ async fn receive_claude_hook(
         return StatusCode::PAYLOAD_TOO_LARGE;
     };
     let Ok(input) = serde_json::from_slice::<Value>(&body) else {
+        state.stats.reject();
         return StatusCode::BAD_REQUEST;
     };
     let Some(event) = normalize_claude_event(
@@ -534,12 +545,14 @@ async fn receive_claude_statusline(
 ) -> axum::response::Response {
     let authorized = bearer_matches(request.headers(), &state.token);
     if !authorized {
+        state.stats.reject();
         return StatusCode::UNAUTHORIZED.into_response();
     }
     let Ok(body) = axum::body::to_bytes(request.into_body(), 64 * 1024).await else {
         return StatusCode::PAYLOAD_TOO_LARGE.into_response();
     };
     let Ok(input) = serde_json::from_slice::<Value>(&body) else {
+        state.stats.reject();
         return StatusCode::BAD_REQUEST.into_response();
     };
     if let Some(snapshot) = limits::parse_claude_statusline(&input, chrono::Utc::now())
@@ -592,10 +605,12 @@ async fn read_activity(
     let headers = request.headers();
     let authorized = bearer_matches(headers, &state.token);
     if !authorized {
+        state.stats.reject();
         return StatusCode::UNAUTHORIZED.into_response();
     }
     // Browsers always send `Origin` on cross-site requests: no web page may read this.
     if headers.contains_key(header::ORIGIN) {
+        state.stats.reject();
         return StatusCode::FORBIDDEN.into_response();
     }
     let minutes = activity_window(request.uri().query());
@@ -626,6 +641,93 @@ async fn read_activity(
         "limits": limits::all(&state.limits),
     }))
     .into_response()
+}
+
+#[derive(Serialize)]
+struct DatabaseDiagnostic {
+    path: String,
+    size_bytes: u64,
+    events: i64,
+    oldest: Option<String>,
+    newest: Option<String>,
+    retention_days: i64,
+}
+
+#[derive(Serialize)]
+struct Diagnostic {
+    version: String,
+    os: &'static str,
+    arch: &'static str,
+    collector: String,
+    started_at: chrono::DateTime<chrono::Utc>,
+    home: String,
+    database: DatabaseDiagnostic,
+    providers: Vec<diagnostics::ProviderStats>,
+    rejected_requests: u64,
+}
+
+/// Everything needed to understand why an agent does not show up, with the home folder hidden.
+#[tauri::command]
+fn diagnostic(state: tauri::State<'_, CollectorState>) -> Diagnostic {
+    let home = state
+        .app
+        .path()
+        .home_dir()
+        .map(|path| path.display().to_string())
+        .unwrap_or_default();
+    let file = state.data_dir.join("observer.sqlite3");
+    // The write-ahead log holds recent writes until they are merged into the file.
+    let size_bytes = ["", "-wal"]
+        .iter()
+        .filter_map(|suffix| {
+            fs::metadata(format!("{}{suffix}", file.display()))
+                .ok()
+                .map(|metadata| metadata.len())
+        })
+        .sum();
+    let (events, oldest, newest, retention) = state
+        .database
+        .lock()
+        .ok()
+        .map(|database| {
+            let (events, oldest, newest) = database
+                .query_row(
+                    "SELECT COUNT(*), MIN(occurred_at), MAX(occurred_at) FROM session_events",
+                    [],
+                    |row| {
+                        Ok((
+                            row.get::<_, i64>(0)?,
+                            row.get::<_, Option<String>>(1)?,
+                            row.get::<_, Option<String>>(2)?,
+                        ))
+                    },
+                )
+                .unwrap_or((0, None, None));
+            (events, oldest, newest, retention_days(&database))
+        })
+        .unwrap_or((0, None, None, 0));
+    Diagnostic {
+        version: state.app.package_info().version.to_string(),
+        os: std::env::consts::OS,
+        arch: std::env::consts::ARCH,
+        collector: state
+            .status
+            .lock()
+            .map(|status| status.clone())
+            .unwrap_or_default(),
+        started_at: state.started_at,
+        database: DatabaseDiagnostic {
+            path: diagnostics::anonymize(&file.display().to_string(), &home),
+            size_bytes,
+            events,
+            oldest,
+            newest,
+            retention_days: retention,
+        },
+        providers: state.stats.providers(),
+        rejected_requests: state.stats.rejected(),
+        home,
+    }
 }
 
 /// The interface reports how many agents need you; the tray icon only shows it.
@@ -659,12 +761,14 @@ async fn receive_cursor_hook(
 ) -> impl IntoResponse {
     let authorized = bearer_matches(request.headers(), &state.token);
     if !authorized {
+        state.stats.reject();
         return StatusCode::UNAUTHORIZED;
     }
     let Ok(body) = axum::body::to_bytes(request.into_body(), 64 * 1024).await else {
         return StatusCode::PAYLOAD_TOO_LARGE;
     };
     let Ok(input) = serde_json::from_slice::<Value>(&body) else {
+        state.stats.reject();
         return StatusCode::BAD_REQUEST;
     };
     let Some(event) =
@@ -907,6 +1011,9 @@ fn main() {
                 capture_commands: Arc::new(AtomicBool::new(capture_commands)),
                 capture_errors: Arc::new(AtomicBool::new(capture_errors)),
                 limits: Arc::default(),
+                stats: Arc::default(),
+                data_dir: data_dir.clone(),
+                started_at: chrono::Utc::now(),
             };
             let port = 43821;
             let address = SocketAddr::from(([127, 0, 0, 1], port));
@@ -1044,6 +1151,7 @@ fn main() {
             reveal_in_file_manager,
             subscription_limits,
             set_tray_status,
+            diagnostic,
             update_capture_policy,
             retention_policy,
             update_retention_policy,

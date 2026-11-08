@@ -129,9 +129,6 @@ thead th { position: sticky; top: 0; z-index: 2; background: var(--surface-2); c
 thead abbr { text-decoration: underline dotted; cursor: help; }
 tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
 
-/* ---------- Connectors ---------- */
-.connector-list { display: grid; gap: var(--space-2); }
-
 /* ---------- Settings ---------- */
 
 .dialog-backdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: var(--space-5); background: var(--scrim); backdrop-filter: blur(3px); }
@@ -439,6 +436,13 @@ html, body { background: radial-gradient(1200px 600px at 12% -10%, var(--glow-a)
 .connector-list li { display: flex; align-items: center; gap: 9px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
 .connector-list li > span:not(.provider-mark) { flex: 1; }
 .connector-list li small { color: var(--faint); font-size: 11px; }
+.diagnostic-list li { align-items: flex-start; }
+.diagnostic-list li > span:not(.provider-mark) { display: grid; gap: 2px; min-width: 0; }
+.diagnostic-list li > span small { overflow-wrap: anywhere; }
+.diagnostic-list li > small { max-width: 45%; text-align: right; }
+.diagnostic-list .diagnostic-missing { color: var(--warn); }
+.row > .diagnostic-figure { flex: none; text-align: right; }
+.row > span small { overflow-wrap: anywhere; }
 
 /* ---------- Alertes, objectif, git, collisions, rythme ---------- */
 .alerts { display: grid; gap: 8px; padding: 14px 20px 0; }

@@ -121,3 +121,26 @@ export function demoLimits(now: number) {
       secondary: { used_percent: 58, window_minutes: 10080, resets_at: at(2 * 1440 + 30) } }
   ];
 }
+
+/** Un diagnostic inventé pour la démo, pour voir la section des réglages hors de l'app de bureau. */
+export function demoDiagnostic(now: number) {
+  const iso = (secondsAgo: number) => new Date(now - secondsAgo * 1000).toISOString();
+  const day = (daysAgo: number) => iso(daysAgo * 86_400).slice(0, 10);
+  const stats = (provider: string, events: number, secondsAgo: number) => ({ provider, events, last_event_at: iso(secondsAgo), last_received_at: iso(secondsAgo) });
+  return {
+    diagnostic: {
+      version: "0.0.0-demo", os: "macos", arch: "aarch64", collector: "listening", started_at: iso(2 * 3600), home: "/Users/demo",
+      database: { path: "~/Library/Application Support/Agent Observer/observer.sqlite3", size_bytes: 4_404_019, events: 12_345, oldest: `${day(9)}T08:00:00Z`, newest: `${day(0)}T09:00:00Z`, retention_days: 30 },
+      providers: [stats("claude_code", 214, 6), stats("codex", 88, 40), stats("github_copilot", 12, 600)],
+      rejected_requests: 0
+    },
+    sources: {
+      codex: { path: "/Users/demo/.codex/sessions", found: true },
+      copilot: { path: "/Users/demo/.copilot/session-state", found: true },
+      antigravity: { path: "/Users/demo/.gemini/antigravity", found: false },
+      qwen: { path: "/Users/demo/.qwen/projects", found: false },
+      reasonix: { path: "/Users/demo/.reasonix/projects", found: false },
+      opencode: { path: "/Users/demo/.local/share/opencode/opencode.db", found: false }
+    } as Record<string, { path: string; found: boolean }>
+  };
+}
