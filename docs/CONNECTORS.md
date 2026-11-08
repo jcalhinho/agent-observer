@@ -32,6 +32,9 @@ Built-in connectors live in `apps/desktop/src-tauri/src/`, one module per agent
 7. **Show it**: add the setup command (`<agent>_setup`, returning the folder read and whether it exists)
    so **Settings › Agents › Configure** and **Settings › Diagnostic** can say where the connector reads.
    A new colour in `activeProviders` must pass the palette validator (see the comment there).
+8. **Watch its format**: add the source file (or documentation page) that defines the format to the
+   `watch` list of [`.driftguard.yml`](../.driftguard.yml), narrowed with `start`/`end` to the part the
+   connector reads, then `driftguard watch . --update`. The weekly DriftGuard job then says when it changes.
 
 Pull requests adding a connector should state which agent versions were tested and what the
 connector cannot observe.

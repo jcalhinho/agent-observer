@@ -602,6 +602,19 @@ starts the real app under Xvfb in a throw-away home folder, sends it hooks and a
 log, and checks the collector, the key, the activity summary (no prompt text in it, web pages refused) and
 the MCP server. It needs `xvfb`, `curl` and Node.
 
+**Provider pages ([DriftGuard](https://github.com/jcalhinho/driftguard)).** On every push, DriftGuard fails the
+check if the code calls a retired API. Every Monday, it also fetches the pages this app copies by hand — the
+price lists behind `pricing.ts`, the Claude Code and Cursor hook inputs, the source files that define the
+Codex, Qwen Code, OpenCode and Continue log formats — listed in [`.driftguard.yml`](.driftguard.yml), and fails
+if one changed since `.driftguard.lock.json`. Then update the code named in the entry's `why`, and record the
+new fingerprints:
+
+```bash
+pip install git+https://github.com/jcalhinho/driftguard
+driftguard watch .            # what changed
+driftguard watch . --update   # after updating the code; commit .driftguard.lock.json
+```
+
 ### Project layout
 
 ```

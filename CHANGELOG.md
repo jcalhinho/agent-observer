@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Provider pages watched by DriftGuard.** `.driftguard.yml` lists the pages this app copies by hand: the six
+  price lists behind `pricing.ts`, the Claude Code hook and status line inputs, the Cursor hook schema, and the
+  source files that define the Codex, Qwen Code, OpenCode and Continue formats (narrowed to the part that is
+  read). Every Monday the DriftGuard job fails if one changed since `.driftguard.lock.json`.
+
+### Changed
+- The DriftGuard scan now fails the check on a retired API (its first run over every severity found nothing).
+
 ## [0.14.0] - 2026-11-08
 
 ### Added

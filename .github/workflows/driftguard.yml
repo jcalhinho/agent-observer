@@ -5,7 +5,7 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    - cron: "17 6 * * 1" # weekly: providers retire APIs even when the code does not change
+    - cron: "17 6 * * 1" # weekly: providers retire APIs and change their pages even when the code does not change
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,19 @@ jobs:
       - uses: jcalhinho/driftguard@v1
         with:
           min-severity: critical
-          # shortcut: report-only (annotations) until the first run shows the real findings; set to "true" then.
-          fail-on-findings: "false"
-          # Price tables, tests and docs name retired models on purpose.
+          # The first scan (0.14.0, every severity) found nothing: from now on a retired API fails the check.
+          fail-on-findings: "true"
+          # Price tables, tests and docs name retired models on purpose: old sessions still need their price.
           ignore: "**/*.test.* docs/** CHANGELOG.md apps/desktop/src/ui/pricing.ts"
+
+  watch:
+    # The provider pages and source files listed in .driftguard.yml: they change without our code
+    # changing, so this runs every week (and by hand), not on every push.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jcalhinho/driftguard@v1
+        with:
+          scan: "false"
+          watch: "true"

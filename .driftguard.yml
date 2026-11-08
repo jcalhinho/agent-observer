@@ -1,0 +1,77 @@
+# DriftGuard (https://github.com/jcalhinho/driftguard).
+#
+# `watch`: the provider pages and source files this app copies values or formats from by hand.
+# When one changes, the weekly DriftGuard job fails and lists it. Then:
+#   1. read the change (the URL), and update the code named in `why`;
+#   2. record the new fingerprints: `driftguard watch . --update`, and commit .driftguard.lock.json.
+# Markdown versions of the pages are used where the site offers one: they only change with the content.
+
+watch:
+  # ---- Prices (apps/desktop/src/ui/pricing.ts: update the prices and the matching *_CHECKED_ON date)
+  - id: anthropic-pricing
+    url: https://platform.claude.com/docs/en/about-claude/pricing.md
+    why: Claude prices in apps/desktop/src/ui/pricing.ts (ANTHROPIC_CHECKED_ON)
+  - id: openai-pricing
+    url: https://developers.openai.com/api/docs/pricing.md
+    why: OpenAI prices in apps/desktop/src/ui/pricing.ts (OPENAI_CHECKED_ON)
+  - id: google-pricing
+    url: https://aistudio.google.com/docs/pricing.md
+    why: Gemini prices in apps/desktop/src/ui/pricing.ts (GOOGLE_CHECKED_ON)
+  - id: alibaba-pricing
+    url: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+    start: "Model API calls are billed on a pay-as-you-go basis"
+    end: "Thank you! We've received your feedback."
+    why: Qwen prices in apps/desktop/src/ui/pricing.ts (ALIBABA_CHECKED_ON)
+  - id: deepseek-pricing
+    url: https://api-docs.deepseek.com/quick_start/pricing.md
+    why: DeepSeek prices in apps/desktop/src/ui/pricing.ts (DEEPSEEK_CHECKED_ON)
+  - id: moonshot-pricing
+    url: https://platform.kimi.ai/docs/pricing/chat.md
+    why: Kimi prices in apps/desktop/src/ui/pricing.ts (MOONSHOT_CHECKED_ON)
+
+  # ---- Claude Code and Cursor: the hook and status line inputs the collector reads
+  - id: claude-code-hook-input
+    url: https://code.claude.com/docs/en/hooks.md
+    start: "### Common input fields"
+    end: "### Exit code output"
+    why: hook fields read by apps/desktop/src-tauri/src/main.rs (claude_hook)
+  - id: claude-code-statusline-data
+    url: https://code.claude.com/docs/en/statusline.md
+    start: "## Available data"
+    end: "## Examples"
+    why: rate_limits read by apps/desktop/src-tauri/src/limits.rs and the status line script
+  - id: cursor-hook-schema
+    url: https://cursor.com/docs/hooks.md
+    start: "### Common schema"
+    end: "## Environment Variables"
+    why: hook fields read by apps/desktop/src-tauri/src/main.rs (cursor_hook)
+
+  # ---- Agents whose local files are read (their source code defines the format)
+  - id: codex-token-and-rate-limit-records
+    url: https://raw.githubusercontent.com/openai/codex/main/codex-rs/protocol/src/protocol.rs
+    start: "pub struct TokenUsage {"
+    end: "pub struct CreditsSnapshot {"
+    why: token_count and rate_limits parsing in codex_rollout.rs and limits.rs
+  - id: qwen-code-chat-record
+    url: https://raw.githubusercontent.com/QwenLM/qwen-code/main/packages/core/src/services/chatRecordingService.ts
+    start: "export interface ChatRecord {"
+    end: "export interface NotificationRecordPayload"
+    why: chat record parsing in qwen_sessions.rs
+  - id: opencode-session-tables
+    url: https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/core/src/session/sql.ts
+    why: session_v2 / session_message queries in opencode_sessions.rs
+  - id: continue-dev-data-logger
+    url: https://raw.githubusercontent.com/continuedev/continue/main/core/data/log.ts
+    why: dev_data folder and schema version in continue_sessions.rs
+  - id: continue-schema-chat-interaction
+    url: https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/chatInteraction/v0.2.0.ts
+    why: chatInteraction fields in continue_sessions.rs
+  - id: continue-schema-tokens-generated
+    url: https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/tokensGenerated/v0.2.0.ts
+    why: tokensGenerated fields in continue_sessions.rs
+  - id: continue-schema-tool-usage
+    url: https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/toolUsage/v0.2.0.ts
+    why: toolUsage fields in continue_sessions.rs
+  - id: continue-schema-base
+    url: https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/base.ts
+    why: base fields (timestamp) in continue_sessions.rs

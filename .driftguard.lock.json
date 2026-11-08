@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "sources": {
+    "alibaba-pricing": {
+      "url": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+      "final_url": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+      "sha256": "42d3e89ab1edad083266e5a687532f3a17c2b8e33c24f5d5ba11b4278856191c",
+      "checked": "2026-11-08"
+    },
+    "anthropic-pricing": {
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "final_url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "sha256": "0aed66e62ce028d75305e2012275f6d5a3576b49af3a104f08b0761b68cd7c9e",
+      "checked": "2026-11-08"
+    },
+    "claude-code-hook-input": {
+      "url": "https://code.claude.com/docs/en/hooks.md",
+      "final_url": "https://code.claude.com/docs/en/hooks.md",
+      "sha256": "71bfaef91dce4fb94f8468ff61a16714b1afecacc72640f186c4324e4964d7dd",
+      "checked": "2026-11-08"
+    },
+    "claude-code-statusline-data": {
+      "url": "https://code.claude.com/docs/en/statusline.md",
+      "final_url": "https://code.claude.com/docs/en/statusline.md",
+      "sha256": "20ed3e926ddfcc7139bf6985b149fdbcf07fb5a971bc9ef62272d5dca09b9767",
+      "checked": "2026-11-08"
+    },
+    "codex-token-and-rate-limit-records": {
+      "url": "https://raw.githubusercontent.com/openai/codex/main/codex-rs/protocol/src/protocol.rs",
+      "final_url": "https://raw.githubusercontent.com/openai/codex/main/codex-rs/protocol/src/protocol.rs",
+      "sha256": "e2999f3e85dda81309f32e991df447702bc1d93ce4a2f76b568aeb4217aa9f01",
+      "checked": "2026-11-08"
+    },
+    "continue-dev-data-logger": {
+      "url": "https://raw.githubusercontent.com/continuedev/continue/main/core/data/log.ts",
+      "final_url": "https://raw.githubusercontent.com/continuedev/continue/main/core/data/log.ts",
+      "sha256": "f837ed9562203b5c00e992a40d89e9c61015a4fa965fc6f2081cdfe565e26db5",
+      "checked": "2026-11-08"
+    },
+    "continue-schema-base": {
+      "url": "https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/base.ts",
+      "final_url": "https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/base.ts",
+      "sha256": "ea30cc74e4d18ec3f3452fdb9168fde89644c8cbb5f05f88b36780d5e3bef723",
+      "checked": "2026-11-08"
+    },
+    "continue-schema-chat-interaction": {
+      "url": "https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/chatInteraction/v0.2.0.ts",
+      "final_url": "https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/chatInteraction/v0.2.0.ts",
+      "sha256": "6628a9fca4d510cb03780fa7e4e8cb6fc4375f5faae405ba9cc7870a2409f0e5",
+      "checked": "2026-11-08"
+    },
+    "continue-schema-tokens-generated": {
+      "url": "https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/tokensGenerated/v0.2.0.ts",
+      "final_url": "https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/tokensGenerated/v0.2.0.ts",
+      "sha256": "423e617284a09c9ff51270ffee755d1e07980bc89eb2f11fa89d15306eb4991e",
+      "checked": "2026-11-08"
+    },
+    "continue-schema-tool-usage": {
+      "url": "https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/toolUsage/v0.2.0.ts",
+      "final_url": "https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/toolUsage/v0.2.0.ts",
+      "sha256": "b7fb44dc0c42fc919de0976a020898771372fee3d8335a39a677f296934abbe2",
+      "checked": "2026-11-08"
+    },
+    "cursor-hook-schema": {
+      "url": "https://cursor.com/docs/hooks.md",
+      "final_url": "https://cursor.com/docs/hooks.md",
+      "sha256": "d17642fb713d1df152c9ebe85bab455344149458e7953044089b911a24d8d972",
+      "checked": "2026-11-08"
+    },
+    "deepseek-pricing": {
+      "url": "https://api-docs.deepseek.com/quick_start/pricing.md",
+      "final_url": "https://api-docs.deepseek.com/quick_start/pricing.md",
+      "sha256": "6859edc56598167bb90d5e1b45624a2c82ea280db212bd6fe7bf7d7de7afe338",
+      "checked": "2026-11-08"
+    },
+    "google-pricing": {
+      "url": "https://aistudio.google.com/docs/pricing.md",
+      "final_url": "https://aistudio.google.com/docs/pricing.md",
+      "sha256": "d3b5522104e1969b02ca87e00bfcb27f3b8518bdd347a2ff76380e64bca556ac",
+      "checked": "2026-11-08"
+    },
+    "moonshot-pricing": {
+      "url": "https://platform.kimi.ai/docs/pricing/chat.md",
+      "final_url": "https://platform.kimi.ai/docs/pricing/chat.md",
+      "sha256": "1e53626b674d7ae829b47ee20c761d039abf2d3dec5ac19d8d7fcdcb18484183",
+      "checked": "2026-11-08"
+    },
+    "openai-pricing": {
+      "url": "https://developers.openai.com/api/docs/pricing.md",
+      "final_url": "https://developers.openai.com/api/docs/pricing.md",
+      "sha256": "a83cd96e6a1c00f54c3543ac9a2f9b4f62035510ba3b8ceee2e375560cdf1480",
+      "checked": "2026-11-08"
+    },
+    "opencode-session-tables": {
+      "url": "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/core/src/session/sql.ts",
+      "final_url": "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/core/src/session/sql.ts",
+      "sha256": "c3181de9650108854a6b609e637dc067e41253ab25eee503415edbdc7e18e850",
+      "checked": "2026-11-08"
+    },
+    "qwen-code-chat-record": {
+      "url": "https://raw.githubusercontent.com/QwenLM/qwen-code/main/packages/core/src/services/chatRecordingService.ts",
+      "final_url": "https://raw.githubusercontent.com/QwenLM/qwen-code/main/packages/core/src/services/chatRecordingService.ts",
+      "sha256": "59da037c7d3b4c8f1e51b1a2a54f95447b7ef29f67e5d145429439c4a6194d02",
+      "checked": "2026-11-08"
+    }
+  }
+}

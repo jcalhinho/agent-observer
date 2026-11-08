@@ -613,6 +613,19 @@ lance la vraie app sous Xvfb dans un dossier personnel jetable, lui envoie des h
 un journal Codex, et vérifie le collecteur, la clé, le résumé d'activité (sans texte de prompt, pages web
 refusées) et le serveur MCP. Il faut `xvfb`, `curl` et Node.
 
+**Pages des fournisseurs ([DriftGuard](https://github.com/jcalhinho/driftguard)).** À chaque push, DriftGuard fait
+échouer la vérification si le code appelle une API retirée. Chaque lundi, il relit aussi les pages que cette
+app recopie à la main — les grilles de prix derrière `pricing.ts`, les entrées des hooks de Claude Code et de
+Cursor, les fichiers source qui définissent les journaux de Codex, Qwen Code, OpenCode et Continue — listées dans
+[`.driftguard.yml`](.driftguard.yml), et échoue si l'une a changé depuis `.driftguard.lock.json`. Mets alors à
+jour le code nommé dans le `why` de l'entrée, puis enregistre les nouvelles empreintes :
+
+```bash
+pip install git+https://github.com/jcalhinho/driftguard
+driftguard watch .            # ce qui a changé
+driftguard watch . --update   # après la mise à jour du code ; committe .driftguard.lock.json
+```
+
 ### Organisation du projet
 
 ```
