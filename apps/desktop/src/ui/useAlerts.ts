@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import type { AgentPulse, PulseStatus } from "./agentPulse";
 import { budgetState, collisionKey, localDay, type BudgetState, type Collision } from "./analysis";
-import { notify, setBadge } from "./notify";
-import { attentionAlerts, budgetAlert, collisionAlerts, type Alert } from "./notifyRules";
+import { notify, setBadge, setTrayStatus } from "./notify";
+import { t } from "./i18n";
+import { attentionAlerts, budgetAlert, collisionAlerts, trayStatusText, type Alert } from "./notifyRules";
 import { needsYou } from "./useAgentPulses";
 
 const COOLDOWN_MS = 60_000;
@@ -23,9 +24,18 @@ export function useAlerts({ pulses, collisions, spentToday, budget, enabled, now
   const knownCollisions = useRef<Set<string> | null>(null);
   const lastBudget = useRef<BudgetState>("none");
   const sent = useRef<Map<string, number>>(new Map());
+  const lastTray = useRef("");
 
   useEffect(() => {
     void setBadge(pulses.filter((pulse) => needsYou(pulse.status)).length);
+    // L'icône de la barre de menus : envoyée seulement quand son texte change.
+    const tray = trayStatusText(pulses.filter((pulse) => pulse.status !== "never").map((pulse) => pulse.status));
+    const trayLabels = [tray.text, t("Ouvrir Agent Observer", "Open Agent Observer"), t("Quitter", "Quit")];
+    const trayKey = `${tray.needYou}|${trayLabels.join("|")}`;
+    if (trayKey !== lastTray.current) {
+      lastTray.current = trayKey;
+      void setTrayStatus(tray.needYou, trayLabels[0], trayLabels[1], trayLabels[2]);
+    }
     const send = (alerts: Alert[]) => {
       if (!enabled || (typeof document !== "undefined" && document.hasFocus())) return;
       for (const alert of alerts) {

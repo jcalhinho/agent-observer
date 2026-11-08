@@ -46,3 +46,13 @@ export function budgetAlert(previous: BudgetState, current: BudgetState, spent: 
   if (current === "near" && previous !== "over") return { id: `budget:near:${day}`, title: t("Budget du jour bientôt atteint", "Daily budget almost reached"), body: t(`≈ ${usd(spent)} sur ${usd(limit)} prévus.`, `≈ ${usd(spent)} of ${usd(limit)} planned.`) };
   return null;
 }
+
+/** Le texte de l'icône de la barre de menus : qui t'attend, sinon qui travaille. */
+export function trayStatusText(statuses: string[]): { needYou: number; text: string } {
+  const needYou = statuses.filter((status) => status === "looping" || status === "blocked" || status === "stalled" || status === "waiting").length;
+  const working = statuses.filter((status) => status === "working").length;
+  const parts: string[] = [];
+  if (needYou) parts.push(t(`${needYou} t’${needYou > 1 ? "attendent" : "attend"}`, `${needYou} need${needYou > 1 ? "" : "s"} you`));
+  if (working) parts.push(t(`${working} au travail`, `${working} working`));
+  return { needYou, text: parts.length ? parts.join(" · ") : t("Aucun agent actif", "No active agent") };
+}

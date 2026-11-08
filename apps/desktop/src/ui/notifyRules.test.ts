@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { setLang } from "./i18n";
-import { budgetAlert, attentionAlerts, collisionAlerts } from "./notifyRules";
+import { budgetAlert, attentionAlerts, collisionAlerts, trayStatusText } from "./notifyRules";
 import { collisionKey } from "./analysis";
 
 beforeAll(() => setLang("en"));
@@ -44,5 +44,26 @@ describe("collision and budget alerts", () => {
     expect(budgetAlert("over", "near", 9, 10, "2026-11-07")).toBeNull();
     expect(budgetAlert("ok", "ok", 1, 10, "d")).toBeNull();
     expect(budgetAlert("none", "none", null, null, "d")).toBeNull();
+  });
+});
+
+describe("trayStatusText", () => {
+  it("says who needs you, then who works", () => {
+    expect(trayStatusText(["waiting", "working", "blocked", "idle"])).toEqual({ needYou: 2, text: "2 need you · 1 working" });
+    expect(trayStatusText(["stalled"])).toEqual({ needYou: 1, text: "1 needs you" });
+    expect(trayStatusText(["working", "working"])).toEqual({ needYou: 0, text: "2 working" });
+    expect(trayStatusText(["idle"])).toEqual({ needYou: 0, text: "No active agent" });
+    expect(trayStatusText([])).toEqual({ needYou: 0, text: "No active agent" });
+  });
+
+  it("speaks French too", () => {
+    setLang("fr");
+    try {
+      expect(trayStatusText(["waiting", "looping", "working"]).text).toBe("2 t’attendent · 1 au travail");
+      expect(trayStatusText(["waiting"]).text).toBe("1 t’attend");
+      expect(trayStatusText([]).text).toBe("Aucun agent actif");
+    } finally {
+      setLang("en");
+    }
   });
 });

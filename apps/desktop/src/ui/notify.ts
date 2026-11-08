@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 
@@ -16,6 +17,15 @@ export async function notify(title: string, body: string) {
 export async function setBadge(count: number) {
   try {
     await getCurrentWindow().setBadgeCount(count > 0 ? count : undefined);
+  } catch {
+    /* idem */
+  }
+}
+
+/** L'état affiché par l'icône de la barre de menus : son nombre, son infobulle et son menu. */
+export async function setTrayStatus(needYou: number, status: string, open: string, quit: string) {
+  try {
+    await invoke("set_tray_status", { needYou, status, open, quit });
   } catch {
     /* idem */
   }

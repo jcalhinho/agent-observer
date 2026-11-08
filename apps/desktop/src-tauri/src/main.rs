@@ -16,6 +16,7 @@ mod procs;
 mod qwen_sessions;
 mod reasonix_sessions;
 mod redact;
+mod tray;
 
 use axum::{
     Router,
@@ -627,6 +628,26 @@ async fn read_activity(
     .into_response()
 }
 
+/// The interface reports how many agents need you; the tray icon only shows it.
+#[tauri::command]
+fn set_tray_status(
+    app: tauri::AppHandle,
+    need_you: u32,
+    status: String,
+    open: String,
+    quit: String,
+) {
+    tray::update(
+        &app,
+        tray::TrayStatus {
+            need_you,
+            status: &status,
+            open: &open,
+            quit: &quit,
+        },
+    );
+}
+
 #[tauri::command]
 fn subscription_limits(state: tauri::State<'_, CollectorState>) -> Vec<limits::LimitSnapshot> {
     limits::all(&state.limits)
@@ -843,11 +864,7 @@ fn main() {
         // Must be registered first. A second launch would lose the collector port and
         // silently observe nothing: bring the running window forward instead.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            tray::show_main_window(app);
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -999,6 +1016,15 @@ fn main() {
                 }
             });
             app.manage(state);
+            // The tray icon is a convenience: if the system cannot show one (on Linux the
+            // appindicator library is loaded at run time), the app goes on without it.
+            let handle = app.handle().clone();
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| tray::install(&handle)))
+            {
+                Ok(Ok(())) => {}
+                Ok(Err(error)) => eprintln!("tray icon unavailable: {error}"),
+                Err(_) => eprintln!("tray icon unavailable on this system"),
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1017,6 +1043,7 @@ fn main() {
             repository_snapshot,
             reveal_in_file_manager,
             subscription_limits,
+            set_tray_status,
             update_capture_policy,
             retention_policy,
             update_retention_policy,

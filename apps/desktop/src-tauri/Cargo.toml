@@ -14,7 +14,7 @@ axum = { version = "0.8", features = ["http1", "json", "tokio"] }
 chrono.workspace = true
 session-events = { path = "../../../crates/session-events" }
 serde.workspace = true
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-notification = "2"
