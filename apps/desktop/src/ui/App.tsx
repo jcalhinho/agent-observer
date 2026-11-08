@@ -7,7 +7,7 @@ import { CollectorStatus } from "./CollectorStatus";
 import { ConnectorSetupDialog, type ConnectorSetup } from "./ConnectorDialog";
 import { t, useLang } from "./i18n";
 import { History } from "./History";
-import { compact, fleetTotals, percent, usd } from "./insights";
+import { cacheCounts, compact, fleetTotals, percent, usd } from "./insights";
 import { isBoolean, isNumber, usePreference } from "./preferences";
 import { agentName, useAgents } from "./providers";
 import { SettingsPanel } from "./SettingsPanel";
@@ -68,8 +68,18 @@ export function App() {
   // Les analyses qui croisent les agents sont recalculées toutes les 5 secondes, pas à chaque événement.
   const bucket = Math.floor(now / 5000) * 5000;
   const collisions = useMemo(() => detectCollisions(observer.events, bucket), [observer.events, bucket]);
-  const history = useHistory(observer.events, historyOpen ? period : 1, historyOpen || budget > 0);
-  const spentToday = useMemo(() => budget > 0 ? dailyTotals(history.events, bucket, 1).find((day) => day.day === localDay(bucket))?.cost ?? 0 : null, [budget, history.events, bucket]);
+  const history = useHistory(observer.events, historyOpen ? period : 1, true);
+  const spentToday = useMemo(() => dailyTotals(history.events, bucket, 1).find((day) => day.day === localDay(bucket))?.cost ?? 0, [budget, history.events, bucket]);
+  const fleet = useMemo(() => {
+    let hits = 0, misses = 0, perMin = 0, widest: { name: string; percent: number } | null = null;
+    for (const pulse of seen) {
+      const counts = cacheCounts(pulse.summary?.tokens ?? null);
+      if (counts) { hits += counts.hit; misses += counts.miss; }
+      if (pulse.burn && (pulse.status === "working" || pulse.status === "looping" || pulse.status === "blocked")) perMin += pulse.burn.tokensPerMin;
+      if (pulse.context?.percent != null && (!widest || pulse.context.percent > widest.percent)) widest = { name: agentName(pulse.key), percent: pulse.context.percent };
+    }
+    return { hits, misses, perMin, widest };
+  }, [seen]);
   const budgetLevel = budgetState(spentToday, budget || null);
   const git = useGit(seen.map((pulse) => pulse.project?.project_path ?? null));
   useAlerts({ pulses, collisions, spentToday, budget: budget || null, enabled: notifications, now: bucket });
@@ -141,6 +151,14 @@ export function App() {
           </div>}
     </main>
 
+    {!mini && seen.length > 0 && <footer className="statusbar" aria-label={t("Résumé en direct", "Live summary")}>
+      <span title={fleet.hits + fleet.misses > 0 ? `Hit ${fleet.hits.toLocaleString()} · Miss ${fleet.misses.toLocaleString()}` : t("Aucun agent ne rapporte son cache", "No agent reports its cache")}><Database size={11} />Cache <b>{totals.cacheHit === null ? "—" : percent(totals.cacheHit)}</b></span>
+      <span title={fleet.widest ? t(`Le contexte le plus rempli : ${fleet.widest.name}`, `The fullest context: ${fleet.widest.name}`) : undefined}>{t("Contexte", "Context")} <b>{fleet.widest ? `${Math.round(fleet.widest.percent)}%` : "—"}</b>{fleet.widest ? <small>{fleet.widest.name}</small> : null}</span>
+      <span title={t("Tokens par minute, agents au travail, sur les 15 dernières minutes", "Tokens per minute, working agents, over the last 15 minutes")}><Zap size={11} /><b>{fleet.perMin > 0 ? compact(fleet.perMin) : "—"}</b> tokens/min</span>
+      <span className="grow" />
+      <span title={t("Dernière session de chaque agent, au tarif API", "Latest session of each agent, at API price")}>{t("Sessions", "Sessions")} <b>{totals.cost === null ? "—" : `${totals.costPartial ? "≥ " : "≈ "}${usd(totals.cost)}`}</b></span>
+      <span title={t("Coût estimé d’aujourd’hui, toutes sessions, au tarif API", "Estimated cost today, all sessions, at API price")}>{t("Aujourd’hui", "Today")} <b>{history.loading ? "…" : `≈ ${usd(spentToday)}`}</b></span>
+    </footer>}
     {Boolean(unseen.length) && seen.length > 0 && <footer className="unseen">
       {t("Pas encore vus", "Not seen yet")} : {unseen.map((pulse) => agentName(pulse.key)).join(", ")}
       <button className="link" onClick={() => setSettings(true)}>{t("Brancher", "Connect")}</button>

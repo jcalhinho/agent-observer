@@ -54,6 +54,15 @@ export function cacheHitRate(tokens: TokenTotals | null): number | null {
 }
 
 /**
+ * Lectures de cache (hit) et tout le reste du prompt (miss : entrée nouvelle et écritures de cache),
+ * en tokens exacts. Null quand l'agent ne rapporte pas ses lectures de cache.
+ */
+export function cacheCounts(tokens: TokenTotals | null): { hit: number; miss: number } | null {
+  if (!tokens || tokens.cacheRead === null) return null;
+  return { hit: tokens.cacheRead, miss: (tokens.input ?? 0) + (tokens.cacheWrite ?? 0) };
+}
+
+/**
  * Ce que les mêmes requêtes auraient coûté sans aucun cache : toutes les lectures et écritures de
  * cache comptées comme de l'entrée ordinaire.
  */

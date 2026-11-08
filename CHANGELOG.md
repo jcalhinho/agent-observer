@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Session overview** in the detail panel, with a definition under every figure: requests, tokens (in / out),
+  cache hit with the exact hit and miss counts, work time (sum of the turns), estimated cost and context window.
+- **Live status bar** at the bottom: cache hit rate, fullest context window, tokens per minute, cost of the latest
+  sessions and of today.
+- **History** reworked after Reasonix: Today / 7 / 30 / 90 days, spend with its caveats, tokens with hit and missed
+  input, requests, active days, separate charts for tokens and spend, breakdown by agent, model or project, and a
+  note when some days have usage but no priced cost.
+
 ## [0.13.1] - 2026-11-07
 
 ### Added

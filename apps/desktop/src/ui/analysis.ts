@@ -1,3 +1,4 @@
+import { providerById } from "./providers";
 import { estimateCost, isEdit, type SummaryEvent } from "./sessionSummary";
 import { costWithoutCache } from "./insights";
 import type { SessionEvent } from "./types";
@@ -189,8 +190,18 @@ export type DayTotals = {
   saved: number | null;
   sessions: number;
   failures: number;
+  /** Réponses du modèle qui ont rapporté leur usage. */
+  requests: number;
+  /** Tokens de prompt envoyés (entrée nouvelle, lectures et écritures de cache). */
+  prompt: number;
+  /** Lectures de cache et reste du prompt, pour les seuls agents qui rapportent leur cache. */
+  hit: number;
+  miss: number;
+  /** Requêtes dont le modèle n'a pas de prix connu : elles n'entrent pas dans le coût. */
+  unpriced: number;
   byAgent: Record<string, Share>;
   byProject: Record<string, Share>;
+  byModel: Record<string, Share>;
 };
 
 export const localDay = (at: number) => {
@@ -219,13 +230,17 @@ export function dailyTotals(events: SessionEvent[], now: number, days: number): 
     let read = 0;
     let prompt = 0;
     let reporting = false;
+    let promptAll = 0;
+    let miss = 0;
     for (const event of usage) {
+      promptAll += (event.input_tokens?.value ?? 0) + (event.cache_read_tokens?.value ?? 0) + (event.cache_write_tokens?.value ?? 0);
       tokens += tokensOf(event);
       output += event.output_tokens?.value ?? 0;
       if (event.cache_read_tokens) {
         reporting = true;
         read += event.cache_read_tokens.value;
         prompt += (event.input_tokens?.value ?? 0) + event.cache_read_tokens.value + (event.cache_write_tokens?.value ?? 0);
+        miss += (event.input_tokens?.value ?? 0) + (event.cache_write_tokens?.value ?? 0);
       }
     }
 
@@ -242,6 +257,8 @@ export function dailyTotals(events: SessionEvent[], now: number, days: number): 
     };
     const byAgent = share((event) => event.provider);
     const byProject = share((event) => event.project_path ? normalize(event.project_path) : "");
+    const byModel = share((event) => event.model?.value ?? "");
+    let unpriced = 0;
 
     for (const part of Object.keys(byAgent)) {
       const agentEvents = usage.filter((event) => event.provider === part);
@@ -249,10 +266,12 @@ export function dailyTotals(events: SessionEvent[], now: number, days: number): 
       if (priced) {
         cost = (cost ?? 0) + priced.value;
         partial ||= priced.unpricedEvents > 0;
+        unpriced += priced.unpricedEvents;
         const baseline = priced.unpricedEvents === 0 ? costWithoutCache(agentEvents) : null;
         if (baseline && baseline.unpricedEvents === 0 && baseline.value - priced.value > 0.0001) saved = (saved ?? 0) + baseline.value - priced.value;
       } else {
         partial = true;
+        unpriced += agentEvents.length;
       }
     }
 
@@ -261,8 +280,40 @@ export function dailyTotals(events: SessionEvent[], now: number, days: number): 
       cost, costPartial: partial && cost !== null, saved,
       sessions: new Set(list.map((event) => `${event.provider}:${event.session_id}`)).size,
       failures: list.filter((event) => event.kind === "tool_failed").length,
-      byAgent, byProject
+      requests: usage.length, prompt: promptAll, hit: read, miss, unpriced,
+      byAgent, byProject, byModel
     });
   }
   return result.sort((a, b) => b.day.localeCompare(a.day));
+}
+
+/**
+ * Temps de travail d'une session : la somme des tours, de chaque message de l'utilisateur à la
+ * dernière activité avant le suivant. Les attentes d'outil et d'approbation y sont comprises, pas
+ * les pauses entre deux tours. Null quand le connecteur ne marque pas ses tours (Cursor).
+ */
+export function workTime(events: Array<{ provider: string; kind: string; outcome?: string | null; occurred_at: string }>): number | null {
+  if (!events.length) return null;
+  const ordered = [...events].sort((x, y) => x.occurred_at.localeCompare(y.occurred_at));
+  const provider = ordered[0].provider;
+  if (provider === providerById("cursor").eventKey) return null;
+  const isCodex = provider === providerById("codex").eventKey;
+  const seen = new Set<string>();
+  // Indices (dans l'ordre chronologique) du premier événement de chaque tour.
+  const starts: number[] = [];
+  ordered.forEach((event, index) => {
+    if (isCodex) {
+      if (event.outcome?.startsWith("turn-started:") && !seen.has(event.outcome)) { seen.add(event.outcome); starts.push(index); }
+    } else if (event.kind === "user_message") {
+      starts.push(index);
+    }
+  });
+  if (!starts.length) return null;
+  const at = (index: number) => Date.parse(ordered[index].occurred_at);
+  let total = 0;
+  starts.forEach((start, position) => {
+    const end = position + 1 < starts.length ? starts[position + 1] - 1 : ordered.length - 1;
+    total += Math.max(0, at(end) - at(start));
+  });
+  return total;
 }

@@ -4,7 +4,7 @@ import type { AgentPulse } from "./agentPulse";
 import type { Collision } from "./analysis";
 import { statusInfo, since, placeOf, tokenSegments } from "./AgentBar";
 import { t } from "./i18n";
-import { cacheHitRate, compact, duration, percent, usd } from "./insights";
+import { cacheCounts, cacheHitRate, compact, duration, percent, usd } from "./insights";
 import { ProviderMark } from "./ProviderBadges";
 import { agentName, providerFor, providers } from "./providers";
 import { revealFolder, type GitState } from "./useGit";
@@ -30,6 +30,8 @@ export function AgentDetail({ pulse, now, onClose, git, collisions }: { pulse: A
   const summary = pulse.summary;
   const tokens = summary?.tokens ?? null;
   const hit = cacheHitRate(tokens);
+  const counts = cacheCounts(tokens);
+  const promptAll = tokens ? (tokens.input ?? 0) + (tokens.cacheRead ?? 0) + (tokens.cacheWrite ?? 0) : 0;
   const place = placeOf(pulse.project);
   const segments = tokenSegments(pulse);
   const context = pulse.context;
@@ -74,6 +76,43 @@ export function AgentDetail({ pulse, now, onClose, git, collisions }: { pulse: A
 
       {summary && <>
         <section>
+          <h3>{t("Vue d’ensemble de la session", "Session overview")}</h3>
+          <p className="hint">{t("Calculé sur les événements de cette session que l’app a observés.", "Computed from the events of this session that the app observed.")}</p>
+          <div className="overview">
+            <div>
+              <span className="k">{t("Requêtes", "Requests")}</span>
+              <strong className="v">{tokens ? tokens.usageEvents : "—"}</strong>
+              <p>{t("Réponses du modèle qui ont rapporté leur usage.", "Model responses that reported usage.")}</p>
+            </div>
+            <div>
+              <span className="k">Tokens</span>
+              <strong className="v">{tokens ? compact(promptAll + (tokens.output ?? 0)) : "—"}</strong>
+              <p>{tokens ? t(`Entrée ${compact(promptAll)} · sortie ${tokens.output === null ? "—" : compact(tokens.output)}`, `In ${compact(promptAll)} · out ${tokens.output === null ? "—" : compact(tokens.output)}`) : t("non rapporté", "not reported")}</p>
+            </div>
+            <div title={counts ? `Hit ${counts.hit.toLocaleString()} · Miss ${counts.miss.toLocaleString()}` : undefined}>
+              <span className="k">{t("Taux de cache", "Cache hit")}</span>
+              <strong className={`v ${hit === null ? "" : hit >= 0.8 ? "good" : hit >= 0.4 ? "mid" : "low"}`}>{hit === null ? "—" : percent(hit)}</strong>
+              <p>{counts ? t(`lus ÷ (lus + manqués) · ${counts.hit.toLocaleString()} lus, ${counts.miss.toLocaleString()} manqués`, `hit ÷ (hit + miss) · ${counts.hit.toLocaleString()} hit, ${counts.miss.toLocaleString()} missed`) : t("Cet agent ne rapporte pas son cache.", "This agent does not report its cache.")}</p>
+            </div>
+            <div>
+              <span className="k">{t("Temps de travail", "Work time")}</span>
+              <strong className="v">{pulse.workMs === null ? "—" : duration(pulse.workMs)}</strong>
+              <p>{pulse.workMs === null ? t("Cet agent ne marque pas ses tours.", "This agent does not mark its turns.") : t("Somme des tours, attentes d’outil et d’approbation comprises ; pas les pauses entre deux tours.", "Sum of the turns, tool and approval waits included; not the pauses between turns.")}</p>
+            </div>
+            <div>
+              <span className="k">{t("Coût estimé", "Estimated cost")}</span>
+              <strong className="v">{pulse.cost ? `${pulse.cost.partial ? "≥ " : "≈ "}${usd(pulse.cost.value)}` : "—"}</strong>
+              <p>{t("Au tarif API public des modèles vus.", "At the public API price of the models seen.")}</p>
+            </div>
+            {context && context.window ? <div>
+              <span className="k">{t("Fenêtre de contexte", "Context window")}</span>
+              <strong className={`v ctx-${context.state}`}>{context.percent !== null ? `${Math.round(context.percent)}%` : "—"}</strong>
+              <p>{t(`${compact(context.used)} utilisés sur ${compact(context.window)} : ce que la prochaine requête emporterait, une lecture, pas un cumul.`, `${compact(context.used)} used of ${compact(context.window)}: what the next request would carry, a reading, not a running total.`)}</p>
+            </div> : <div><span className="k">{t("Fenêtre de contexte", "Context window")}</span><strong className="v">—</strong><p>{t("Non rapportée par cet agent.", "Not reported by this agent.")}</p></div>}
+          </div>
+        </section>
+
+        <section>
           <h3>{t("Session", "Session")}</h3>
           <dl className="kv">
             <div><dt>{t("Dernière activité", "Last activity")}</dt><dd>{since(pulse.lastEventAt, now)}</dd></div>
@@ -95,8 +134,6 @@ export function AgentDetail({ pulse, now, onClose, git, collisions }: { pulse: A
               <div className="tok-write"><dt><i />{t("Écrits dans le cache", "Written to cache")}</dt><dd>{tokens.cacheWrite === null ? t("non rapporté", "not reported") : compact(tokens.cacheWrite)}</dd></div>
               <div className="tok-new"><dt><i />{t("Entrée nouvelle", "New input")}</dt><dd>{tokens.input === null ? "—" : compact(tokens.input)}</dd></div>
               <div className="tok-out"><dt><i />{t("Sortie", "Output")}</dt><dd>{tokens.output === null ? "—" : compact(tokens.output)}</dd></div>
-              <div><dt>{t("Taux de cache", "Cache hit rate")}</dt><dd>{hit === null ? t("non rapporté", "not reported") : <b>{percent(hit)}</b>}</dd></div>
-              <div><dt>{t("Requêtes au modèle", "Model requests")}</dt><dd>{tokens.usageEvents}</dd></div>
             </dl>
           </>}
           {pulse.cost && <dl className="kv money-kv">

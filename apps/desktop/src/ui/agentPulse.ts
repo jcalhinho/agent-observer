@@ -1,7 +1,7 @@
 import { narrateEvent, type Narration } from "./activity-copy";
 import { contextUsage, type ContextUsage } from "./contextUsage";
 import { detectLoop, type LoopFinding } from "./loopDetector";
-import { burnRate, cacheTrend, costSince, type Burn, type CacheTrend, type Spend } from "./analysis";
+import { burnRate, cacheTrend, costSince, workTime, type Burn, type CacheTrend, type Spend } from "./analysis";
 import { costInsight, type CostInsight } from "./insights";
 import { summarizeSession, type SessionSummary } from "./sessionSummary";
 import type { SessionEvent } from "./types";
@@ -75,6 +75,8 @@ export type AgentPulse = {
   goal: { text: string; at: number } | null;
   /** Le rythme de consommation sur les 15 dernières minutes. */
   burn: Burn | null;
+  /** Temps de travail : somme des tours de la session (null si les tours ne sont pas marqués). */
+  workMs: number | null;
   /** Ce que le tour en cours a coûté jusqu'ici. */
   turnSpend: Spend | null;
   /** Comment le taux de cache évolue, et s'il vient de s'effondrer. */
@@ -113,7 +115,7 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
     const age = now - Date.parse(event.occurred_at);
     if (age >= 0 && age < SPARK_MINUTES * 60_000) spark[SPARK_MINUTES - 1 - Math.floor(age / 60_000)] += 1;
   }
-  if (!own.length) return { key, status: "never", lastEventAt: null, current: null, recent: [], turnStartedAt: null, failureStreak: 0, loop: null, session: null, model: null, modelsSeen: [], launchMode: null, project: null, spark, context: null, summary: null, cost: null, timeline: [], sessionStartedAt: null, goal: null, burn: null, turnSpend: null, cacheTrend: null };
+  if (!own.length) return { key, status: "never", lastEventAt: null, current: null, recent: [], turnStartedAt: null, failureStreak: 0, loop: null, session: null, model: null, modelsSeen: [], launchMode: null, project: null, spark, context: null, summary: null, cost: null, timeline: [], sessionStartedAt: null, goal: null, workMs: null, burn: null, turnSpend: null, cacheTrend: null };
 
   const latest = own[0];
   const lastEventAt = Date.parse(latest.occurred_at);
@@ -196,6 +198,7 @@ export function agentPulse(key: string, events: SessionEvent[], now: number): Ag
     timeline,
     sessionStartedAt: summary ? Date.parse(summary.startedAt) : null,
     goal: latestGoal(sessionEvents),
+    workMs: workTime(sessionEvents),
     burn: burnRate(sessionEvents, now),
     turnSpend: turnOpen && turnStartedAt !== null ? costSince(sessionEvents, turnStartedAt) : null,
     cacheTrend: cacheTrend(sessionEvents)

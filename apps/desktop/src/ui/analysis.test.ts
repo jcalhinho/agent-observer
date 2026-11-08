@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { setLang } from "./i18n";
-import { budgetState, burnRate, cacheTrend, collisionKey, costSince, dailyTotals, detectCollisions, localDay } from "./analysis";
+import { budgetState, burnRate, workTime, cacheTrend, collisionKey, costSince, dailyTotals, detectCollisions, localDay } from "./analysis";
 import type { SessionEvent } from "./types";
 
 const now = Date.parse("2026-11-07T12:00:00.000Z");
@@ -129,5 +129,39 @@ describe("daily totals", () => {
   });
   it("drops days older than the window", () => {
     expect(dailyTotals([usage("reasonix", 40 * 86400, 1, 1)], now, 14)).toEqual([]);
+  });
+});
+
+describe("workTime", () => {
+  const ev = (kind: string, at: string, provider = "claude_code", outcome: string | null = null) => ({ provider, kind, outcome, occurred_at: at });
+  it("somme les tours sans compter les pauses entre deux", () => {
+    const events = [
+      ev("user_message", "2026-11-07T10:00:00Z"), ev("tool_finished", "2026-11-07T10:01:00Z"),
+      ev("user_message", "2026-11-07T11:00:00Z"), ev("tool_finished", "2026-11-07T11:00:30Z")
+    ];
+    expect(workTime(events)).toBe(90_000);
+  });
+  it("est nul quand les tours ne sont pas marqués", () => {
+    expect(workTime([ev("tool_finished", "2026-11-07T10:00:00Z")])).toBeNull();
+    expect(workTime([])).toBeNull();
+  });
+  it("lit les tours de Codex par leur marqueur", () => {
+    const events = [
+      ev("checkpoint", "2026-11-07T10:00:00Z", "codex", "turn-started:a"), ev("tool_finished", "2026-11-07T10:00:20Z", "codex"),
+      ev("checkpoint", "2026-11-07T10:05:00Z", "codex", "turn-started:b"), ev("tool_finished", "2026-11-07T10:05:10Z", "codex")
+    ];
+    expect(workTime(events)).toBe(30_000);
+  });
+});
+
+describe("dailyTotals : requêtes et cache exact", () => {
+  it("compte les requêtes et sépare lus et manqués", () => {
+    const at = new Date().toISOString();
+    const usage = (id: string, input: number, read: number) => ({ event_id: id, session_id: "s", provider: "claude_code", kind: "model_usage", occurred_at: at, project_path: null, input_tokens: { value: input, origin: "reported" }, output_tokens: { value: 10, origin: "reported" }, cache_read_tokens: { value: read, origin: "reported" } }) as unknown as SessionEvent;
+    const [day] = dailyTotals([usage("a", 100, 900), usage("b", 50, 450)], Date.now(), 1);
+    expect(day.requests).toBe(2);
+    expect(day.hit).toBe(1350);
+    expect(day.miss).toBe(150);
+    expect(day.prompt).toBe(1500);
   });
 });

@@ -680,3 +680,25 @@ html, body { background: radial-gradient(1200px 600px at 12% -10%, var(--glow-a)
 .card-bar.status-blocked .badge { color: var(--bad); }
 .card-bar.status-looping .badge { color: var(--loop); }
 .bar-doing.trouble .doing-line > span { display: -webkit-box; white-space: normal; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+/* ---------- Vue d'ensemble : un chiffre, sa définition dessous ---------- */
+.overview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 10px 0 0; overflow: clip; border: 1px solid var(--border); border-radius: 12px; background: var(--border); }
+.overview > div { display: grid; align-content: start; gap: 3px; padding: 12px 14px; background: var(--surface); }
+.overview .k { color: var(--muted); font-size: 10.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+.overview .v { display: block; margin: 0; font: 700 22px var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.overview .v.good { color: var(--good); }
+.overview .v.mid { color: var(--warn); }
+.overview .v.low { color: var(--bad); }
+.overview p { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+.hist-total.overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bars-days.cost li i { background: linear-gradient(180deg, #e0a43a, #a8741c); }
+.bars-days.cost li.today i { background: linear-gradient(180deg, var(--good), #2a8f67); }
+.history h3 small { margin-left: 8px; color: var(--faint); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+
+/* ---------- Barre d'état en bas, comme un tableau de bord ---------- */
+.statusbar { position: sticky; bottom: 0; z-index: 4; display: flex; align-items: center; gap: 18px; padding: 7px 20px; border-top: 1px solid var(--border); background: var(--top-bg); color: var(--muted); font: 11.5px var(--mono); backdrop-filter: blur(10px); }
+.statusbar span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.statusbar b { color: var(--text); font-weight: 650; }
+.statusbar small { color: var(--faint); font-size: 10.5px; }
+.statusbar .grow { flex: 1; }
+@media (max-width: 760px) { .statusbar { flex-wrap: wrap; gap: 4px 14px; padding-inline: 12px; } .statusbar .grow { display: none; } }
