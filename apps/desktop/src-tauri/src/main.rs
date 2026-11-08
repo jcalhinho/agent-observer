@@ -411,6 +411,75 @@ fn load_session_events(
     Ok(decode_stored_events(&payloads))
 }
 
+/// Upper bound on the events one history query returns, so a huge database cannot freeze the window.
+const HISTORY_EVENT_CAP: i64 = 200_000;
+
+/// One agent session seen during a quarter of an hour. Every time zone is a whole number of
+/// quarters away from UTC, so the interface can put each one in the right local day.
+#[derive(Debug, PartialEq, Serialize)]
+struct SessionPresence {
+    provider: String,
+    session_id: String,
+    occurred_at: String,
+}
+
+#[derive(Debug, Serialize)]
+struct HistoryRows {
+    /// Events that carry tokens, and failed tool calls: what the daily totals add up.
+    events: Vec<SessionEvent>,
+    /// Which sessions were active, by quarter of an hour, to count the sessions of each day.
+    presence: Vec<SessionPresence>,
+    /// True when the event cap was reached before the start of the period.
+    truncated: bool,
+}
+
+/// The rows the history needs since `since`, instead of every event: tool starts, file reads
+/// and messages are left out, and sessions come back as one row per quarter of an hour.
+fn history_rows(connection: &Connection, since: &str) -> rusqlite::Result<HistoryRows> {
+    let mut statement = connection.prepare(
+        "SELECT payload FROM session_events WHERE occurred_at >= ?1 AND (kind = 'ToolFailed' \
+         OR json_extract(payload, '$.input_tokens') IS NOT NULL \
+         OR json_extract(payload, '$.output_tokens') IS NOT NULL \
+         OR json_extract(payload, '$.cache_read_tokens') IS NOT NULL \
+         OR json_extract(payload, '$.cache_write_tokens') IS NOT NULL) \
+         ORDER BY occurred_at DESC, event_id DESC LIMIT ?2",
+    )?;
+    let payloads = statement
+        .query_map(params![since, HISTORY_EVENT_CAP + 1], |row| {
+            row.get::<_, String>(0)
+        })?
+        .collect::<Result<Vec<String>, _>>()?;
+    let truncated = payloads.len() as i64 > HISTORY_EVENT_CAP;
+    let events = decode_stored_events(&payloads[..payloads.len().min(HISTORY_EVENT_CAP as usize)]);
+    let mut statement = connection.prepare(
+        "SELECT provider, session_id, MIN(occurred_at) FROM session_events WHERE occurred_at >= ?1 \
+         GROUP BY provider, session_id, substr(occurred_at, 1, 14), CAST(substr(occurred_at, 15, 2) AS INTEGER) / 15",
+    )?;
+    let presence = statement
+        .query_map(params![since], |row| {
+            Ok(SessionPresence {
+                provider: row.get(0)?,
+                session_id: row.get(1)?,
+                occurred_at: row.get(2)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(HistoryRows {
+        events,
+        presence,
+        truncated,
+    })
+}
+
+/// What the history needs over the last `days` days (at most 400).
+#[tauri::command]
+fn load_history(state: tauri::State<'_, CollectorState>, days: i64) -> Result<HistoryRows, String> {
+    // Same RFC 3339 shape as the stored `occurred_at`, so text comparison orders correctly.
+    let since = (chrono::Utc::now() - chrono::Duration::days(days.clamp(1, 400))).to_rfc3339();
+    let database = state.database.lock().map_err(|error| error.to_string())?;
+    history_rows(&database, &since).map_err(|error| error.to_string())
+}
+
 /// Decodes stored payloads, skipping any row this version cannot read: one such row
 /// must not hide every other event, which would leave the race empty over a full database.
 fn decode_stored_events(payloads: &[String]) -> Vec<SessionEvent> {
@@ -1145,6 +1214,7 @@ fn main() {
             reasonix_setup,
             cursor_setup,
             load_session_events,
+            load_history,
             export_session_history,
             collector_status,
             repository_snapshot,
@@ -1209,6 +1279,92 @@ mod tests {
         let decoded = decode_stored_events(&payloads);
         assert_eq!(decoded.len(), 1);
         assert_eq!(decoded[0].provider, Provider::Codex);
+    }
+
+    #[test]
+    fn history_keeps_usage_and_failures_and_counts_sessions_by_quarter_hour() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection.execute_batch(SCHEMA).unwrap();
+        let sourced = |value| {
+            Some(Sourced {
+                value,
+                origin: DataOrigin::Provider,
+            })
+        };
+        let at = |text: &str| {
+            chrono::DateTime::parse_from_rfc3339(text)
+                .unwrap()
+                .with_timezone(&chrono::Utc)
+        };
+        let mut usage = SessionEvent::new("s1", Provider::Codex, EventKind::ModelUsage);
+        usage.occurred_at = at("2026-11-08T10:05:00Z");
+        usage.input_tokens = sourced(10);
+        // Tokens reported on another kind of event count too.
+        let mut message = SessionEvent::new("s1", Provider::Codex, EventKind::AssistantMessage);
+        message.occurred_at = at("2026-11-08T10:06:00Z");
+        message.cache_read_tokens = sourced(4);
+        let mut failure = SessionEvent::new("s1", Provider::Codex, EventKind::ToolFailed);
+        failure.occurred_at = at("2026-11-08T10:20:00Z");
+        let mut read = SessionEvent::new("s2", Provider::ClaudeCode, EventKind::FileRead);
+        read.occurred_at = at("2026-11-08T10:59:59.5Z");
+        let mut started = SessionEvent::new("s2", Provider::ClaudeCode, EventKind::ToolStarted);
+        started.occurred_at = at("2026-11-08T10:46:00Z");
+        let mut old = SessionEvent::new("s3", Provider::Codex, EventKind::ModelUsage);
+        old.occurred_at = at("2026-10-01T10:00:00Z");
+        old.output_tokens = sourced(5);
+        for event in [&usage, &message, &failure, &read, &started, &old] {
+            connection
+                .execute(
+                    "INSERT INTO session_events VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6)",
+                    params![
+                        event.event_id.to_string(),
+                        event.session_id,
+                        event.occurred_at.to_rfc3339(),
+                        event.provider.key(),
+                        format!("{:?}", event.kind),
+                        serde_json::to_string(event).unwrap()
+                    ],
+                )
+                .unwrap();
+        }
+        let rows = history_rows(&connection, &at("2026-11-01T00:00:00Z").to_rfc3339()).unwrap();
+        assert!(!rows.truncated);
+        let kinds: Vec<EventKind> = rows.events.iter().map(|event| event.kind).collect();
+        assert_eq!(
+            kinds,
+            vec![
+                EventKind::ToolFailed,
+                EventKind::AssistantMessage,
+                EventKind::ModelUsage
+            ]
+        );
+        let mut presence: Vec<(String, String, String)> = rows
+            .presence
+            .into_iter()
+            .map(|row| (row.provider, row.session_id, row.occurred_at))
+            .collect();
+        presence.sort();
+        assert_eq!(
+            presence,
+            vec![
+                (
+                    "claude_code".into(),
+                    "s2".into(),
+                    "2026-11-08T10:46:00+00:00".into()
+                ),
+                (
+                    "codex".into(),
+                    "s1".into(),
+                    "2026-11-08T10:05:00+00:00".into()
+                ),
+                (
+                    "codex".into(),
+                    "s1".into(),
+                    "2026-11-08T10:20:00+00:00".into()
+                ),
+            ],
+            "one row per session and quarter of an hour, the old session left out"
+        );
     }
 
     #[test]

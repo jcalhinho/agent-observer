@@ -212,15 +212,27 @@ export const localDay = (at: number) => {
 const tokensOf = (event: SummaryEvent) => (event.input_tokens?.value ?? 0) + (event.output_tokens?.value ?? 0) + (event.cache_read_tokens?.value ?? 0) + (event.cache_write_tokens?.value ?? 0);
 const hasUsage = (event: SummaryEvent) => Boolean(event.input_tokens || event.output_tokens || event.cache_read_tokens || event.cache_write_tokens);
 
-/** Un total par jour, le plus récent d'abord, limité aux `days` derniers jours. */
-export function dailyTotals(events: SessionEvent[], now: number, days: number): DayTotals[] {
+/** A session seen at a given time, without the rest of the event (see `load_history`). */
+export type SessionPresence = { provider: string; session_id: string; occurred_at: string };
+
+/**
+ * Un total par jour, le plus récent d'abord, limité aux `days` derniers jours. `presence` ajoute les
+ * sessions que la base a vues sans renvoyer chacun de leurs événements : elles comptent dans
+ * `sessions`, et nulle part ailleurs.
+ */
+export function dailyTotals(events: SessionEvent[], now: number, days: number, presence: SessionPresence[] = []): DayTotals[] {
   const oldest = localDay(now - (days - 1) * 86_400_000);
+  const newest = localDay(now);
   const byDay = new Map<string, SessionEvent[]>();
-  for (const event of events) {
-    const day = localDay(Date.parse(event.occurred_at));
-    if (day < oldest || day > localDay(now)) continue;
-    (byDay.get(day) ?? byDay.set(day, []).get(day)!).push(event);
-  }
+  const sessionsByDay = new Map<string, Set<string>>();
+  const see = (occurredAt: string, provider: string, session: string) => {
+    const day = localDay(Date.parse(occurredAt));
+    if (day < oldest || day > newest) return null;
+    (sessionsByDay.get(day) ?? sessionsByDay.set(day, new Set()).get(day)!).add(`${provider}:${session}`);
+    return byDay.get(day) ?? byDay.set(day, []).get(day)!;
+  };
+  for (const seen of presence) see(seen.occurred_at, seen.provider, seen.session_id);
+  for (const event of events) see(event.occurred_at, event.provider, event.session_id)?.push(event);
 
   const result: DayTotals[] = [];
   for (const [day, list] of byDay) {
@@ -278,7 +290,7 @@ export function dailyTotals(events: SessionEvent[], now: number, days: number): 
     result.push({
       day, tokens, output, cacheHit: reporting && prompt > 0 ? Math.min(1, read / prompt) : null,
       cost, costPartial: partial && cost !== null, saved,
-      sessions: new Set(list.map((event) => `${event.provider}:${event.session_id}`)).size,
+      sessions: sessionsByDay.get(day)?.size ?? 0,
       failures: list.filter((event) => event.kind === "tool_failed").length,
       requests: usage.length, prompt: promptAll, hit: read, miss, unpriced,
       byAgent, byProject, byModel

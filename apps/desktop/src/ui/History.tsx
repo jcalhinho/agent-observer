@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { dailyTotals, localDay, type DayTotals, type Share } from "./analysis";
+import { dailyTotals, localDay, type DayTotals, type SessionPresence, type Share } from "./analysis";
 import { locale, t } from "./i18n";
 import { compact, percent, shortModel, usd } from "./insights";
 import { agentName } from "./providers";
@@ -30,8 +30,8 @@ const projectName = (path: string) => path ? path.split("/").filter(Boolean).at(
  * répartition par agent et par projet. Calculé depuis l'historique local, dans la limite de ta
  * conservation (Réglages).
  */
-export function History({ events, now, period, onPeriod, loading, truncated, onClose }: {
-  events: SessionEvent[]; now: number; period: number; onPeriod: (days: number) => void; loading: boolean; truncated: boolean; onClose: () => void;
+export function History({ events, presence, now, period, onPeriod, loading, truncated, onClose }: {
+  events: SessionEvent[]; presence: SessionPresence[]; now: number; period: number; onPeriod: (days: number) => void; loading: boolean; truncated: boolean; onClose: () => void;
 }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
@@ -40,7 +40,7 @@ export function History({ events, now, period, onPeriod, loading, truncated, onC
   }, [onClose]);
 
   const [mode, setMode] = useState<"agent" | "model" | "project">("agent");
-  const days = useMemo(() => dailyTotals(events, now, period), [events, now, period]);
+  const days = useMemo(() => dailyTotals(events, now, period, presence), [events, presence, now, period]);
   const today = localDay(now);
   const peak = Math.max(0.0001, ...days.map((day) => day.cost ?? 0));
   const peakTokens = Math.max(1, ...days.map((day) => day.tokens));

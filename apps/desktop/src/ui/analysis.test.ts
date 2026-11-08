@@ -130,6 +130,18 @@ describe("daily totals", () => {
   it("drops days older than the window", () => {
     expect(dailyTotals([usage("reasonix", 40 * 86400, 1, 1)], now, 14)).toEqual([]);
   });
+  it("counts the sessions seen only through presence rows, once each", () => {
+    const at = (secondsAgo: number) => new Date(now - secondsAgo * 1000).toISOString();
+    const days = dailyTotals([usage("codex", 60, 10, 1)], now, 7, [
+      { provider: "codex", session_id: "codex-s", occurred_at: at(900) },
+      { provider: "codex", session_id: "codex-s", occurred_at: at(1800) },
+      { provider: "claude_code", session_id: "other", occurred_at: at(120) },
+      { provider: "claude_code", session_id: "older", occurred_at: at(40 * 86400) }
+    ]);
+    expect(days).toHaveLength(1);
+    expect(days[0].sessions).toBe(2);
+    expect(days[0].requests).toBe(1);
+  });
 });
 
 describe("workTime", () => {

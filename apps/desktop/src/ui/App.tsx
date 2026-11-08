@@ -71,9 +71,9 @@ export function App() {
   // Les analyses qui croisent les agents sont recalculées toutes les 5 secondes, pas à chaque événement.
   const bucket = Math.floor(now / 5000) * 5000;
   const collisions = useMemo(() => detectCollisions(observer.events, bucket), [observer.events, bucket]);
-  const history = useHistory(observer.events, historyOpen ? period : 1, true);
+  const history = useHistory(observer.events, historyOpen ? period : 1);
   // Null quand rien n'a pu être chiffré aujourd'hui : on n'affiche pas un faux « 0 $ ».
-  const spentToday = useMemo(() => dailyTotals(history.events, bucket, 1).find((day) => day.day === localDay(bucket))?.cost ?? null, [history.events, bucket]);
+  const spentToday = useMemo(() => dailyTotals(history.events, bucket, 1, history.presence).find((day) => day.day === localDay(bucket))?.cost ?? null, [history.events, history.presence, bucket]);
   const fleet = useMemo(() => {
     let hits = 0, misses = 0, perMin = 0, widest: { name: string; percent: number } | null = null;
     for (const pulse of seen) {
@@ -174,7 +174,7 @@ export function App() {
     </footer>}
 
     {opened && <AgentDetail pulse={opened} now={now} onClose={() => setOpenKey(null)} git={gitOf(opened)} collisions={collisionsOf(opened.key)} limits={limits[opened.key]} />}
-    {historyOpen && <History events={history.events} now={now} period={period} onPeriod={setPeriod} loading={history.loading} truncated={history.truncated} onClose={() => setHistoryOpen(false)} />}
+    {historyOpen && <History events={history.events} presence={history.presence} now={now} period={period} onPeriod={setPeriod} loading={history.loading} truncated={history.truncated} onClose={() => setHistoryOpen(false)} />}
     {settings && <SettingsPanel
       alerts={{ notifications, onNotifications: setNotifications, budget, onBudget: setBudget }}
       onClose={() => setSettings(false)}
