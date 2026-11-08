@@ -15,9 +15,10 @@ export function compact(value: number) {
   return `${digits(value / 1_000_000_000)}G`;
 }
 
-/** 0.0042 -> « <0,01 $ », 1.5 -> « 1,50 $ », 42 -> « 42 $ ». */
+/** 0 -> « 0 $ », 0.0042 -> « <0,01 $ », 1.5 -> « 1,50 $ », 42 -> « 42 $ ». */
 export function usd(value: number) {
   const fr = locale().startsWith("fr");
+  if (value <= 0) return fr ? "0 $" : "$0";
   const small = value < 0.01;
   const text = small ? (fr ? "0,01" : "0.01") : value < 10 ? value.toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : Math.round(value).toLocaleString(locale());
   return fr ? `${small ? "<" : ""}${text} $` : `${small ? "<" : ""}$${text}`;

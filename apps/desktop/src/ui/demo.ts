@@ -76,29 +76,29 @@ export function demoEvents(now = Date.now(), idPrefix = "demo"): SessionEvent[] 
     return step;
   }
 
-  const AO = "/Users/ajc/Projects/agent-observer";
-  const files = ["src/ui/AgentCard.tsx", "src/ui/App.tsx", "src/ui/styles.css", "src-tauri/src/main.rs", "src/ui/insights.ts", "crates/session-events/src/lib.rs"];
+  const AO = "/Users/demo/Projects/agent-observer";
+  const files = ["src/ui/AgentBar.tsx", "src/ui/App.tsx", "src/ui/styles.css", "src-tauri/src/main.rs", "src/ui/insights.ts", "crates/session-events/src/lib.rs"];
   const edit = (index: number): [string, string, null] => ["Edit", `${AO}/apps/desktop/${files[index % files.length]}`, null];
   const read = (index: number): [string, string, null] => ["Read", `${AO}/apps/desktop/${files[index % files.length]}`, null];
   const bash = (command: string): [string, null, string] => ["Bash", null, command];
 
   run({ provider: "claude_code", session: "c1", project: AO, models: ["claude-sonnet-5-5"], startedMinutesAgo: 47, turns: 5, cache: [0.93, 0.04], baseContext: 24_000, growth: 3_800, tools: [read(0), edit(0), read(1), bash("npm run typecheck"), edit(2), ["Grep", null, null], edit(3), bash("cargo test")], end: "working" });
-  run({ provider: "reasonix", session: "r1", project: "/Users/ajc/Projects/effectlog", models: ["deepseek-v4-flash", "deepseek-v4-pro"], startedMinutesAgo: 62, turns: 6, cache: [0.995, 0], window: 128_000, baseContext: 14_000, growth: 1_900, tailCache: 0.12, tools: [read(2), edit(4), bash("cargo build"), edit(5), read(3)], end: "working" });
-  run({ provider: "codex", session: "x1", project: "/Users/ajc/Projects/agentctl", models: ["gpt-5.6-terra"], startedMinutesAgo: 33, turns: 4, cache: [0.71, 0.0], window: 400_000, baseContext: 120_000, growth: 9_000, tools: [bash("cargo check"), edit(1), read(4), bash("rg parse")], end: "waiting" });
-  run({ provider: "qwen_code", session: "q1", project: "/Users/ajc/Projects/viralforge", models: ["qwen3.7-plus"], startedMinutesAgo: 18, turns: 2, cache: null, baseContext: 9_000, growth: 1_200, tools: [bash("npm test"), edit(0), bash("npm test"), edit(0)], end: "looping" });
-  run({ provider: "github_copilot", session: "g1", project: "/Users/ajc/Projects/brac-a-brac", models: ["gpt-5.4"], startedMinutesAgo: 25, turns: 3, cache: null, baseContext: 11_000, growth: 800, tools: [read(2), edit(3), read(5)], end: "blocked" });
-  run({ provider: "opencode", session: "o1", project: "/Users/ajc/Projects/dossier-sans-titre", models: ["deepseek-v4-flash"], startedMinutesAgo: 240, turns: 3, cache: [0.9, 0], baseContext: 10_000, growth: 600, tools: [read(1), edit(2)], end: "idle", idleSeconds: 3 * 3600 });
+  run({ provider: "reasonix", session: "r1", project: "/Users/demo/Projects/billing", models: ["deepseek-v4-flash", "deepseek-v4-pro"], startedMinutesAgo: 62, turns: 6, cache: [0.995, 0], window: 128_000, baseContext: 14_000, growth: 1_900, tailCache: 0.12, tools: [read(2), edit(4), bash("cargo build"), edit(5), read(3)], end: "working" });
+  run({ provider: "codex", session: "x1", project: "/Users/demo/Projects/api-server", models: ["gpt-5.6-terra"], startedMinutesAgo: 33, turns: 4, cache: [0.71, 0.0], window: 400_000, baseContext: 120_000, growth: 9_000, tools: [bash("cargo check"), edit(1), read(4), bash("rg parse")], end: "waiting" });
+  run({ provider: "qwen_code", session: "q1", project: "/Users/demo/Projects/video-tool", models: ["qwen3.7-plus"], startedMinutesAgo: 18, turns: 2, cache: null, baseContext: 9_000, growth: 1_200, tools: [bash("npm test"), edit(0), bash("npm test"), edit(0)], end: "looping" });
+  run({ provider: "github_copilot", session: "g1", project: "/Users/demo/Projects/docs-site", models: ["gpt-5.4"], startedMinutesAgo: 25, turns: 3, cache: null, baseContext: 11_000, growth: 800, tools: [read(2), edit(3), read(5)], end: "blocked" });
+  run({ provider: "opencode", session: "o1", project: "/Users/demo/Projects/scratch", models: ["deepseek-v4-flash"], startedMinutesAgo: 240, turns: 3, cache: [0.9, 0], baseContext: 10_000, growth: 600, tools: [read(1), edit(2)], end: "idle", idleSeconds: 3 * 3600 });
 
   // Codex touche au même fichier que Claude Code : une collision.
-  push("codex", "x1", "/Users/ajc/Projects/agentctl", "tool_started", 150, { tool_name: "apply_patch", file_path: `${AO}/apps/desktop/src/ui/App.tsx` });
+  push("codex", "x1", "/Users/demo/Projects/api-server", "tool_started", 150, { tool_name: "apply_patch", file_path: `${AO}/apps/desktop/src/ui/App.tsx` });
 
   // Qwen enchaîne les mêmes commandes qui échouent : la boucle se voit dans le tour ouvert.
   for (let index = 0; index < 8; index += 1) {
-    push("qwen_code", "q1", "/Users/ajc/Projects/viralforge", "tool_started", 110 - index * 11, { tool_name: "run_shell_command", command: "npm test" });
-    push("qwen_code", "q1", "/Users/ajc/Projects/viralforge", "tool_failed", 108 - index * 11, { tool_name: "run_shell_command", command: "npm test", outcome: "failed" });
+    push("qwen_code", "q1", "/Users/demo/Projects/video-tool", "tool_started", 110 - index * 11, { tool_name: "run_shell_command", command: "npm test" });
+    push("qwen_code", "q1", "/Users/demo/Projects/video-tool", "tool_failed", 108 - index * 11, { tool_name: "run_shell_command", command: "npm test", outcome: "failed" });
   }
   // Copilot échoue deux fois d'affilée.
-  for (let index = 0; index < 3; index += 1) push("github_copilot", "g1", "/Users/ajc/Projects/brac-a-brac", "tool_failed", 40 - index * 10, { tool_name: "edit_file", file_path: "/Users/ajc/Projects/brac-a-brac/src/main.rs", outcome: "failed" });
+  for (let index = 0; index < 3; index += 1) push("github_copilot", "g1", "/Users/demo/Projects/docs-site", "tool_failed", 40 - index * 10, { tool_name: "edit_file", file_path: "/Users/demo/Projects/docs-site/src/main.rs", outcome: "failed" });
 
   return events.sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
 }
@@ -107,4 +107,17 @@ export function demoEvents(now = Date.now(), idPrefix = "demo"): SessionEvent[] 
 export function demoHistory(now = Date.now()): SessionEvent[] {
   const days = [1, 2, 3, 5, 6, 8];
   return days.flatMap((day) => demoEvents(now - day * 86_400_000 - (day % 3) * 3_600_000, `h${day}`).filter((_, index) => (index + day) % 3 !== 0));
+}
+
+/** Des limites d'abonnement inventées pour la démo : Codex presque au bout de sa fenêtre de 5 h. */
+export function demoLimits(now: number) {
+  const at = (minutes: number) => Math.round(now / 1000) + minutes * 60;
+  return [
+    { provider: "codex", observed_at: new Date(now - 60_000).toISOString(), plan: "plus",
+      primary: { used_percent: 86, window_minutes: 300, resets_at: at(74) },
+      secondary: { used_percent: 41, window_minutes: 10080, resets_at: at(3 * 1440 + 200) } },
+    { provider: "claude_code", observed_at: new Date(now - 30_000).toISOString(), plan: null,
+      primary: { used_percent: 23.5, window_minutes: 300, resets_at: at(190) },
+      secondary: { used_percent: 58, window_minutes: 10080, resets_at: at(2 * 1440 + 30) } }
+  ];
 }

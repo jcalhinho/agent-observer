@@ -9,12 +9,12 @@ const REFRESH_MS = 15_000;
 
 function demoSnapshot(path: string): RepositorySnapshot | null {
   const name = path.split("/").filter(Boolean).at(-1) ?? "repo";
-  if (name === "dossier-sans-titre") return null;
+  if (name === "scratch") return null;
   const dirty = name.length % 4;
   return {
-    root: path, project_hash: name, branch: name === "viralforge" ? "fix/tts-queue" : name === "agent-observer" ? "ui-riche" : "main",
-    ahead: name === "agent-observer" ? 3 : 0, behind: name === "viralforge" ? 2 : 0, changed_total: dirty + 2,
-    changed_files: [{ path: "src/ui/AgentCard.tsx", status: "M" }, { path: "src/ui/insights.ts", status: "??" }].slice(0, Math.max(1, dirty)),
+    root: path, project_hash: name, branch: name === "video-tool" ? "fix/queue" : name === "agent-observer" ? "ui-riche" : "main",
+    ahead: name === "agent-observer" ? 3 : 0, behind: name === "video-tool" ? 2 : 0, changed_total: dirty + 2,
+    changed_files: [{ path: "src/ui/AgentBar.tsx", status: "M" }, { path: "src/ui/insights.ts", status: "??" }].slice(0, Math.max(1, dirty)),
     recent_commits: [{ short_id: "f34c2d6", subject: "docs: README réécrit pour l’écran unique", relative_time: "2 hours ago" }]
   };
 }

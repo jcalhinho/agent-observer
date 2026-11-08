@@ -2,6 +2,7 @@
 //! metadata into the shared event stream. Historical transcript contents are
 //! never backfilled.
 
+use crate::limits::{self, LimitSnapshot};
 use chrono::{DateTime, Duration, Utc};
 use serde_json::Value;
 use session_events::{DataOrigin, EventKind, Provider, SessionEvent, Sourced};
@@ -29,6 +30,8 @@ struct SessionContext {
     model: Option<String>,
     has_started: bool,
     active_tools: HashMap<String, (String, Option<String>, Option<String>)>,
+    /// Les dernieres limites d'usage lues dans ce fichier (lignes `token_count`).
+    limits: Option<LimitSnapshot>,
 }
 
 struct Cursor {
@@ -89,6 +92,44 @@ impl RolloutMonitor {
         }
         events
     }
+
+    /// Les limites d'usage les plus recentes, tous fichiers confondus.
+    pub fn latest_limits(&self) -> Option<LimitSnapshot> {
+        self.cursors
+            .values()
+            .filter_map(|cursor| cursor.context.limits.as_ref())
+            .max_by_key(|snapshot| snapshot.observed_at)
+            .cloned()
+    }
+}
+
+/// Retient les limites d'usage d'une ligne `token_count`, si elles sont plus recentes.
+fn note_limits(record: &Value, context: &mut SessionContext) {
+    if record.get("type").and_then(Value::as_str) != Some("event_msg") {
+        return;
+    }
+    let Some(payload) = record
+        .get("payload")
+        .filter(|payload| payload.get("type").and_then(Value::as_str) == Some("token_count"))
+    else {
+        return;
+    };
+    let Some(observed_at) = record
+        .get("timestamp")
+        .and_then(Value::as_str)
+        .and_then(|timestamp| DateTime::parse_from_rfc3339(timestamp).ok())
+        .map(|timestamp| timestamp.with_timezone(&Utc))
+    else {
+        return;
+    };
+    if let Some(snapshot) = limits::parse_codex(payload, observed_at)
+        && context
+            .limits
+            .as_ref()
+            .is_none_or(|current| current.observed_at <= snapshot.observed_at)
+    {
+        context.limits = Some(snapshot);
+    }
 }
 
 pub fn sessions_root() -> PathBuf {
@@ -105,16 +146,19 @@ pub fn sessions_root() -> PathBuf {
     codex_home.join("sessions")
 }
 
-pub fn spawn<F>(
+pub fn spawn<F, L>(
     root: PathBuf,
     capture_prompts: Arc<AtomicBool>,
     capture_commands: Arc<AtomicBool>,
     mut on_event: F,
+    mut on_limits: L,
 ) where
     F: FnMut(SessionEvent) + Send + 'static,
+    L: FnMut(LimitSnapshot) + Send + 'static,
 {
     thread::spawn(move || {
         let mut monitor = RolloutMonitor::new(root);
+        let mut sent: Option<LimitSnapshot> = None;
         loop {
             let events = monitor.poll(
                 capture_prompts.load(Ordering::Relaxed),
@@ -122,6 +166,12 @@ pub fn spawn<F>(
             );
             for event in events {
                 on_event(event);
+            }
+            if let Some(latest) = monitor.latest_limits()
+                && sent.as_ref() != Some(&latest)
+            {
+                sent = Some(latest.clone());
+                on_limits(latest);
             }
             thread::sleep(POLL_INTERVAL);
         }
@@ -196,6 +246,7 @@ fn update_context(line: &[u8], context: &mut SessionContext) {
     let Ok(record) = serde_json::from_slice::<Value>(line) else {
         return;
     };
+    note_limits(&record, context);
     let Some(payload) = record.get("payload") else {
         return;
     };
@@ -259,16 +310,17 @@ fn read_appended_records(
     cursor.pending.extend(appended);
     let mut events = Vec::new();
     while let Some(newline) = cursor.pending.iter().position(|byte| *byte == b'\n') {
-        if newline <= MAX_LINE_BYTES {
-            if let Ok(record) = serde_json::from_slice::<Value>(&cursor.pending[..newline]) {
-                if let Some(event) = project_record(
-                    &record,
-                    &mut cursor.context,
-                    capture_prompts,
-                    capture_commands,
-                ) {
-                    events.push(event);
-                }
+        if newline <= MAX_LINE_BYTES
+            && let Ok(record) = serde_json::from_slice::<Value>(&cursor.pending[..newline])
+        {
+            note_limits(&record, &mut cursor.context);
+            if let Some(event) = project_record(
+                &record,
+                &mut cursor.context,
+                capture_prompts,
+                capture_commands,
+            ) {
+                events.push(event);
             }
         }
         cursor.pending.drain(..=newline);
@@ -725,5 +777,50 @@ mod tests {
             failed_output(&parts),
             Some(Some("cargo: not found".to_owned()))
         );
+    }
+
+    #[test]
+    fn usage_limits_are_read_from_existing_and_appended_lines() {
+        let line = |at: &str, used: f64| {
+            json!({ "timestamp": at, "type": "event_msg", "payload": { "type": "token_count", "info": null,
+                "rate_limits": { "primary": { "used_percent": used, "window_minutes": 300, "resets_at": 1800000000 },
+                                 "secondary": { "used_percent": 12.0, "window_minutes": 10080, "resets_at": 1800500000 },
+                                 "plan_type": "pro" } } })
+            .to_string()
+        };
+        let dir = std::env::temp_dir().join(format!("ao-codex-limits-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("rollout-2026-11-08T10-00-00-abc.jsonl");
+        // Un fichier deja la au demarrage : ses limites sont lues dans sa fin, sans rejouer d'evenement.
+        fs::write(
+            &path,
+            format!(
+                "{}\n{}\n",
+                line("2026-11-08T10:00:00Z", 10.0),
+                line("2026-11-08T10:05:00Z", 20.0)
+            ),
+        )
+        .unwrap();
+        let mut monitor = RolloutMonitor::new(dir.clone());
+        monitor.started_at = SystemTime::now() + StdDuration::from_secs(3600);
+        assert!(monitor.poll(false, false).is_empty());
+        let first = monitor
+            .latest_limits()
+            .expect("limits from the existing tail");
+        assert_eq!(first.primary.as_ref().unwrap().used_percent, 20.0);
+        assert_eq!(first.plan.as_deref(), Some("pro"));
+        // Une ligne ajoutee ensuite : `info` vide, donc aucun evenement, mais de nouvelles limites.
+        let mut file = fs::OpenOptions::new().append(true).open(&path).unwrap();
+        std::io::Write::write_all(
+            &mut file,
+            format!("{}\n", line("2026-11-08T10:10:00Z", 35.5)).as_bytes(),
+        )
+        .unwrap();
+        assert!(monitor.poll(false, false).is_empty());
+        let latest = monitor.latest_limits().unwrap();
+        assert_eq!(latest.primary.unwrap().used_percent, 35.5);
+        assert_eq!(latest.secondary.unwrap().window_minutes, Some(10080));
+        let _ = fs::remove_dir_all(&dir);
     }
 }

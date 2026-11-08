@@ -9,6 +9,8 @@ import { agentName, providerFor, providers } from "./providers";
 import { Bars, Stack, type Segment } from "./Spark";
 import { useConfiguredModels } from "./useConfiguredModels";
 import { revealFolder, type GitState } from "./useGit";
+import { resetText, windowsOf } from "./limitsView";
+import type { LimitSnapshot } from "./useLimits";
 
 /** Le vocabulaire unique des états d'agent. */
 export function statusInfo(status: PulseStatus): { label: string; explanation: string } {
@@ -82,7 +84,7 @@ export function modelTitle(pulse: AgentPulse, configured: string | null | undefi
  * (tokens, cache, coût, contexte, outils, activité). Une seconde ligne porte les alertes et le
  * contexte (collisions, git, modèle, rythme). Un clic ouvre le détail.
  */
-export function AgentBar({ pulse, now, onOpen, git, collisions }: { pulse: AgentPulse; now: number; onOpen: (key: string) => void; git?: GitState; collisions: Collision[] }) {
+export function AgentBar({ pulse, now, onOpen, git, collisions, limits }: { pulse: AgentPulse; now: number; onOpen: (key: string) => void; git?: GitState; collisions: Collision[]; limits?: LimitSnapshot }) {
   const provider = providerFor(pulse.key) ?? fallback;
   const status = statusInfo(pulse.status);
   const session = pulse.session;
@@ -109,7 +111,8 @@ export function AgentBar({ pulse, now, onOpen, git, collisions }: { pulse: Agent
   const activeMinutes = pulse.spark.filter((value) => value > 0).length;
   const running = pulse.status === "working" || pulse.status === "looping" || pulse.status === "blocked";
   const others = (collision: Collision) => collision.agents.filter((agent) => agent !== pulse.key).map(agentName).join(", ");
-  const hasFoot = Boolean(model || git?.status === "ok" || collisions.length || pulse.cacheTrend?.dropped || (pulse.burn && running) || topTools.length);
+  const windows = windowsOf(limits, now);
+  const hasFoot = Boolean(windows.length || model || git?.status === "ok" || collisions.length || pulse.cacheTrend?.dropped || (pulse.burn && running) || topTools.length);
 
   const open = () => onOpen(pulse.key);
   const onKey = (event: KeyboardEvent) => {
@@ -157,12 +160,12 @@ export function AgentBar({ pulse, now, onOpen, git, collisions }: { pulse: Agent
           <small>{running && pulse.burn?.usdPerHour != null ? `≈ ${usd(pulse.burn.usdPerHour)}${t("/h", "/h")}` : "\u00a0"}</small>
         </div>
         <div title={context?.window ? `${compact(context.used)} / ${compact(context.window)}` : undefined}>
-          <dt>{t("Contexte", "Context")}</dt><dd className={context ? `ctx-${context.state}` : ""}>{context && context.percent !== null ? `${Math.round(context.percent)}%` : <small>—</small>}</dd>
+          <dt>{t("Contexte", "Context")}</dt><dd className={context ? `ctx-${context.state}` : ""}>{context && context.percent !== null ? percent(context.percent / 100) : <small>—</small>}</dd>
           <small className="ctx-mini">{context && context.percent !== null ? <i style={{ width: `${Math.min(100, Math.max(4, context.percent))}%` }} /> : "\u00a0"}</small>
         </div>
         <div title={t("Appels d’outils dans la session (et échecs)", "Tool calls in the session (and failures)")}>
           <dt>{t("Outils", "Tools")}</dt><dd>{session ? session.toolCalls : <small>—</small>}{session && session.failures > 0 && <em>{session.failures}✗</em>}</dd>
-          <small>{session ? t(`${session.turns} tours · ${summary ? duration(summary.duration.value) : "—"}`, `${session.turns} turns · ${summary ? duration(summary.duration.value) : "—"}`) : "\u00a0"}</small>
+          <small>{session ? `${session.turns} ${session.turns > 1 ? t("tours", "turns") : t("tour", "turn")} · ${summary ? duration(summary.duration.value) : "—"}` : "\u00a0"}</small>
         </div>
       </dl>
 
@@ -173,6 +176,11 @@ export function AgentBar({ pulse, now, onOpen, git, collisions }: { pulse: Agent
     </div>
 
     {hasFoot && <div className="bar-foot">
+      {windows.map((view) => <span key={view.label} className={`limit ${view.level}`} title={`${t("Limite d’abonnement", "Subscription limit")} ${view.label} · ${resetText(view.resetsAt, now)}`}>
+        <b>{view.label}</b>
+        <i><em style={{ width: `${Math.min(100, view.percent ?? 0)}%` }} /></i>
+        {view.percent === null ? t("remise à zéro", "reset") : percent(view.percent / 100)}
+      </span>)}
       {model && <span className={`chip model ${pulse.modelsSeen.length > 1 ? "mixed" : ""}`} title={modelTitle(pulse, configured)}>{shortModel(model)}{pulse.modelsSeen.length > 1 ? ` +${pulse.modelsSeen.length - 1}` : ""}</span>}
       {pulse.turnStartedAt !== null && <span className="chip ghost"><Clock3 size={10} />{t("tour", "turn")} {duration(now - pulse.turnStartedAt)}</span>}
       {git?.status === "ok" && <span className="git" title={git.snapshot.changed_files.slice(0, 12).map((file) => `${file.status} ${file.path}`).join("\n") || t("Arbre de travail propre", "Clean working tree")}>

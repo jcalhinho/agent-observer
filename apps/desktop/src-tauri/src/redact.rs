@@ -106,14 +106,13 @@ pub fn redact_error(message: &str) -> String {
             let lower = word.to_lowercase();
             // `password=hunter2`, `token: abc`, `Authorization: Bearer abc`
             let secret_key = SECRET_WORDS.iter().any(|name| lower.contains(name));
-            if let Some((name, value)) = word.split_once(['=', ':']) {
-                if !value.is_empty()
-                    && SECRET_WORDS
-                        .iter()
-                        .any(|secret| name.to_lowercase().contains(secret))
-                {
-                    return format!("{name}=[redacted]");
-                }
+            if let Some((name, value)) = word.split_once(['=', ':'])
+                && !value.is_empty()
+                && SECRET_WORDS
+                    .iter()
+                    .any(|secret| name.to_lowercase().contains(secret))
+            {
+                return format!("{name}=[redacted]");
             }
             let hide = redact_next || looks_like_secret(word);
             redact_next = secret_key;

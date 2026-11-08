@@ -21,6 +21,7 @@ describe("formatting", () => {
     expect(compact(950)).toBe("950");
     expect(compact(12_400)).toBe("12.4k");
     expect(compact(3_200_000)).toBe("3.2M");
+    expect(usd(0)).toBe("$0");
     expect(usd(0.004)).toBe("<$0.01");
     expect(usd(1.5)).toBe("$1.50");
     expect(usd(42.4)).toBe("$42");

@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod activity;
 mod antigravity_models;
 mod antigravity_sessions;
 mod claude_transcripts;
@@ -7,6 +8,7 @@ mod codex_rollout;
 mod copilot_chat;
 mod copilot_sessions;
 mod git_info;
+mod limits;
 mod models;
 mod no_window;
 mod opencode_sessions;
@@ -20,7 +22,7 @@ use axum::{
     extract::{ConnectInfo, Request, State},
     http::{StatusCode, header},
     response::IntoResponse,
-    routing::post,
+    routing::{get, post},
 };
 use rusqlite::OptionalExtension;
 use rusqlite::{Connection, params};
@@ -48,6 +50,8 @@ struct CollectorState {
     capture_commands: Arc<AtomicBool>,
     /// Keep a short, cleaned version of failed tools' error messages (off by default).
     capture_errors: Arc<AtomicBool>,
+    /// Latest subscription usage limits each agent reported (kept in memory only).
+    limits: limits::SharedLimits,
 }
 
 #[derive(Serialize)]
@@ -55,6 +59,8 @@ struct ClaudeSetup {
     endpoint: String,
     token: String,
     settings_fragment: String,
+    /// Optional status line that hands Claude Code's usage limits to the observer.
+    statusline_fragment: String,
     capture_prompts: bool,
     capture_commands: bool,
 }
@@ -128,10 +134,17 @@ fn claude_setup(state: tauri::State<'_, CollectorState>) -> ClaudeSetup {
         "Notification": hook(),
         "SessionEnd": hook()
     }});
+    // Claude Code pipes its status line JSON into curl; the observer answers with the line to
+    // show. When the observer is closed, curl fails quietly and the line stays empty.
+    let statusline = json!({ "statusLine": { "type": "command", "command": format!(
+        "curl -s -m 1 -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer {}\" --data-binary @- http://127.0.0.1:43821/claude-statusline",
+        state.token
+    ) } });
     ClaudeSetup {
         endpoint,
         token: state.token.clone(),
         settings_fragment: serde_json::to_string_pretty(&fragment).unwrap_or_default(),
+        statusline_fragment: serde_json::to_string_pretty(&statusline).unwrap_or_default(),
         capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
         capture_commands: state.capture_commands.load(Ordering::Relaxed),
     }
@@ -488,11 +501,7 @@ async fn receive_claude_hook(
     ConnectInfo(_peer): ConnectInfo<SocketAddr>,
     request: Request,
 ) -> impl IntoResponse {
-    let authorized = request
-        .headers()
-        .get(header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-        .is_some_and(|value| value == format!("Bearer {}", state.token));
+    let authorized = bearer_matches(request.headers(), &state.token);
     if !authorized {
         return StatusCode::UNAUTHORIZED;
     }
@@ -517,15 +526,117 @@ async fn receive_claude_hook(
     StatusCode::NO_CONTENT
 }
 
+/// Claude Code's status line input: keeps only the usage limits, answers the text to display.
+async fn receive_claude_statusline(
+    State(state): State<CollectorState>,
+    request: Request,
+) -> axum::response::Response {
+    let authorized = bearer_matches(request.headers(), &state.token);
+    if !authorized {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let Ok(body) = axum::body::to_bytes(request.into_body(), 64 * 1024).await else {
+        return StatusCode::PAYLOAD_TOO_LARGE.into_response();
+    };
+    let Ok(input) = serde_json::from_slice::<Value>(&body) else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+    if let Some(snapshot) = limits::parse_claude_statusline(&input, chrono::Utc::now())
+        && limits::record(&state.limits, snapshot)
+    {
+        let _ = state.app.emit("limits-updated", ());
+    }
+    (
+        [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+        limits::statusline_text(&input),
+    )
+        .into_response()
+}
+
+/// Whether a request carries this installation's token. The comparison does not stop at the first
+/// differing byte, so its duration says nothing about the token.
+fn bearer_matches(headers: &axum::http::HeaderMap, token: &str) -> bool {
+    let Some(value) = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+    else {
+        return false;
+    };
+    let expected = format!("Bearer {token}");
+    value.len() == expected.len()
+        && value
+            .bytes()
+            .zip(expected.bytes())
+            .fold(0u8, |difference, (a, b)| difference | (a ^ b))
+            == 0
+}
+
+/// Reads `minutes=N` from a query string (1 to 1440, 60 by default).
+fn activity_window(query: Option<&str>) -> i64 {
+    query
+        .unwrap_or("")
+        .split('&')
+        .find_map(|pair| pair.strip_prefix("minutes="))
+        .and_then(|value| value.parse::<i64>().ok())
+        .unwrap_or(60)
+        .clamp(1, 1440)
+}
+
+/// `GET /v1/activity`: read-only summary of the recent sessions, for local tools (the MCP server
+/// in `tools/mcp`). Same token as the hooks; a request coming from a web page is refused.
+async fn read_activity(
+    State(state): State<CollectorState>,
+    request: Request,
+) -> axum::response::Response {
+    let headers = request.headers();
+    let authorized = bearer_matches(headers, &state.token);
+    if !authorized {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    // Browsers always send `Origin` on cross-site requests: no web page may read this.
+    if headers.contains_key(header::ORIGIN) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    let minutes = activity_window(request.uri().query());
+    let now = chrono::Utc::now();
+    let since = (now - chrono::Duration::minutes(minutes)).to_rfc3339();
+    let payloads = {
+        let Ok(database) = state.database.lock() else {
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        };
+        let Ok(mut statement) = database.prepare(
+            "SELECT payload FROM session_events WHERE occurred_at >= ?1 ORDER BY occurred_at DESC LIMIT 20000",
+        ) else {
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        };
+        let rows = statement
+            .query_map(params![since], |row| row.get::<_, String>(0))
+            .map(|rows| rows.filter_map(Result::ok).collect::<Vec<String>>());
+        match rows {
+            Ok(rows) => rows,
+            Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        }
+    };
+    let sessions = activity::summarize(&decode_stored_events(&payloads));
+    axum::Json(json!({
+        "generated_at": now,
+        "window_minutes": minutes,
+        "sessions": sessions,
+        "limits": limits::all(&state.limits),
+    }))
+    .into_response()
+}
+
+#[tauri::command]
+fn subscription_limits(state: tauri::State<'_, CollectorState>) -> Vec<limits::LimitSnapshot> {
+    limits::all(&state.limits)
+}
+
 async fn receive_cursor_hook(
     State(state): State<CollectorState>,
     request: Request,
 ) -> impl IntoResponse {
-    let authorized = request
-        .headers()
-        .get(header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-        .is_some_and(|value| value == format!("Bearer {}", state.token));
+    let authorized = bearer_matches(request.headers(), &state.token);
     if !authorized {
         return StatusCode::UNAUTHORIZED;
     }
@@ -778,12 +889,15 @@ fn main() {
                 capture_prompts: Arc::new(AtomicBool::new(capture_prompts)),
                 capture_commands: Arc::new(AtomicBool::new(capture_commands)),
                 capture_errors: Arc::new(AtomicBool::new(capture_errors)),
+                limits: Arc::default(),
             };
             let port = 43821;
             let address = SocketAddr::from(([127, 0, 0, 1], port));
             let router = Router::new()
                 .route("/claude-hook", post(receive_claude_hook))
                 .route("/cursor-hook", post(receive_cursor_hook))
+                .route("/claude-statusline", post(receive_claude_statusline))
+                .route("/v1/activity", get(read_activity))
                 .with_state(state.clone());
             let handle = app.handle().clone();
             let status = state.status.clone();
@@ -812,12 +926,18 @@ fn main() {
                 persist_event(&claude_state, event);
             });
             let codex_state = state.clone();
+            let codex_limits = state.clone();
             codex_rollout::spawn(
                 codex_rollout::sessions_root(),
                 state.capture_prompts.clone(),
                 state.capture_commands.clone(),
                 move |event| {
                     persist_event(&codex_state, event);
+                },
+                move |snapshot| {
+                    if limits::record(&codex_limits.limits, snapshot) {
+                        let _ = codex_limits.app.emit("limits-updated", ());
+                    }
                 },
             );
             // Gemini CLI is not observed any more (Antigravity replaces it): nothing of it is read.
@@ -896,6 +1016,7 @@ fn main() {
             collector_status,
             repository_snapshot,
             reveal_in_file_manager,
+            subscription_limits,
             update_capture_policy,
             retention_policy,
             update_retention_policy,
@@ -910,6 +1031,29 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_exact_token_is_accepted() {
+        let mut headers = axum::http::HeaderMap::new();
+        assert!(!bearer_matches(&headers, "abc"));
+        headers.insert(header::AUTHORIZATION, "Bearer abc".parse().unwrap());
+        assert!(bearer_matches(&headers, "abc"));
+        assert!(!bearer_matches(&headers, "abd"));
+        assert!(!bearer_matches(&headers, "ab"));
+        headers.insert(header::AUTHORIZATION, "Bearer abcd".parse().unwrap());
+        assert!(!bearer_matches(&headers, "abc"));
+        headers.insert(header::AUTHORIZATION, "abc".parse().unwrap());
+        assert!(!bearer_matches(&headers, "abc"));
+    }
+
+    #[test]
+    fn activity_window_is_bounded() {
+        assert_eq!(activity_window(None), 60);
+        assert_eq!(activity_window(Some("minutes=15")), 15);
+        assert_eq!(activity_window(Some("x=1&minutes=99999")), 1440);
+        assert_eq!(activity_window(Some("minutes=-3")), 1);
+        assert_eq!(activity_window(Some("minutes=abc")), 60);
+    }
 
     #[test]
     fn an_unreadable_stored_row_does_not_hide_the_others() {

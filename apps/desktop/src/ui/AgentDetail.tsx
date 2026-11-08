@@ -8,6 +8,8 @@ import { cacheCounts, cacheHitRate, compact, duration, percent, usd } from "./in
 import { ProviderMark } from "./ProviderBadges";
 import { agentName, providerFor, providers } from "./providers";
 import { revealFolder, type GitState } from "./useGit";
+import { resetText, windowsOf } from "./limitsView";
+import type { LimitSnapshot } from "./useLimits";
 import { Area, Stack } from "./Spark";
 
 const fallback = providers.find((provider) => provider.eventKey === "custom")!;
@@ -18,7 +20,7 @@ const originLabel = (origin: string) => origin === "provider" ? t("rapporté", "
  * Le détail d'un agent : tout ce qu'on sait de sa session en cours, sans rien inventer.
  * Chaque chiffre dit d'où il vient (rapporté par l'agent, calculé, estimé).
  */
-export function AgentDetail({ pulse, now, onClose, git, collisions }: { pulse: AgentPulse; now: number; onClose: () => void; git?: GitState; collisions: Collision[] }) {
+export function AgentDetail({ pulse, now, onClose, git, collisions, limits }: { pulse: AgentPulse; now: number; onClose: () => void; git?: GitState; collisions: Collision[]; limits?: LimitSnapshot }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -72,6 +74,21 @@ export function AgentDetail({ pulse, now, onClose, git, collisions }: { pulse: A
         {git.snapshot.recent_commits.length > 0 && <ol className="timeline">{git.snapshot.recent_commits.map((commit) => <li key={commit.short_id}><time>{commit.relative_time}</time><span>{commit.subject}<small>{commit.short_id}</small></span></li>)}</ol>}
       </section>}
 
+      {(limits || pulse.key === "codex" || pulse.key === "claude_code") && <section>
+        <h3>{t("Limites de l’abonnement", "Subscription limits")}{limits?.plan ? <small> {limits.plan}</small> : null}</h3>
+        {limits ? <>
+          <ul className="limits">{windowsOf(limits, now).map((view) => <li key={view.label} className={view.level}>
+            <span>{t(`Fenêtre de ${view.label}`, `${view.label} window`)}</span>
+            <b>{view.percent === null ? "—" : percent(view.percent / 100)}</b>
+            <i><em style={{ width: `${Math.min(100, view.percent ?? 0)}%` }} /></i>
+            <small>{view.percent === null ? t("Remise à zéro depuis ce relevé : nouveau pourcentage à la prochaine requête.", "Reset since this reading: new percentage at the next request.") : resetText(view.resetsAt, now)}</small>
+          </li>)}</ul>
+          <p className="hint">{t(`Rapporté par ${agentName(pulse.key)} ${since(Date.parse(limits.observed_at), now)}. Ce sont ses chiffres, pas une estimation.`, `Reported by ${agentName(pulse.key)} ${since(Date.parse(limits.observed_at), now)}. These are its own figures, not an estimate.`)}</p>
+        </> : <p className="hint">{pulse.key === "codex"
+          ? t("Codex écrit ses limites avec chaque requête : elles apparaîtront à la prochaine (abonnement ChatGPT seulement, pas avec une clé d’API).", "Codex writes its limits with each request: they will show up at the next one (ChatGPT plan only, not with an API key).")
+          : t("Claude Code ne donne ses limites qu’à sa barre d’état (abonnés Pro et Max). Pour les voir ici, ajoute la barre d’état facultative : Réglages → Claude Code.", "Claude Code only hands its limits to its status line (Pro and Max subscribers). To see them here, add the optional status line: Settings → Claude Code.")}</p>}
+      </section>}
+
       {!summary && <p className="hint">{t("Aucune session observée pour cet agent.", "No session observed for this agent.")}</p>}
 
       {summary && <>
@@ -106,7 +123,7 @@ export function AgentDetail({ pulse, now, onClose, git, collisions }: { pulse: A
             </div>
             {context && context.window ? <div>
               <span className="k">{t("Fenêtre de contexte", "Context window")}</span>
-              <strong className={`v ctx-${context.state}`}>{context.percent !== null ? `${Math.round(context.percent)}%` : "—"}</strong>
+              <strong className={`v ctx-${context.state}`}>{context.percent !== null ? percent(context.percent / 100) : "—"}</strong>
               <p>{t(`${compact(context.used)} utilisés sur ${compact(context.window)} : ce que la prochaine requête emporterait, une lecture, pas un cumul.`, `${compact(context.used)} used of ${compact(context.window)}: what the next request would carry, a reading, not a running total.`)}</p>
             </div> : <div><span className="k">{t("Fenêtre de contexte", "Context window")}</span><strong className="v">—</strong><p>{t("Non rapportée par cet agent.", "Not reported by this agent.")}</p></div>}
           </div>
@@ -168,7 +185,7 @@ export function AgentDetail({ pulse, now, onClose, git, collisions }: { pulse: A
         {context && <section>
           <h3>{t("Contexte", "Context")}</h3>
           <dl className="kv">
-            <div><dt>{t("Dernière requête", "Latest request")}</dt><dd>{compact(context.used)}{context.window ? ` / ${compact(context.window)}` : ""}{context.percent !== null ? <b> · {Math.round(context.percent)}%</b> : null}</dd></div>
+            <div><dt>{t("Dernière requête", "Latest request")}</dt><dd>{compact(context.used)}{context.window ? ` / ${compact(context.window)}` : ""}{context.percent !== null ? <b> · {percent(context.percent / 100)}</b> : null}</dd></div>
             {context.windowSource && <div><dt>{t("Taille de la fenêtre", "Window size")}</dt><dd><small>{context.windowSource === "reported" ? t("rapportée par l’agent", "reported by the agent") : context.windowSource === "table" ? t("d’après la table des modèles connus", "from the table of known models") : t("déduite de la taille observée", "inferred from the observed size")}</small></dd></div>}
             <div><dt>{t("Compactions", "Compactions")}</dt><dd>{context.compactions}</dd></div>
             {context.cachedShare !== null && <div><dt>{t("Servi par le cache", "Served from cache")}</dt><dd>{percent(context.cachedShare)}</dd></div>}

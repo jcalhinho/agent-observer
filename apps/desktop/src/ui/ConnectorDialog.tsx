@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
 import type { ConnectorKind } from "./providers";
 
-type ClaudeSetup = { endpoint: string; token: string; settings_fragment: string };
+type ClaudeSetup = { endpoint: string; token: string; settings_fragment: string; statusline_fragment: string };
 type CodexSetup = { sessions_dir: string; available: boolean };
 type OpenCodeSetup = { data_dir: string; database_paths: string[]; available: boolean };
 type CopilotSetup = { sessions_dir: string; available: boolean };
@@ -59,6 +59,7 @@ function readOnlyCopy(kind: Exclude<ConnectorKind, "claude" | "cursor">): { name
 /** How a connector works and, for Claude Code, the hooks to add. Capture options live in Réglages. */
 export function ConnectorSetupDialog({ connector, onClose }: { connector: ConnectorSetup; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [copiedLine, setCopiedLine] = useState(false);
   if (connector.kind === "cursor") {
     const { setup } = connector;
     const copy = async () => {
@@ -85,6 +86,11 @@ export function ConnectorSetupDialog({ connector, onClose }: { connector: Connec
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     };
+    const copyStatusline = async () => {
+      await navigator.clipboard.writeText(setup.statusline_fragment);
+      setCopiedLine(true);
+      window.setTimeout(() => setCopiedLine(false), 1800);
+    };
     return <Dialog id="claude" title={t("Brancher Claude Code", "Set up Claude Code")} onClose={onClose}>
       <p>{t("Claude Code prévient l’app de chacune de ses actions grâce à des hooks : de petites notifications envoyées à l’app pendant qu’il travaille. Les tokens viennent en plus de son journal de session, lu automatiquement.", "Claude Code tells the app about each of its actions through hooks: small notifications sent to the app while it works. Tokens also come from its session log, read automatically.")}</p>
       <ol className="steps">
@@ -94,7 +100,12 @@ export function ConnectorSetupDialog({ connector, onClose }: { connector: Connec
       </ol>
       <textarea readOnly value={setup.settings_fragment} aria-label={t("Bloc hooks à ajouter aux réglages Claude Code", "Hooks block to add to the Claude Code settings")} />
       <p className="dialog-note">{t("Ce bloc contient un jeton propre à cette installation : si tu réinstalles l’app, recopie-le. Si l’app est fermée, les hooks abandonnent après 2 secondes sans gêner Claude Code.", "This block holds a token specific to this installation: copy it again if you reinstall the app. If the app is closed, hooks give up after 2 seconds without disturbing Claude Code.")}</p>
-      <div className="dialog-actions"><button className="button" onClick={onClose}>{t("Fermer", "Close")}</button><button className="button primary" onClick={copy}>{copied ? t("Copié ✓", "Copied ✓") : t("Copier le bloc", "Copy the block")}</button></div>
+      <div className="dialog-actions"><button className="button primary" onClick={copy}>{copied ? t("Copié ✓", "Copied ✓") : t("Copier le bloc", "Copy the block")}</button></div>
+      <h3 className="dialog-sub">{t("Facultatif : les limites de ton abonnement", "Optional: your subscription limits")}</h3>
+      <p>{t("Claude Code ne note ses limites d’usage (fenêtre de 5 h et de la semaine, abonnés Pro et Max) nulle part sur le disque : il ne les donne qu’à sa barre d’état. Ce bloc remplace ta barre d’état par une qui les transmet à l’app et affiche « modèle · contexte · 5h · 7d ». Seuls les pourcentages et les heures de remise à zéro sont gardés, en mémoire.", "Claude Code writes its usage limits (5-hour and weekly windows, Pro and Max subscribers) nowhere on disk: it only hands them to its status line. This block replaces your status line with one that passes them to the app and shows “model · context · 5h · 7d”. Only the percentages and reset times are kept, in memory.")}</p>
+      <textarea readOnly value={setup.statusline_fragment} aria-label={t("Bloc de barre d’état à ajouter aux réglages Claude Code", "Status line block to add to the Claude Code settings")} />
+      <p className="dialog-note">{t("Il utilise curl. Si tu as déjà ta propre barre d’état, ce bloc la remplace : garde la tienne si tu y tiens. App fermée : la barre reste vide, Claude Code n’est pas gêné.", "It uses curl. If you already have your own status line, this block replaces it: keep yours if you prefer. App closed: the line stays empty and Claude Code is not disturbed.")}</p>
+      <div className="dialog-actions"><button className="button" onClick={onClose}>{t("Fermer", "Close")}</button><button className="button" onClick={copyStatusline}>{copiedLine ? t("Copié ✓", "Copied ✓") : t("Copier la barre d’état", "Copy the status line")}</button></div>
     </Dialog>;
   }
   const copy = readOnlyCopy(connector.kind);
