@@ -14,6 +14,8 @@ Guidelines:
 - Take them from the demo (`npm run dev` in `apps/desktop`, then `http://127.0.0.1:1420/?demo`), never from
   your own sessions: no real names, private paths, prompts or keys on screen.
 - Still images: 1440 × 940, English interface; optimise with `oxipng` or `pngquant`.
+- From a real screen recording: `bash docs/media/make-demo.sh recording.mov [start] [length]` writes
+  `demo.gif` (README) and `demo.mp4` (to upload in a GitHub issue or the README editor, which embeds it).
 - `demo.gif`: one 1280 × 800 screenshot per step, then `ffmpeg` (concat with a duration per frame,
   `palettegen` and `paletteuse` at 960 px). Keep it under 1 MB.
 - Regenerate every image when the design changes: they are part of the documentation.

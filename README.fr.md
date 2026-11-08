@@ -15,7 +15,18 @@ Codex, GitHub Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Cursor et Con
 
 <img src="docs/media/demo.gif" alt="Agent Observer en mode démo : l'écran, les agents qui t'attendent, les barres rangées par projet, le détail d'un agent et ses sessions précédentes, l'historique, le diagnostic" width="900">
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/jcalhinho/agent-observer/main/install.sh | bash   # macOS, Linux
+brew install --cask jcalhinho/tap/agent-observer                                              # ou Homebrew
+```
+Windows : le `-setup.exe` de la [page des versions](https://github.com/jcalhinho/agent-observer/releases).
+
 </div>
+
+- **Ceux qui t'attendent, d'abord.** Les agents bloqués, qui tournent en rond, silencieux ou en attente remontent en haut ; les autres restent discrets.
+- **Ce que ça coûte.** Tokens, taux de cache, coût estimé, contexte restant et limites d'abonnement, par agent et par jour.
+- **Rien ne sort de ta machine.** L'app lit les fichiers locaux et les hooks des agents ; ni compte, ni télémétrie.
+- **Les agents peuvent l'interroger aussi.** Un serveur MCP en lecture seule permet à un agent de voir qui d'autre modifie son dossier avant de commencer.
 
 ---
 

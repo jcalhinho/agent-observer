@@ -15,7 +15,18 @@ Antigravity, OpenCode, Qwen Code, Reasonix, Cursor and Continue work on your mac
 
 <img src="docs/media/demo.gif" alt="Agent Observer in demo mode: the screen, the agents that need you, the bars grouped by project, an agent's detail and earlier sessions, the history, the diagnostic" width="900">
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/jcalhinho/agent-observer/main/install.sh | bash   # macOS, Linux
+brew install --cask jcalhinho/tap/agent-observer                                              # or Homebrew
+```
+Windows: the `-setup.exe` on the [Releases page](https://github.com/jcalhinho/agent-observer/releases).
+
 </div>
+
+- **Who needs you, first.** Blocked, looping, silent or waiting agents rise to the top; the rest stay out of the way.
+- **What it costs.** Tokens, cache hit rate, estimated cost, context left and subscription limits, per agent and per day.
+- **Nothing leaves your machine.** It reads the agents' local files and hooks; no account, no telemetry.
+- **Agents can ask it too.** A read-only MCP server lets an agent check who else is editing its folder before it starts.
 
 ---
 
