@@ -26,21 +26,3 @@ export function InfoTip({ children, label = t("Explication", "Explanation"), ali
     {open && <span role="tooltip" id={id} className={`infotip-bubble ${align}`}>{children}</span>}
   </span>;
 }
-
-/**
- * Section title on one line. The short description sits beside it, cut to one line; the full text
- * and the details are in the "i" next to the title so nothing is lost and nothing takes room.
- */
-export function SectionHeader({ title, description, details, actions, level = 2 }: { title: ReactNode; description: ReactNode; details?: ReactNode; actions?: ReactNode; level?: 2 | 3 }) {
-  const Heading = level === 2 ? "h2" : "h3";
-  return <header className={`section-header level-${level}`}>
-    <Heading>{title}<InfoTip label={t(`En savoir plus : ${typeof title === "string" ? title : "section"}`, `More about: ${typeof title === "string" ? title : "this section"}`)}><span className="tip-stack"><span>{description}</span>{details && <span>{details}</span>}</span></InfoTip></Heading>
-    <p className="section-desc">{description}</p>
-    {actions && <div className="section-header-actions">{actions}</div>}
-  </header>;
-}
-
-/** Empty state that says what is missing and what to do about it. */
-export function EmptyState({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
-  return <div className="empty-state"><b>{title}</b><p>{children}</p>{action}</div>;
-}

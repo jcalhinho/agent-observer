@@ -8,13 +8,13 @@ body:
       value: |
         Agent Observer only reads what an agent already exposes locally, never changes its settings, and never stores responses, reasoning or tool outputs.
         The more precisely you describe *where* the agent records its activity, the faster a connector can be written.
-        Prefer writing it yourself? See [docs/CONNECTORS.md](https://github.com/jcalhinho/agent-observer/blob/main/docs/CONNECTORS.md) for the local HTTP API.
+        Prefer writing it yourself? See [docs/CONNECTORS.md](https://github.com/jcalhinho/agent-observer/blob/main/docs/CONNECTORS.md) for how a built-in connector is written.
 
   - type: input
     id: agent
     attributes:
       label: Agent
-      placeholder: "Aider, Cline, GitHub Copilot CLI, …"
+      placeholder: "Aider, Cline, Continue, Roo Code, …"
     validations:
       required: true
 

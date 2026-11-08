@@ -32,6 +32,5 @@ export function usePreference<T>(key: string, fallback: T, accept: (value: unkno
 }
 
 export const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
-export const isString = (value: unknown): value is string => typeof value === "string";
 export const isNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 export const oneOf = <T extends string>(...options: T[]) => (value: unknown): value is T => typeof value === "string" && (options as string[]).includes(value);

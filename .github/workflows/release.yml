@@ -302,7 +302,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          sparse-checkout: packaging
+          sparse-checkout: |
+            packaging
+            tools/mcp
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -319,6 +321,9 @@ jobs:
           sum() { sha256sum "release-assets/Agent-Observer_${VERSION}_$1.dmg" | cut -d' ' -f1; }
           bash packaging/homebrew/render-cask.sh "$VERSION" "$(sum macos-arm64)" "$(sum macos-x64)" "$GH_REPO" > release-assets/agent-observer.rb
           cat release-assets/agent-observer.rb
+
+      - name: Attach the MCP server
+        run: cp tools/mcp/agent-observer-mcp.mjs release-assets/agent-observer-mcp.mjs
 
       - name: Write SHA-256 checksums
         working-directory: release-assets
@@ -351,6 +356,8 @@ jobs:
           \`\`\`
           curl -fsSL https://raw.githubusercontent.com/${GH_REPO}/main/install.sh | bash
           \`\`\`
+
+          MCP server for your agents (read-only, Node 18+): \`agent-observer-mcp.mjs\` — see the README.
 
           Homebrew (experimental, unsigned app): copy \`agent-observer.rb\` to \`Casks/\` in a \`homebrew-tap\` repository, then \`brew install --cask <owner>/tap/agent-observer\`.
 

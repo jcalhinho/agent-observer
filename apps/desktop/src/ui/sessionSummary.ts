@@ -148,18 +148,6 @@ export function isEdit(event: { kind: string; tool_name?: string | null }) {
   return event.kind === "file_changed" || (event.kind === "tool_started" && EDIT_TOOLS.test(event.tool_name ?? ""));
 }
 
-/** Distinct files edited, per session (a path edited ten times counts once). */
-export function countEditedFiles(events: Array<{ kind: string; tool_name?: string | null; file_path?: string | null; provider: string; session_id: string }>) {
-  const seen = new Set<string>();
-  let unnamed = 0;
-  for (const event of events) {
-    if (!isEdit(event)) continue;
-    if (event.file_path) seen.add(`${event.provider}:${event.session_id}:${event.file_path}`);
-    else unnamed += 1;
-  }
-  return seen.size + unnamed;
-}
-
 function collectFiles(events: SummaryEvent[], projectPath: string | null): FileTouch[] {
   const root = projectPath ? normalizePath(projectPath) : null;
   const files = new Map<string, FileTouch>();

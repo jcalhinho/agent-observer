@@ -161,7 +161,3 @@ export function shortModel(model: string) {
   return model.replace(/^(?:anthropic|openai|google|deepseek)\//i, "").replace(/-\d{8}$/, "");
 }
 
-export const label = {
-  cacheHit: () => t("Cache", "Cache"),
-  notReported: () => t("non rapporté", "not reported")
-};

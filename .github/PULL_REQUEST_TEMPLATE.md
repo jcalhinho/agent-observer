@@ -18,7 +18,7 @@ Tested on:
 
 - [ ] macOS
 - [ ] Windows
-- [ ] Linux (from source)
+- [ ] Linux
 
 ## Screenshots
 
@@ -26,7 +26,7 @@ Tested on:
 
 ## Checklist
 
-- [ ] `npm run desktop:typecheck` and `npx vitest run apps/desktop` pass
+- [ ] `npm run desktop:typecheck`, `npx vitest run apps/desktop` and `npm run test:mcp` pass
 - [ ] `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings` and `cargo test --workspace` pass
 - [ ] Nothing new is sent over the network, and nothing private (agent responses, reasoning, tool outputs, file contents) is persisted
 - [ ] Values the agent does not report are left empty, not guessed; derived or estimated values are marked as such

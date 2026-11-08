@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Each release now carries the MCP server as `agent-observer-mcp.mjs`, downloadable from
+  `releases/latest/download/agent-observer-mcp.mjs` without cloning the repository.
+
+### Changed
+- The READMEs (English and French) are now a complete guide: install and update, connecting each agent step
+  by step, every part of the screen, what each figure means, alerts and budget, settings, the MCP server with
+  its configuration for Claude Code, Codex and Cursor, data locations per system, troubleshooting, development
+  and releases.
+
+### Fixed
+- In Settings, the agent marks no longer stretch across the row.
+
 ### Removed
+- `shapes.py`, a one-off debugging script left at the root of the repository.
+- Dead code (`SectionHeader`, `EmptyState`, unused helpers) and 44 CSS selectors no longer used by the interface.
 - `apps/desktop/README.md`, which still described the old version (100 m race, workspaces, local API); the root
   READMEs are the reference. The "what was removed" section of `COMPRENDRE.md` and the old areas of the bug
   report form (race, workspaces) are gone too.

@@ -48,6 +48,7 @@ CI runs the same commands on macOS, Windows and Linux:
 ```bash
 npm run desktop:typecheck                                    # TypeScript
 npx vitest run apps/desktop                                  # UI logic tests
+npm run test:mcp                                             # MCP server tests
 npm run build --workspace @repo-watcher/agent-observer-desktop   # front-end build (needed by the Rust build)
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
@@ -61,8 +62,8 @@ The Rust crate of the desktop app embeds the built front-end, so build it once b
 
 - **Rust:** `rustfmt` defaults and a clean `clippy -D warnings`. Errors are handled, not
   `unwrap()`ped, outside tests.
-- **TypeScript:** strict mode, no `any`. Keep pure logic (statuses, analytics, pricing,
-  workspace matching) in plain `.ts` modules with Vitest tests next to them, and keep React
+- **TypeScript:** strict mode, no `any`. Keep pure logic (statuses, analysis, pricing,
+  limits) in plain `.ts` modules with Vitest tests next to them, and keep React
   components thin.
 - **Comments** explain *why*, not what. Match the density of the surrounding code.
 - **UI copy** is French for now and addresses the user as *tu*. Say what something means in
