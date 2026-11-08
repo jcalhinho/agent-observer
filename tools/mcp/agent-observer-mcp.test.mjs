@@ -42,6 +42,8 @@ test("token file follows the app's config folder", () => {
   assert.equal(defaultTokenFile("darwin", {}, "/Users/me"), "/Users/me/Library/Application Support/dev.repowatcher.agentobserver/collector-token");
   assert.equal(defaultTokenFile("linux", {}, "/home/me"), "/home/me/.config/dev.repowatcher.agentobserver/collector-token");
   assert.equal(defaultTokenFile("linux", { XDG_CONFIG_HOME: "/cfg" }, "/home/me"), "/cfg/dev.repowatcher.agentobserver/collector-token");
+  assert.equal(defaultTokenFile("win32", { APPDATA: "C:\\Users\\me\\AppData\\Roaming" }, "C:\\Users\\me"), "C:\\Users\\me\\AppData\\Roaming\\dev.repowatcher.agentobserver\\collector-token");
+  assert.equal(defaultTokenFile("win32", {}, "C:\\Users\\me"), "C:\\Users\\me\\AppData\\Roaming\\dev.repowatcher.agentobserver\\collector-token");
 });
 
 test("who_else_is_here keeps only the sessions around the folder", async () => {

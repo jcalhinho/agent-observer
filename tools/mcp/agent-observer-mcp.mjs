@@ -16,7 +16,7 @@
 
 import { readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
-import { join } from "node:path";
+import { posix, win32 } from "node:path";
 import { createInterface } from "node:readline";
 
 const SERVER = { name: "agent-observer", version: "0.13.3" };
@@ -24,6 +24,8 @@ const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const IDENTIFIER = "dev.repowatcher.agentobserver";
 
 export function defaultTokenFile(os = platform(), env = process.env, home = homedir()) {
+  // Separators of the target system, whatever machine computes the path.
+  const { join } = os === "win32" ? win32 : posix;
   if (os === "darwin") return join(home, "Library", "Application Support", IDENTIFIER, "collector-token");
   if (os === "win32") return join(env.APPDATA ?? join(home, "AppData", "Roaming"), IDENTIFIER, "collector-token");
   return join(env.XDG_CONFIG_HOME ?? join(home, ".config"), IDENTIFIER, "collector-token");
