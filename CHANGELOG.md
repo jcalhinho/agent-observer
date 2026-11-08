@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-08
+
 ### Added
 - **Provider pages watched by DriftGuard.** `.driftguard.yml` lists the pages this app copies by hand: the six
   price lists behind `pricing.ts`, the Claude Code hook and status line inputs, the Cursor hook schema, and the
   source files that define the Codex, Qwen Code, OpenCode and Continue formats (narrowed to the part that is
   read). Every Monday the DriftGuard job fails if one changed since `.driftguard.lock.json`.
+- `docs/media/make-demo.sh` turns a screen recording into the README animation and an MP4 for GitHub.
+- The top of the READMEs now shows the install line, Homebrew and Windows, and four points on what the app does.
 
 ### Changed
 - **The app is now called Agent Observer** (it was *RepoWatcher Agent Observer*): app name, window, installers,
@@ -642,6 +646,7 @@ First public version.
 - Workspaces, Git repositories and agent databases are only ever read, never written.
 - Agent responses, reasoning, tool outputs and file contents are never persisted.
 
-[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/jcalhinho/agent-observer/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/jcalhinho/agent-observer/compare/v0.13.4...v0.14.0
 [0.1.0]: https://github.com/jcalhinho/agent-observer/releases/tag/v0.1.0
