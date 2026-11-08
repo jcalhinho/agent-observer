@@ -19,7 +19,7 @@ import { homedir, platform } from "node:os";
 import { posix, win32 } from "node:path";
 import { createInterface } from "node:readline";
 
-const SERVER = { name: "agent-observer", version: "0.13.3" };
+const SERVER = { name: "agent-observer", version: "0.13.4" };
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const IDENTIFIER = "dev.repowatcher.agentobserver";
 

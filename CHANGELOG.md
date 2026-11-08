@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.4] - 2026-11-08
+
 ### Added
 - Each release now carries the MCP server as `agent-observer-mcp.mjs`, downloadable from
   `releases/latest/download/agent-observer-mcp.mjs` without cloning the repository.
