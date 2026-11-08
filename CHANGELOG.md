@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-11-08
+
+### Added
+- **Subscription limits**, as the agents report them: Codex writes its 5-hour and weekly windows in its session
+  logs (read at startup from the latest file, then live); Claude Code only hands them to its status line, so
+  Settings › Claude Code offers an optional status line that passes them to the app and shows
+  `model · ctx · 5h · 7d`. Shown on the agent's bar, in its detail, in the status bar, and as an alert from 80 %.
+  Kept in memory only; a window that reset since the last reading shows as reset.
+- **Read-only MCP server** (`tools/mcp/agent-observer-mcp.mjs`, Node 18+, no dependency): `who_else_is_here`,
+  `recent_activity` and `subscription_limits`, so an agent can check who else works in its folder before editing.
+  It reads the new `GET /v1/activity` (same key as the hooks, refused from web pages, metadata only).
+- **Linux packages**: each release now ships a `.deb` and an `.AppImage` (built on Ubuntu 22.04).
+- **One-line install** for macOS and Linux (`install.sh`): downloads the latest published release, checks it
+  against `SHA256SUMS.txt`, installs it. No quarantine flag on macOS, so the unsigned app just opens.
+- **Homebrew cask** (experimental) attached to each release, for a personal tap.
+- **Agents on another machine**: [`docs/REMOTE.md`](docs/REMOTE.md) explains the SSH tunnel for Claude Code and
+  Cursor hooks.
+
+### Changed
+- The minimum Rust version is now stated correctly: **1.95** (required by the locked dependencies; the
+  previous "1.85" no longer built).
+- Costs of exactly zero show "$0" instead of "<$0.01"; today's cost shows "—" when nothing could be priced.
+- Percentages follow the interface language everywhere ("86 %" in French, "86%" in English).
+- Demo data uses neutral folder names.
+
+### Fixed
+- The documentation no longer describes the open local API (`POST /v1/events`, custom connectors), removed in
+  0.13.0; `DESIGN.md`, `COMPRENDRE.md`, `SECURITY.md`, `CONTRIBUTING.md` and the Windows checklist describe the
+  current single screen.
+
+## [0.13.2] - 2026-11-08
+
 ### Added
 - **Session overview** in the detail panel, with a definition under every figure: requests, tokens (in / out),
   cache hit with the exact hit and miss counts, work time (sum of the turns), estimated cost and context window.
@@ -28,6 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alerts, git, model and pace sit on a second line. The gradient edge now runs around the whole bar.
 
 ## [0.13.0] - 2026-11-07
+
+### Removed
+- The open local API (`POST /v1/events`) and custom connectors, with the move to a single screen.
 
 ### Added
 - **Richer agent cards.** Each card now shows turns, tool calls and failures, files edited and duration, the

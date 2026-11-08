@@ -23,9 +23,12 @@ Agent Observer is pre-1.0: only the **latest release** receives security fixes.
 
 In scope — please report:
 
-- **The local collector** (`127.0.0.1:43821`): reaching it from another machine, from a web
-  page in a browser (CSRF, DNS rebinding, CORS), or without the bearer token; bypassing or
-  leaking the token; crashing the app or exhausting memory/disk with crafted requests.
+- **The local collector** (`127.0.0.1:43821`: Claude Code and Cursor hooks, the Claude Code status
+  line, the read-only `GET /v1/activity`): reaching it from another machine, from a web page in a
+  browser (CSRF, DNS rebinding, CORS), or without the bearer token; bypassing or leaking the token;
+  reading private text through `/v1/activity`; crashing the app or exhausting memory/disk with
+  crafted requests.
+- **The MCP server** (`tools/mcp`): anything that makes it write, or return private text.
 - **The collector token** (`collector-token` in the app config directory): weak generation,
   disclosure through the UI, logs, exports or the hook fragments.
 - **Privacy guarantees**: content that should never be stored (agent responses, reasoning,
@@ -33,8 +36,9 @@ In scope — please report:
   stored while their capture switch is off.
 - **Connectors**: crafted agent logs, transcripts or databases leading to code execution,
   path traversal, writes outside the app's data directory, or any write to an agent's files.
-- **Workspace and Git inspection**: a malicious repository or `.code-workspace` file causing
-  command execution, writes, or reads outside the selected workspace.
+- **Git inspection**: a malicious repository in an agent's project folder causing command
+  execution or writes (the app only runs `git status` and `git log`, with `core.fsmonitor` off,
+  no optional locks and a timeout), or "open folder" opening anything but a folder.
 - **The desktop shell**: Tauri capability or CSP weaknesses, script injection in the UI from
   observed data (file names, tool names, prompts).
 - **Release integrity**: problems with how installers and checksums are built and published.
@@ -51,7 +55,11 @@ Out of scope:
 ## How Agent Observer limits exposure
 
 - The collector binds to the loopback interface only and requires a random per-installation
-  bearer token on every request.
+  bearer token on every request, compared without early exit. `GET /v1/activity` also refuses any
+  request carrying an `Origin` header (a web page), and only returns metadata: never prompt text,
+  commands or error messages, even when the user keeps them.
+- Subscription limits (Codex logs, Claude Code status line) are kept in memory only: percentages,
+  window lengths and reset times.
 - Agent databases are opened read-only; agent settings are never edited by the app.
 - Private content is dropped by the connectors before anything is written to disk.
 - One local request to Antigravity: to name the model selected there (its files only hold an internal
@@ -59,7 +67,4 @@ Out of scope:
   was started with (read from the process list, kept in memory for the request, never logged, stored or
   sent anywhere). Only model names are kept from the answer; account and plan fields are dropped unread.
   Nothing happens if Antigravity is not running.
-- No telemetry and no network request of its own. The only exceptions are the daily story and Ask, off by
-  default and allowed per agent: the app runs an agent you already have, once, with its tools
-  disabled, in an empty folder, on a summary of numbers and names — including the files an agent edited and the subjects of nearby Git
-  commits — (never message text, commands or folders). That agent talks to its own provider as it always does.
+- No telemetry and no network request of its own.

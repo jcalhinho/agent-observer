@@ -1,110 +1,84 @@
 # Design rules
 
 Agent Observer is an instrument panel: it should answer "who needs me?" in a second and then stay
-out of the way. The look is called **flight deck**: near-black panels, hairline rules, square
-corners, small-caps labels, tabular mono numbers. The race stays the hero. These rules keep the
-interface coherent; follow them when you add or change a screen.
+out of the way. Dark by default, a light grey theme on demand, hairline rules, small-caps labels,
+tabular mono numbers. These rules keep the interface coherent; follow them when you add or change
+something.
 
 ## Structure
 
 ```
-┌───────────────────────────────────────────────────────────────────────────────────┐
-│ top bar:  AGENTS · REPOSITORIES │ STORY · ASK │ CONNECTORS · SETTINGS · HELP       │
-├───────────────────────────────────────────────────────────────────────────────────┤
-│ stage: bar (brand · working / need you · workspace · filter · 3D/2D · mini)        │
-│        the race                                                  (at most 50 %)    │
-│        dock: one chip per agent                                                    │
-├─────────────────────────────── splitter ──────────────────────────────────────────┤
-│ workbench: period bar (15 min · 1 h · 24 h · All │ ◀ date ▶)                       │
-│            charts                         │ history (sessions of the period)       │
-└───────────────────────────────────────────────────────────────────────────────────┘
-   drawers slide over all of it: left (Agents, Repositories), right (Story, Ask), top (Connectors…)
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│ top bar: logo · collector │ working · need you · today's spend │ ☀ ⟲ ⚙ ⤡          │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│ alerts: subscription limit · daily budget · collisions                          │
+│ totals strip: tokens · cache · cost · saved by cache · tool calls                │
+│ filter: All / Active / Need you                                                  │
+│ ┌─ bar ─────────────────────────────────────────────────────────────────────┐   │
+│ │ who · state · what it does        tokens cache cost context tools  ▂▃▅    │   │
+│ │ limits · model · turn · git · pace · collisions · top tools               │   │
+│ └───────────────────────────────────────────────────────────────────────────┘   │
+│   … one bar per agent, the most urgent first                                     │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│ status bar: cache · fullest context · tokens/min · nearest limit │ sessions · today│
+└──────────────────────────────────────────────────────────────────────────────────┘
+   sheets slide in from the right: agent detail, history, settings
 ```
 
-- **One bar of tabs** (`Deck.tsx`), grouped by edge. A tab opens a **drawer** that slides in from the edge
-  its small icon shows. Drawers float; **pin** one and the page makes room. `Esc` closes loose drawers; the
-  inner edge resizes (arrow keys too). State lives in `shell.ts` and is remembered.
-- **The stage** (`Stage.tsx`) is the race, with a bar and a dock. It never takes more than half of the
-  window (`STAGE_MAX`); a splitter lets the user shrink it.
-- **The workbench** (`Workbench.tsx`) is the other half: charts and history, side by side, for the period
-  in the `PeriodBar`. Below 900 px of width a switch shows one at a time.
-- A drawer's content is a **panel** (`.panel`): one column, a sticky bar or section title on top.
-- Where a thing lives: *who and what now* → stage and dock; *what happened over a period* → workbench;
-  *detail of one agent or repository, narrative, questions* → drawers; *setup* → top drawers.
-
-## The race
-
-The race is the hero and follows the same language: **no cube, no sharp edge**. Build with
-capsules, spheres, arcs, rounded rectangles and tori; shade with `meshLambertMaterial` (no
-shadow maps; round blob shadows under characters). Keep it cheap: instance anything repeated,
-share geometry, avoid mipmaps on label textures, and leave the pixel budget and frame cap to the
-`Governor` in `SprintTrack3D.tsx` (quality levels *light*, *auto*, *smooth*).
-
-What the scene shows beyond movement (trail, hurdles, flags, cap colour, spotlight, celebrations, board,
-sky) is computed in `raceInsights.ts` (pure, tested) and only drawn by `SprintTrack3D.tsx`. Repeated
-pieces that change in number (hurdles, flags) are instanced with `useCounted`; per-frame code never
-allocates. Probe WebGL once (`supportsWebGL` caches): each probe opens a context and the browser drops
-the oldest past a handful.
+- **One screen** (`App.tsx`). Everything that answers "who needs me now" is on it without a click.
+- **Bars** (`AgentBar.tsx`), one per agent, stacked in a column and sorted by urgency. The first line
+  is identity, state and current action, then the same figures for every agent so they line up. The
+  second line is context: limits, model, git, pace, collisions, tools.
+- **Sheets** slide in from the right and close with `Esc`: the agent detail (`AgentDetail.tsx`),
+  the history (`History.tsx`), the settings (`SettingsPanel.tsx`).
+- **Shrink to a column** (`miniWindow.ts`): the same bars in a narrow window in the corner of the
+  screen, optionally on top. Bars adapt to their own width with container queries, not to the window.
 
 ## Principles
 
-1. **One screen, one answer.** The stage and the dock answer "who needs me" without opening
-   anything. Drawers are for going deeper, never for the essentials.
-2. **Say less, say it where it is needed.** A section title is one line; its explanation sits in
-   the "i" next to it (`SectionHeader`). A card never carries a paragraph; explanations are tooltips.
-3. **Status is a colour and a word, never colour alone.** An agent that needs you tints its dock
-   chip and card edge and says *Reply*, *Going in circles*… Alerts are the only red banners.
+1. **One screen, one answer.** The bars answer "who needs me" without opening anything. Sheets are
+   for going deeper, never for the essentials.
+2. **Say less, say it where it is needed.** A bar never carries a paragraph; explanations are
+   tooltips. In the detail, every figure of the overview has its definition right under it.
+3. **Status is a colour and a word, never colour alone.** An agent that needs you tints its bar edge
+   and says *Waiting for you*, *Going in circles*… Alerts are the only banners.
 4. **Never invent a value.** A number the agent does not report is "—" or "not reported";
-   estimates say so ("≈", "estimated"). The story is written from facts only.
-5. **A period is chosen once.** The period bar drives the charts, the history and Ask, so they always
-   describe the same thing; a day can be stepped through, and a past day is read from the database, not
-   from live events.
-6. **Both languages, always.** Every string is `t("français", "English")` where it is used
-   (`src/ui/i18n.ts`). The prompt sent for the story is English, and asks for the UI language.
-7. **Nothing leaves the machine unasked.** The story and Ask are the only features that can; they are
-   opt-in per agent, show exactly what is sent, and never act on an agent for the user.
+   estimates say so ("≈", "≥", "estimated"). Subscription limits are the agent's own figures, and a
+   window that reset since the last reading shows as reset.
+5. **Both languages, always.** Every string is `t("français", "English")` where it is used
+   (`src/ui/i18n.ts`); numbers go through `locale()`.
+6. **Nothing leaves the machine.** No telemetry, no network request of the app's own.
 
 ## Layout rules
 
-- **No scrolling navigation.** The top bar, tab strips, bars and selects wrap or truncate; they never show
-  a scrollbar.
-- **Sticky headers inside scrolling areas.** A drawer scrolls under its tab strip and each workbench
-  column scrolls under the period bar; inside them a
-  panel keeps its bar (`.panel-bar`) or title (`.panel > .section-header:first-child`) in view,
-  tables keep `thead`, feeds keep `.event-head`, chart cards keep their `h3`.
-- **Container queries over media queries** for anything inside the stage or a drawer: they are
-  squeezed by pinned drawers, not by the window (`@container stage`, `@container drawer`).
-- Below 700 px the app switches to the mini layout.
+- **No scrolling navigation.** The top bar, filters and chips wrap or truncate; they never show a
+  scrollbar.
+- **Container queries over media queries** inside a bar (`container-type: inline-size` on
+  `.card-bar`): wide (one row of figures), medium (figures on a second row), narrow (everything
+  stacked, for the column mode).
+- **The bar edge** is a 2 px gradient border drawn with two backgrounds (`padding-box` fill,
+  `border-box` gradient) in the agent colour, orange (`--loop`) when it goes in circles, red
+  (`--bad`) when it is blocked.
 
 ## Tokens
 
-At the top of `src/ui/styles.css`.
+At the top of `src/ui/styles.css`; the light theme redefines them under `:root[data-theme="light"]`.
 
-| Token | Value | Use |
-| --- | --- | --- |
-| `--void`, `--bg`, `--surface`, `--surface-2`, `--surface-3` | `#05070a` → `#18212e` | outside, stage, drawers, raised, hover |
-| `--border`, `--border-strong` | `#19212d`, `#2a3647` | 1 px rules; never thicker than 2 px (status edges) |
-| `--text`, `--text-2`, `--muted`, `--faint` | `#eaf0f7` → `#4f5c70` | primary, secondary, labels, hints |
-| `--signal` | `#f6f9fd` | the only chrome accent: active tab, primary button, selected segment |
-| `--good`, `--warn`, `--bad`, `--loop`, `--accent` | status colours | always with a word or an icon |
-| agent colours | from `providers.ts` | validated for colour-blind separation; never reused for status |
-| `--radius`, `--radius-sm` | 4, 3 px | everything is nearly square |
-| `--space-1…6` | 3, 6, 10, 14, 18, 24 px | all gaps and paddings |
-| type | 13 px / 1.45 body; labels 10.5 px, bold, uppercase, +.14em; numbers tabular mono | |
+| Token | Dark | Light | Use |
+| --- | --- | --- | --- |
+| `--void`, `--bg`, `--surface`, `--surface-2`, `--surface-3` | `#05070a` → `#18212e` | `#c9cfd7` → `#cbd1d9` | outside, page, panels, raised, hover. **No white background in the light theme.** |
+| `--border`, `--border-strong` | `#19212d`, `#2a3647` | `#c0c7d0`, `#a6afbb` | 1 px rules |
+| `--text`, `--text-2`, `--muted`, `--faint` | `#eaf0f7` → `#4f5c70` | `#18212d` → `#7d8999` | primary, secondary, labels, hints |
+| `--signal`, `--on-signal` | `#f6f9fd` on `#0a0e14` | `#1b2431` on `#e6e9ee` | primary button, selected segment |
+| `--good`, `--warn`, `--bad`, `--loop`, `--accent` | status colours | darker variants | always with a word or an icon |
+| `--ov` | `255 255 255` | `24 33 45` | translucent overlays: `rgb(var(--ov) / .06)` lightens in dark and darkens in light |
+| agent colours | from `providers.ts` | same | validated for colour-blind separation; never reused for status |
 
-## Components
-
-- **Top tab** (`.topbar-tab`): icon + small-caps label + optional badge (a count; amber = needs you,
-  red = needs a look) + the edge its drawer comes from. Active: white label and a 2 px underline.
-- **Drawer** (`.drawer`): tab strip (with pin and close) above a scrolling body. Slides 28 px and
-  fades; honours `prefers-reduced-motion`.
-- **Dock chip** (`.dock-chip`): agent colour on the left edge, name and state, one line of what it
-  is doing, repository and age. The whole chip goes to the agent.
-- **Agent card** (`AgentCard.tsx`): identity line, current action, numbers, activity strip.
+Never hard-code a colour outside these tokens: a hard-coded white or black breaks one of the themes.
 
 ## Checklist for a UI change
 
-- [ ] Works with 0, 1 and 3 drawers open (pinned), and wraps cleanly at 800 px.
-- [ ] Anything that scrolls on its own has a sticky header; no navigation scrolls.
+- [ ] Works in both themes, at full width, at the minimum window width (1120 px) and in the column mode.
 - [ ] Strings in both languages; numbers with `locale()`; no hard-coded colours outside tokens.
-- [ ] Screenshots in `docs/media/` refreshed; `CHANGELOG.md` updated.
+- [ ] Values the agent does not report stay "—"; estimates are marked.
+- [ ] Screenshots in `docs/media/` refreshed (`?demo`); `CHANGELOG.md` updated.

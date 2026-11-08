@@ -6,9 +6,9 @@ Savoir ce que font tes agents de code, en un coup d'œil, sur un seul écran.
 
 Rien ne sort de ton ordinateur. L'app lit, elle n'envoie rien.
 
-## Les 8 informations de l'écran
+## Ce que montre l'écran
 
-Une carte par agent. Chaque carte répond à huit questions, et à rien d'autre :
+Une barre par agent, empilées en colonne. Chaque barre répond d'abord à huit questions :
 
 1. **Qui t'attend** — l'état, en un mot, coloré selon l'urgence.
 2. **Qui travaille** — compté en haut de l'écran.
@@ -22,8 +22,14 @@ Une carte par agent. Chaque carte répond à huit questions, et à rien d'autre 
 8. **Quel modèle** — celui que l'agent a rapporté, sinon celui qui est
    configuré.
 
-Les cartes les plus urgentes passent devant : tourne en rond, bloqué,
-silencieux, t'attend, au travail, au repos.
+Puis viennent les chiffres alignés d'une barre à l'autre (tokens, cache, coût,
+contexte, outils, activité) et une seconde ligne : limites d'abonnement, git,
+rythme, collisions, outils les plus utilisés.
+
+Les barres les plus urgentes passent devant : tourne en rond, bloqué,
+silencieux, t'attend, au travail, au repos. Autour : des alertes en haut,
+une barre d'état en bas, l'historique par jour, le thème clair ou sombre et
+le mode réduit en colonne.
 
 ## Comment les données arrivent
 
@@ -44,6 +50,9 @@ fichiers, en lecture seule.
 |---|---|
 | `claude_transcripts.rs`, `codex_rollout.rs`, `copilot_sessions.rs`, `antigravity_sessions.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`, `reasonix_sessions.rs` | un lecteur par agent, c'est le cœur du projet |
 | `main.rs` | le serveur local, la base SQLite, les commandes de l'interface |
+| `limits.rs` | les limites d'abonnement rapportées par Codex et Claude Code |
+| `activity.rs` | le résumé d'activité en lecture seule (pour le serveur MCP) |
+| `git_info.rs` | l'état git d'un dossier, en lecture seule |
 | `models.rs` | le modèle configuré pour chaque agent |
 | `redact.rs` | le nettoyage des messages d'erreur |
 | `procs.rs` | les processus locaux et leurs ports |
@@ -56,8 +65,12 @@ lecteurs remplissent. Si tu ne lis qu'un fichier du projet, lis celui-là.
 
 | Fichier | Rôle |
 |---|---|
-| `App.tsx` | l'écran unique : la barre du haut et le plateau de cartes |
-| `AgentCard.tsx` | une carte, les 8 informations |
+| `App.tsx` | l'écran unique : la barre du haut, les alertes, les barres, la barre d'état |
+| `AgentBar.tsx` | la barre d'un agent |
+| `AgentDetail.tsx` | le panneau de détail d'un agent |
+| `History.tsx` | l'historique par jour |
+| `analysis.ts` | collisions, rythme, budget, totaux par jour |
+| `limitsView.ts` | l'affichage des limites d'abonnement |
 | `SettingsPanel.tsx` | le panneau des réglages et des connecteurs |
 | `agentPulse.ts` | le calcul de l'état d'un agent à partir de ses événements |
 | `loopDetector.ts` | la détection des boucles |
@@ -74,7 +87,7 @@ npm install          # la première fois
 npm run tauri dev    # l'app
 npm run typecheck    # les types
 npm test             # les tests de l'interface
-cd src-tauri && cargo test   # les tests Rust
+cd src-tauri && cargo test   # les tests Rust (après npm run build : Tauri embarque l'interface)
 ```
 
 ## Ce qui a été retiré
@@ -83,9 +96,13 @@ Le projet avait accumulé beaucoup de choses qui noyaient l'essentiel. Sont
 partis, dans l'ordre : un suivi en 3D, un générateur d'« Histoire » du jour,
 un rapport quotidien, un panneau pour interroger un modèle, le saut vers la
 fenêtre de l'agent, puis les graphiques, l'historique événement par
-événement, la page des dépôts Git, le mode mini, le centre de notifications,
+événement, la page des dépôts Git, le centre de notifications,
 l'estimation de coût en euros, la coquille à onglets et les connecteurs
-personnalisés.
+personnalisés (l'API locale `POST /v1/events`).
+
+Sont revenus depuis, sous une forme plus simple : le mode réduit en colonne,
+l'état git sur chaque barre, les notifications natives et un historique par
+jour (pas événement par événement).
 
 La raison est toujours la même : le besoin est de **voir** ce que font les
 agents maintenant. Tout ce qui répondait à « qu'est-ce qui s'est passé » ou

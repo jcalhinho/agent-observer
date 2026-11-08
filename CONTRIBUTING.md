@@ -20,7 +20,7 @@ issues go through [SECURITY.md](SECURITY.md), never through a public issue.
 You need:
 
 - [Node.js 22](https://nodejs.org/) and npm
-- [Rust](https://rustup.rs/) stable, 1.85 or later, with `rustfmt` and `clippy`
+- [Rust](https://rustup.rs/) stable, 1.95 or later, with `rustfmt` and `clippy`
 - The [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS:
   - **macOS:** Xcode Command Line Tools (`xcode-select --install`)
   - **Windows:** Microsoft C++ Build Tools (*Desktop development with C++*) and WebView2
@@ -88,18 +88,8 @@ These are non-negotiable, and reviews check them first:
 
 ## Adding a connector
 
-There are two paths.
-
-### Through the local HTTP API (no Rust needed)
-
-The local HTTP API lets any script, hook or plugin post events to the running app. Its
-contract — endpoints, authentication, event schema, examples — is documented in
-[`docs/CONNECTORS.md`](docs/CONNECTORS.md). This is the preferred way to support a new agent
-quickly, and connectors written this way can live in their own repository.
-
-### As a native Rust connector
-
-For agents whose activity can be read from local files or a database:
+A connector is a native Rust module (the open local HTTP API was removed in 0.13). For agents
+whose activity can be read from local files or a database:
 
 1. **Provider** — if the agent is new, add it to `Provider` in
    `crates/session-events/src/lib.rs` (with its stable `key()`), and to `providers` in
