@@ -29,15 +29,22 @@ cask "agent-observer" do
   desc "Local dashboard of what your AI coding agents are doing"
   homepage "https://github.com/${repo}"
 
-  depends_on macos: ">= :big_sur"
+  depends_on macos: :big_sur
 
   app "Agent Observer.app"
 
   # The app is not signed with an Apple Developer ID yet: without this, Gatekeeper refuses to
-  # open it after a Homebrew install.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Agent Observer.app"]
+  # open it after a Homebrew install. postflight_steps replaces the postflight block in recent
+  # Homebrew versions; older ones only have postflight.
+  installed_app = "#{appdir}/Agent Observer.app"
+  if respond_to?(:postflight_steps)
+    postflight_steps do
+      run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", installed_app]
+    end
+  else
+    postflight do
+      system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", installed_app]
+    end
   end
 
   zap trash: [
