@@ -20,17 +20,37 @@ export CODEX_HOME="$T/.codex"
 # WebKitGTK cannot use GPU buffers under Xvfb; the collector does not care, the window does.
 export WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1
 
-DISPLAY_NUMBER=$(( 90 + RANDOM % 9 ))
-Xvfb ":$DISPLAY_NUMBER" -screen 0 1280x800x24 >/dev/null 2>&1 &
-XVFB=$!
+XVFB=""
 APP=""
 cleanup() {
   [[ -n "$APP" ]] && kill "$APP" 2>/dev/null
-  kill "$XVFB" 2>/dev/null
+  [[ -n "$XVFB" ]] && kill "$XVFB" 2>/dev/null
   wait 2>/dev/null
   rm -rf "$T" 2>/dev/null || true
 }
 trap cleanup EXIT
+
+# Start a virtual display and wait until it accepts connections: GTK aborts if the app starts first.
+# A display number already taken makes Xvfb exit: try another one.
+DISPLAY_NUMBER=""
+for _ in 1 2 3 4 5; do
+  candidate=$(( 90 + RANDOM % 9 ))
+  [[ -e "/tmp/.X11-unix/X$candidate" ]] && continue
+  Xvfb ":$candidate" -screen 0 1280x800x24 -nolisten tcp >/dev/null 2>&1 &
+  XVFB=$!
+  for _ in $(seq 1 100); do
+    [[ -e "/tmp/.X11-unix/X$candidate" ]] && break
+    kill -0 "$XVFB" 2>/dev/null || break
+    sleep 0.1
+  done
+  if kill -0 "$XVFB" 2>/dev/null && [[ -e "/tmp/.X11-unix/X$candidate" ]]; then
+    DISPLAY_NUMBER="$candidate"
+    break
+  fi
+  kill "$XVFB" 2>/dev/null
+  XVFB=""
+done
+[[ -n "$DISPLAY_NUMBER" ]] || { echo "could not start Xvfb" >&2; exit 1; }
 
 # A Codex session log that already holds subscription limits, written before the app starts.
 mkdir -p "$CODEX_HOME/sessions/2026/11/08"
