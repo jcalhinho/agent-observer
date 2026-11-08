@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Activity, Coins, Database, Gauge, History as HistoryIcon, Maximize2, Minimize2, Moon, Pin, PinOff, Settings2, Sun, TriangleAlert, Wallet, Wrench, Zap } from "lucide-react";
+import { Activity, Coins, Database, FolderTree, Gauge, History as HistoryIcon, Maximize2, Minimize2, Moon, Pin, PinOff, Settings2, Sun, TriangleAlert, Wallet, Wrench, Zap } from "lucide-react";
 import { AgentBar } from "./AgentBar";
 import { AgentDetail } from "./AgentDetail";
 import { budgetState, dailyTotals, detectCollisions, localDay } from "./analysis";
@@ -10,6 +10,7 @@ import { History } from "./History";
 import { cacheCounts, compact, fleetTotals, percent, usd } from "./insights";
 import { isBoolean, isNumber, usePreference } from "./preferences";
 import { agentName, useAgents } from "./providers";
+import { groupByProject } from "./projectGroups";
 import { SettingsPanel } from "./SettingsPanel";
 import { needsYou, useAgentPulses } from "./useAgentPulses";
 import { useAlerts } from "./useAlerts";
@@ -53,6 +54,7 @@ export function App() {
   const limits = useLimits();
   const [mini, setMini] = usePreference("mini-mode", false, isBoolean);
   const [pinned, setPinned] = usePreference("mini-pinned", true, isBoolean);
+  const [byProject, setByProject] = usePreference("group-by-project", false, isBoolean);
 
   // Au démarrage en mode réduit, la fenêtre reprend sa place dans le coin de l'écran.
   useEffect(() => { if (mini) void enterMiniWindow(pinned); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -90,6 +92,8 @@ export function App() {
   useAlerts({ pulses, collisions, spentToday, budget: budget || null, enabled: notifications, now: bucket });
   const collisionsOf = (key: string) => collisions.filter((collision) => collision.agents.includes(key));
   const gitOf = (pulse: { project: { project_path: string | null } | null }) => pulse.project?.project_path ? git[pulse.project.project_path] : undefined;
+
+  const bar = (pulse: (typeof pulses)[number]) => <AgentBar key={pulse.key} pulse={pulse} now={now} onOpen={setOpenKey} git={gitOf(pulse)} collisions={collisionsOf(pulse.key)} limits={limits[pulse.key]} />;
 
   const filters: Array<[Filter, string, number]> = [
     ["all", t("Tous", "All"), seen.length],
@@ -144,13 +148,21 @@ export function App() {
       <div className="segmented" role="group">
         {filters.map(([key, label, count]) => <button key={key} className={filter === key ? "on" : ""} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}<b>{count}</b></button>)}
       </div>
-      <small>{t("Chiffres de la session la plus récente de chaque agent", "Figures cover each agent’s latest session")}</small>
+      <span className="toolbar-end">
+        <small>{t("Chiffres de la session la plus récente de chaque agent", "Figures cover each agent’s latest session")}</small>
+        <button className={`button small ${byProject ? "on" : ""}`} aria-pressed={byProject} onClick={() => setByProject(!byProject)} title={t("Ranger les agents par dossier de projet", "Arrange agents by project folder")}><FolderTree size={12} />{t("Par projet", "By project")}</button>
+      </span>
     </nav>}
 
     <main className="board bars">
       {seen.length
         ? shown.length
-          ? shown.map((pulse) => <AgentBar key={pulse.key} pulse={pulse} now={now} onOpen={setOpenKey} git={gitOf(pulse)} collisions={collisionsOf(pulse.key)} limits={limits[pulse.key]} />)
+          ? !mini && byProject && seen.length > 1
+            ? groupByProject(shown).map((group) => <section key={group.key} className="project-group" aria-label={group.label}>
+                <h3 title={group.path ?? undefined}>{group.label}<small>{group.pulses.length > 1 ? t(`${group.pulses.length} agents`, `${group.pulses.length} agents`) : null}</small></h3>
+                {group.pulses.map(bar)}
+              </section>)
+            : shown.map(bar)
           : <div className="empty"><b>{t("Personne ici", "Nobody here")}</b><p>{t("Aucun agent ne correspond à ce filtre en ce moment.", "No agent matches this filter right now.")}</p></div>
         : <div className="empty">
             <b>{t("En attente d’un agent", "Waiting for an agent")}</b>

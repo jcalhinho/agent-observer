@@ -3,7 +3,7 @@ import { FolderOpen, X } from "lucide-react";
 import type { AgentPulse } from "./agentPulse";
 import type { Collision } from "./analysis";
 import { statusInfo, since, placeOf, tokenSegments } from "./AgentBar";
-import { t } from "./i18n";
+import { locale, t } from "./i18n";
 import { cacheCounts, cacheHitRate, compact, duration, percent, usd } from "./insights";
 import { ProviderMark } from "./ProviderBadges";
 import { agentName, providerFor, providers } from "./providers";
@@ -11,6 +11,7 @@ import { revealFolder, type GitState } from "./useGit";
 import { resetText, windowsOf } from "./limitsView";
 import type { LimitSnapshot } from "./useLimits";
 import { Area, Stack } from "./Spark";
+import { usePastSessions } from "./usePastSessions";
 
 const fallback = providers.find((provider) => provider.eventKey === "custom")!;
 
@@ -38,6 +39,7 @@ export function AgentDetail({ pulse, now, onClose, git, collisions, limits }: { 
   const segments = tokenSegments(pulse);
   const context = pulse.context;
   const cost = summary?.cost ?? null;
+  const past = usePastSessions(pulse.key, pulse.session?.id ?? null);
 
   return <div className="sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <aside className="sheet detail" style={{ "--agent-color": provider.color } as CSSProperties} role="dialog" aria-modal="true" aria-label={provider.name}>
@@ -140,6 +142,27 @@ export function AgentDetail({ pulse, now, onClose, git, collisions, limits }: { 
             <div><dt>{t("Échecs d’outils", "Tool failures")}</dt><dd className={summary.failures.count ? "bad" : ""}>{summary.failures.count}{summary.failures.tools.length ? <small> ({summary.failures.tools.join(", ")})</small> : null}</dd></div>
           </dl>
         </section>
+
+        {past && past.length > 0 && <section>
+          <h3>{t("Sessions précédentes", "Earlier sessions")} <small>{past.length}</small></h3>
+          <table className="past-sessions"><thead><tr>
+            <th>{t("Début", "Started")}</th>
+            <th className="num" title={t("Du premier au dernier événement observé", "From the first to the last observed event")}>{t("Durée", "Span")}</th>
+            <th>{t("Projet", "Project")}</th>
+            <th className="num">{t("Outils", "Tools")}</th>
+            <th className="num">Tokens</th>
+            <th className="num">{t("Coût", "Cost")}</th>
+          </tr></thead>
+            <tbody>{past.map((session) => <tr key={session.id}>
+              <td>{new Date(session.startedAt).toLocaleString(locale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+              <td className="num">{duration(session.observedMs)}</td>
+              <td title={session.project ?? undefined}>{session.project ? placeOf({ project_path: session.project, file_path: null }).label : "—"}</td>
+              <td className={`num ${session.failures ? "bad" : ""}`} title={session.failures ? t(`${session.failures} échec(s)`, `${session.failures} failed`) : undefined}>{session.toolCalls}{session.failures ? <small> · {session.failures}✕</small> : null}</td>
+              <td className="num">{session.tokens === null ? "—" : compact(session.tokens)}</td>
+              <td className="num">{session.cost ? `${session.cost.partial ? "≥ " : "≈ "}${usd(session.cost.value)}` : "—"}</td>
+            </tr>)}</tbody></table>
+          <p className="hint">{t("Lues dans la base locale : les 20 plus récentes, dans la limite de la durée de conservation choisie.", "Read from the local database: the 20 most recent, within the retention period you chose.")}</p>
+        </section>}
 
         <section>
           <h3>{t("Tokens, cache et coût", "Tokens, cache and cost")}</h3>

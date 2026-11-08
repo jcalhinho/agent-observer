@@ -30,6 +30,7 @@ describe("formatting", () => {
     expect(duration(30_000)).toBe("30 s");
     expect(duration(47 * 60_000)).toBe("47 min");
     expect(duration(73 * 60_000)).toBe("1 h 13");
+    expect(duration(50 * 3_600_000)).toBe("2 d 2 h");
   });
 });
 

@@ -322,7 +322,7 @@ fn update_capture_policy(
     Ok(())
 }
 
-const SCHEMA: &str = "PRAGMA journal_mode=WAL; PRAGMA secure_delete=ON; CREATE TABLE IF NOT EXISTS session_events (event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, occurred_at TEXT NOT NULL, provider TEXT NOT NULL, kind TEXT NOT NULL, project_path TEXT, payload TEXT NOT NULL); CREATE INDEX IF NOT EXISTS idx_session_events_time ON session_events(occurred_at); CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value INTEGER NOT NULL);";
+const SCHEMA: &str = "PRAGMA journal_mode=WAL; PRAGMA secure_delete=ON; CREATE TABLE IF NOT EXISTS session_events (event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, occurred_at TEXT NOT NULL, provider TEXT NOT NULL, kind TEXT NOT NULL, project_path TEXT, payload TEXT NOT NULL); CREATE INDEX IF NOT EXISTS idx_session_events_time ON session_events(occurred_at); CREATE INDEX IF NOT EXISTS idx_session_events_session ON session_events(provider, session_id, occurred_at); CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value INTEGER NOT NULL);";
 
 /// Days events are kept; 0 keeps everything.
 const DEFAULT_RETENTION_DAYS: i64 = 30;
@@ -478,6 +478,97 @@ fn load_history(state: tauri::State<'_, CollectorState>, days: i64) -> Result<Hi
     let since = (chrono::Utc::now() - chrono::Duration::days(days.clamp(1, 400))).to_rfc3339();
     let database = state.database.lock().map_err(|error| error.to_string())?;
     history_rows(&database, &since).map_err(|error| error.to_string())
+}
+
+/// One stored session of an agent, summed up by the database.
+#[derive(Debug, PartialEq, Serialize)]
+struct PastSession {
+    session_id: String,
+    /// The most recent project folder the session reported.
+    project_path: Option<String>,
+    started_at: String,
+    last_at: String,
+    events: i64,
+    /// Calls observed: per tool, the larger of starts and ends, as in the live summary.
+    tool_calls: i64,
+    failures: i64,
+}
+
+#[derive(Debug, Serialize)]
+struct AgentSessions {
+    sessions: Vec<PastSession>,
+    /// The events of these sessions that carry tokens, to add up tokens and cost.
+    usage: Vec<SessionEvent>,
+}
+
+/// The `limit` most recent sessions of one agent, from the local database.
+fn agent_sessions_rows(
+    connection: &Connection,
+    provider: &str,
+    limit: i64,
+) -> rusqlite::Result<AgentSessions> {
+    let mut statement = connection.prepare(
+        "SELECT session_id, \
+           (SELECT project_path FROM session_events AS inner_row WHERE inner_row.provider = ?1 \
+              AND inner_row.session_id = outer_row.session_id AND inner_row.project_path IS NOT NULL \
+              ORDER BY inner_row.occurred_at DESC LIMIT 1), \
+           MIN(occurred_at), MAX(occurred_at), COUNT(*), SUM(kind = 'ToolFailed') \
+         FROM session_events AS outer_row WHERE provider = ?1 \
+         GROUP BY session_id ORDER BY MAX(occurred_at) DESC LIMIT ?2",
+    )?;
+    let mut sessions = statement
+        .query_map(params![provider, limit], |row| {
+            Ok(PastSession {
+                session_id: row.get(0)?,
+                project_path: row.get(1)?,
+                started_at: row.get(2)?,
+                last_at: row.get(3)?,
+                events: row.get(4)?,
+                tool_calls: 0,
+                failures: row.get(5)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut calls = connection.prepare(
+        "SELECT COALESCE(SUM(calls), 0) FROM (SELECT MAX(SUM(kind = 'ToolStarted'), SUM(kind <> 'ToolStarted')) AS calls \
+         FROM session_events WHERE provider = ?1 AND session_id = ?2 \
+           AND kind IN ('ToolStarted', 'ToolFinished', 'ToolFailed') \
+         GROUP BY json_extract(payload, '$.tool_name'))",
+    )?;
+    let mut usage_statement = connection.prepare(
+        "SELECT payload FROM session_events WHERE provider = ?1 AND session_id = ?2 AND ( \
+           json_extract(payload, '$.input_tokens') IS NOT NULL \
+           OR json_extract(payload, '$.output_tokens') IS NOT NULL \
+           OR json_extract(payload, '$.cache_read_tokens') IS NOT NULL \
+           OR json_extract(payload, '$.cache_write_tokens') IS NOT NULL) \
+         ORDER BY occurred_at, event_id",
+    )?;
+    let mut payloads = Vec::new();
+    for session in &mut sessions {
+        session.tool_calls =
+            calls.query_row(params![provider, session.session_id], |row| row.get(0))?;
+        for payload in usage_statement.query_map(params![provider, session.session_id], |row| {
+            row.get::<_, String>(0)
+        })? {
+            payloads.push(payload?);
+        }
+    }
+    Ok(AgentSessions {
+        sessions,
+        usage: decode_stored_events(&payloads),
+    })
+}
+
+/// The most recent sessions of one agent (at most 50), for its detail panel.
+#[tauri::command]
+fn agent_sessions(
+    state: tauri::State<'_, CollectorState>,
+    provider: String,
+    limit: Option<i64>,
+) -> Result<AgentSessions, String> {
+    let database = state.database.lock().map_err(|error| error.to_string())?;
+    agent_sessions_rows(&database, &provider, limit.unwrap_or(20).clamp(1, 50))
+        .map_err(|error| error.to_string())
 }
 
 /// Decodes stored payloads, skipping any row this version cannot read: one such row
@@ -1215,6 +1306,7 @@ fn main() {
             cursor_setup,
             load_session_events,
             load_history,
+            agent_sessions,
             export_session_history,
             collector_status,
             repository_snapshot,
@@ -1364,6 +1456,144 @@ mod tests {
                 ),
             ],
             "one row per session and quarter of an hour, the old session left out"
+        );
+    }
+
+    #[test]
+    fn past_sessions_are_summed_up_newest_first() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection.execute_batch(SCHEMA).unwrap();
+        let at = |text: &str| {
+            chrono::DateTime::parse_from_rfc3339(text)
+                .unwrap()
+                .with_timezone(&chrono::Utc)
+        };
+        let event = |session: &str,
+                     kind: EventKind,
+                     when: &str,
+                     tool: Option<&str>,
+                     project: Option<&str>| {
+            let mut event = SessionEvent::new(session, Provider::Codex, kind);
+            event.occurred_at = at(when);
+            event.tool_name = tool.map(str::to_owned);
+            event.project_path = project.map(str::to_owned);
+            event
+        };
+        let mut usage = event(
+            "old",
+            EventKind::ModelUsage,
+            "2026-11-01T10:10:00Z",
+            None,
+            None,
+        );
+        usage.output_tokens = Some(Sourced {
+            value: 7,
+            origin: DataOrigin::Provider,
+        });
+        let mut other = SessionEvent::new("x", Provider::ClaudeCode, EventKind::ToolStarted);
+        other.occurred_at = at("2026-11-09T00:00:00Z");
+        let events = [
+            event(
+                "old",
+                EventKind::SessionStarted,
+                "2026-11-01T10:00:00Z",
+                None,
+                Some("/work/a"),
+            ),
+            // Shell: a start and an end per call (2 calls); Read: ends only (1 call).
+            event(
+                "old",
+                EventKind::ToolStarted,
+                "2026-11-01T10:01:00Z",
+                Some("shell"),
+                Some("/work/a"),
+            ),
+            event(
+                "old",
+                EventKind::ToolFinished,
+                "2026-11-01T10:02:00Z",
+                Some("shell"),
+                None,
+            ),
+            event(
+                "old",
+                EventKind::ToolStarted,
+                "2026-11-01T10:03:00Z",
+                Some("shell"),
+                Some("/work/b"),
+            ),
+            event(
+                "old",
+                EventKind::ToolFailed,
+                "2026-11-01T10:04:00Z",
+                Some("shell"),
+                None,
+            ),
+            event(
+                "old",
+                EventKind::ToolFinished,
+                "2026-11-01T10:05:00Z",
+                Some("read"),
+                None,
+            ),
+            usage,
+            event(
+                "new",
+                EventKind::SessionStarted,
+                "2026-11-08T09:00:00Z",
+                None,
+                None,
+            ),
+            other,
+        ];
+        for event in &events {
+            connection
+                .execute(
+                    "INSERT INTO session_events VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        event.event_id.to_string(),
+                        event.session_id,
+                        event.occurred_at.to_rfc3339(),
+                        event.provider.key(),
+                        format!("{:?}", event.kind),
+                        event.project_path,
+                        serde_json::to_string(event).unwrap()
+                    ],
+                )
+                .unwrap();
+        }
+        let rows = agent_sessions_rows(&connection, "codex", 20).unwrap();
+        assert_eq!(
+            rows.sessions,
+            vec![
+                PastSession {
+                    session_id: "new".into(),
+                    project_path: None,
+                    started_at: "2026-11-08T09:00:00+00:00".into(),
+                    last_at: "2026-11-08T09:00:00+00:00".into(),
+                    events: 1,
+                    tool_calls: 0,
+                    failures: 0,
+                },
+                PastSession {
+                    session_id: "old".into(),
+                    project_path: Some("/work/b".into()),
+                    started_at: "2026-11-01T10:00:00+00:00".into(),
+                    last_at: "2026-11-01T10:10:00+00:00".into(),
+                    events: 7,
+                    tool_calls: 3,
+                    failures: 1,
+                },
+            ]
+        );
+        assert_eq!(rows.usage.len(), 1);
+        assert_eq!(rows.usage[0].session_id, "old");
+        assert_eq!(
+            agent_sessions_rows(&connection, "codex", 1)
+                .unwrap()
+                .sessions
+                .len(),
+            1
         );
     }
 

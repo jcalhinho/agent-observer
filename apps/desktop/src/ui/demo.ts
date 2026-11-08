@@ -103,10 +103,13 @@ export function demoEvents(now = Date.now(), idPrefix = "demo"): SessionEvent[] 
   return events.sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
 }
 
-/** Les jours d'avant, pour l'historique : les mêmes sessions, décalées de 1 à 9 jours. */
+/** Les jours d'avant, pour l'historique : des sessions comme celles d'aujourd'hui, décalées de 1 à 8 jours. */
 export function demoHistory(now = Date.now()): SessionEvent[] {
   const days = [1, 2, 3, 5, 6, 8];
-  return days.flatMap((day) => demoEvents(now - day * 86_400_000 - (day % 3) * 3_600_000, `h${day}`).filter((_, index) => (index + day) % 3 !== 0));
+  // Chaque jour a ses propres sessions : elles apparaissent comme des sessions passées.
+  return days.flatMap((day) => demoEvents(now - day * 86_400_000 - (day % 3) * 3_600_000, `h${day}`)
+    .filter((_, index) => (index + day) % 3 !== 0)
+    .map((event) => ({ ...event, session_id: `${event.session_id}-h${day}` })));
 }
 
 /** Des limites d'abonnement inventées pour la démo : Codex presque au bout de sa fenêtre de 5 h. */

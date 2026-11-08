@@ -36,7 +36,7 @@ export function duration(ms: number) {
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
-  return hours >= 24 ? `${Math.floor(hours / 24)} j ${hours % 24} h` : `${hours} h${rest ? ` ${String(rest).padStart(2, "0")}` : ""}`;
+  return hours >= 24 ? t(`${Math.floor(hours / 24)} j ${hours % 24} h`, `${Math.floor(hours / 24)} d ${hours % 24} h`) : `${hours} h${rest ? ` ${String(rest).padStart(2, "0")}` : ""}`;
 }
 
 /** Tokens du prompt, cache compris. */

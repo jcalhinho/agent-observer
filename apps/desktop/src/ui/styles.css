@@ -257,8 +257,10 @@ time { font-variant-numeric: tabular-nums; }
 }
 html, body { background: radial-gradient(1200px 600px at 12% -10%, var(--glow-a) 0%, transparent 60%), radial-gradient(900px 500px at 100% 0%, var(--glow-b) 0%, transparent 55%), var(--bg); background-attachment: fixed; }
 
-.app { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; height: 100%; }
-.app > .board { grid-row: auto; }
+/* Une colonne : seul le tableau des agents prend la hauteur restante et défile, quelles que soient les bandes affichées au-dessus. */
+.app { display: flex; flex-direction: column; height: 100%; }
+.app > * { flex: none; }
+.app > .board { flex: 1 1 auto; min-height: 0; }
 
 /* ---------- La barre du haut ---------- */
 .top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); padding: 12px 20px; border-bottom: 1px solid rgb(var(--ov) / .063); background: var(--top-bg); backdrop-filter: blur(14px); }
@@ -286,7 +288,13 @@ html, body { background: radial-gradient(1200px 600px at 12% -10%, var(--glow-a)
 
 /* ---------- Les filtres ---------- */
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 20px 0; }
-.toolbar > small { color: var(--faint); font-size: 11.5px; }
+.toolbar small { color: var(--faint); font-size: 11.5px; }
+.toolbar-end { display: flex; align-items: center; gap: 10px; }
+.button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.project-group { display: contents; }
+.project-group > h3 { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 8px; margin: 6px 0 -4px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.project-group:first-child > h3 { margin-top: 0; }
+.project-group > h3 small { color: var(--faint); font-weight: 500; letter-spacing: 0; text-transform: none; }
 .segmented { display: inline-flex; padding: 3px; border: 1px solid rgb(var(--ov) / .071); border-radius: 10px; background: rgb(var(--ov) / .024); }
 .segmented button { display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .segmented button b { color: var(--faint); font: 650 11px var(--mono); }
