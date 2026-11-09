@@ -38,8 +38,8 @@ fichiers, en lecture seule.
 
 - **Claude Code** pousse ses événements par des hooks, vers un petit serveur
   local protégé par un jeton.
-- **Les sept autres** (Codex, Copilot, Antigravity, Qwen Code, OpenCode,
-  Reasonix, Continue) sont lus depuis leurs fichiers de session ou journaux,
+- **Les huit autres** (Codex, Copilot, Antigravity, Qwen Code, OpenCode,
+  Reasonix, Continue, Hermes) sont lus depuis leurs fichiers de session ou journaux,
   surveillés en continu.
 - **Cursor** passe aussi par un hook.
 

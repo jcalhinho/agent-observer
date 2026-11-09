@@ -5,7 +5,7 @@
 **See what your coding agents are doing — and which one needs you — on one screen, without sending anything anywhere.**
 
 A local desktop app for macOS, Windows and Linux that watches Claude Code, Codex, GitHub Copilot,
-Antigravity, OpenCode, Qwen Code, Reasonix, Cursor and Continue work on your machine, live.
+Antigravity, OpenCode, Qwen Code, Reasonix, Cursor, Continue and Hermes work on your machine, live.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
@@ -69,7 +69,7 @@ check you start yourself (see [Updates](#update-and-uninstall)).
    curl -fsSL https://raw.githubusercontent.com/jcalhinho/agent-observer/main/install.sh | bash
    ```
    On Windows, run the `-setup.exe` from the [Releases page](https://github.com/jcalhinho/agent-observer/releases).
-2. **Open the app.** Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix and Continue are picked up
+2. **Open the app.** Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Continue and Hermes are picked up
    automatically. For **Claude Code** (and Cursor), open **Settings › Agents › Configure** and paste the
    block it shows into the agent's settings file — see [Connect your agents](#connect-your-agents).
 3. **Work as usual.** Each agent gets a bar as soon as it does something. The most urgent come first.
@@ -198,6 +198,7 @@ the logo says **Collecting** when the local collector is listening. Then [connec
 | **Qwen Code** | Appended chat records in `~/.qwen/projects/<project>/chats`. | Nothing. |
 | **Reasonix** | Its session files in `~/.reasonix/projects/<project>/sessions/*.wire.jsonl`, read-only. | Nothing. |
 | **Continue** (VS Code) | The local logs the extension writes for each answer, model call and tool call (`~/.continue/dev_data/0.2.0/*.jsonl`; `CONTINUE_GLOBAL_DIR` respected), and the project folder of each chat from `~/.continue/sessions/<id>.json`. See [Continue](#continue). | Nothing. |
+| **Hermes** | Its SQLite session databases (`~/.hermes/state.db` and `profiles/*/state.db`; `HERMES_HOME` respected), read-only. See [Hermes](#hermes). | Nothing. |
 
 On Windows, `~` is `%USERPROFILE%`. **Settings › Agents › Configure** shows, for each agent, the folder it
 reads and whether it was found.
@@ -250,12 +251,30 @@ Continue writes three local logs, read as they grow:
 Continue does not report cache reads, and nothing marks the start of a turn (your message is not in
 these logs): its turn count stays at 0 and no work time is shown.
 
+### Hermes
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) keeps its sessions in SQLite: `state.db` in its
+home (`HERMES_HOME`, else `~/.hermes`) and one per profile in `profiles/<name>/state.db`. The app reads them
+read-only:
+
+- `messages` — your messages, each tool call (name, file, and the command when command capture is on) and
+  its result: a tool that returns `{"error": …}` counts as failed. The text of answers and tool results is
+  never recorded. Hermes writes these rows at the end of each tool round, so its actions arrive in batches,
+  a few seconds late, not one by one.
+- `session_model_usage` — Hermes's running token totals per session and model; each increase becomes one
+  usage event (input without cache, cache read and written apart, as Hermes counts them). Spending from
+  before the app started is not counted.
+- `sessions` — the working folder of each session. Sessions started from a messaging app (Telegram,
+  Discord…) often have none.
+
 ### Not connected
 
 - **Gemini CLI** — replaced by Antigravity in this app; nothing of it is read.
 - **Cline, Roo Code** — Cline is moving its task storage to a new format (its source has a reader for
   the "pre-SDK" format next to the new one); a connector will follow once the format is settled.
 - **Aider** — it keeps a chat history file in each repository, with no common place to watch.
+- **OpenClaw** — not yet: it keeps each agent's transcript in its own SQLite database
+  (`~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`), with events that can be zstd-compressed.
 
 Sessions run in a cloud agent or in a desktop app that keeps nothing on your computer cannot be observed.
 To add an agent, see [Add a connector](#add-a-connector).
@@ -621,7 +640,7 @@ the MCP server. It needs `xvfb`, `curl` and Node.
 **Provider pages ([DriftGuard](https://github.com/jcalhinho/driftguard)).** On every push, DriftGuard fails the
 check if the code calls a retired API. Every Monday, it also fetches the pages this app copies by hand — the
 price lists behind `pricing.ts`, the Claude Code and Cursor hook inputs, the source files that define the
-Codex, Qwen Code, OpenCode and Continue log formats — listed in [`.driftguard.yml`](.driftguard.yml), and fails
+Codex, Qwen Code, OpenCode, Continue and Hermes log formats — listed in [`.driftguard.yml`](.driftguard.yml), and fails
 if one changed since `.driftguard.lock.json`. Then update the code named in the entry's `why`, and record the
 new fingerprints:
 

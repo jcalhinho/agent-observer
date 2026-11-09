@@ -75,3 +75,23 @@ watch:
   - id: continue-schema-base
     url: https://raw.githubusercontent.com/continuedev/continue/main/packages/config-yaml/src/schemas/data/base.ts
     why: base fields (timestamp) in continue_sessions.rs
+  - id: hermes-session-tables
+    url: https://raw.githubusercontent.com/NousResearch/hermes-agent/main/hermes_state_common.py
+    start: "CREATE TABLE IF NOT EXISTS sessions ("
+    end: "CREATE TABLE IF NOT EXISTS runtime_epoch ("
+    why: sessions / messages / session_model_usage queries in hermes_sessions.rs
+  - id: hermes-usage-normalization
+    url: https://raw.githubusercontent.com/NousResearch/hermes-agent/main/agent/usage_pricing.py
+    start: "def normalize_usage("
+    end: "def _unknown_cost("
+    why: meaning of input_tokens and the cache columns in hermes_sessions.rs
+  - id: hermes-tool-error
+    url: https://raw.githubusercontent.com/NousResearch/hermes-agent/main/tools/registry.py
+    start: "def tool_error("
+    end: "def tool_result("
+    why: failed tool results (an "error" key) in hermes_sessions.rs
+  - id: hermes-home
+    url: https://raw.githubusercontent.com/NousResearch/hermes-agent/main/hermes_constants.py
+    start: "def _platform_default_hermes_home("
+    end: "def _get_platform_default_hermes_home("
+    why: Hermes home folder (data_root in hermes_sessions.rs)

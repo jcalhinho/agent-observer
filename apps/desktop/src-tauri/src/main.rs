@@ -10,6 +10,7 @@ mod copilot_chat;
 mod copilot_sessions;
 mod diagnostics;
 mod git_info;
+mod hermes_sessions;
 mod limits;
 mod models;
 mod no_window;
@@ -211,6 +212,30 @@ fn qwen_setup(state: tauri::State<'_, CollectorState>) -> QwenSetup {
     QwenSetup {
         projects_dir: projects_dir.display().to_string(),
         available: projects_dir.is_dir(),
+        capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
+        capture_commands: state.capture_commands.load(Ordering::Relaxed),
+    }
+}
+
+#[derive(Serialize)]
+struct HermesSetup {
+    home: String,
+    database_paths: Vec<String>,
+    available: bool,
+    capture_prompts: bool,
+    capture_commands: bool,
+}
+
+#[tauri::command]
+fn hermes_setup(state: tauri::State<'_, CollectorState>) -> HermesSetup {
+    let paths = hermes_sessions::database_paths();
+    HermesSetup {
+        home: hermes_sessions::data_root().display().to_string(),
+        available: !paths.is_empty(),
+        database_paths: paths
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect(),
         capture_prompts: state.capture_prompts.load(Ordering::Relaxed),
         capture_commands: state.capture_commands.load(Ordering::Relaxed),
     }
@@ -1328,6 +1353,14 @@ fn main() {
             continue_sessions::spawn(continue_sessions::data_root(), move |event| {
                 persist_event(&continue_state, event);
             });
+            let hermes_state = state.clone();
+            hermes_sessions::spawn(
+                state.capture_prompts.clone(),
+                state.capture_commands.clone(),
+                move |event| {
+                    persist_event(&hermes_state, event);
+                },
+            );
             let opencode_state = state.clone();
             let copilot_chat_state = state.clone();
             copilot_chat::spawn(state.capture_prompts.clone(), move |event| {
@@ -1370,6 +1403,7 @@ fn main() {
             opencode_setup,
             qwen_setup,
             continue_setup,
+            hermes_setup,
             reasonix_setup,
             cursor_setup,
             load_session_events,

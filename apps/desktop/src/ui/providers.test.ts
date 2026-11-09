@@ -19,7 +19,7 @@ describe("provider table", () => {
 });
 
 describe("active providers", () => {
-  it("shows only the agents with a connector: Claude Code, Codex, OpenCode, Qwen Code, Antigravity, GitHub Copilot, Reasonix, Cursor and Continue", () => {
-    expect(activeProviders.map((provider) => provider.name).sort()).toEqual(["Antigravity", "Claude Code", "Codex", "Continue", "Cursor", "GitHub Copilot", "OpenCode", "Qwen Code", "Reasonix"]);
+  it("shows only the agents with a connector: Claude Code, Codex, OpenCode, Qwen Code, Antigravity, GitHub Copilot, Hermes, Reasonix, Cursor and Continue", () => {
+    expect(activeProviders.map((provider) => provider.name).sort()).toEqual(["Antigravity", "Claude Code", "Codex", "Continue", "Cursor", "GitHub Copilot", "Hermes", "OpenCode", "Qwen Code", "Reasonix"]);
   });
 });

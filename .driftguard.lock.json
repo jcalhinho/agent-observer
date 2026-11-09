@@ -79,6 +79,30 @@
       "sha256": "d3b5522104e1969b02ca87e00bfcb27f3b8518bdd347a2ff76380e64bca556ac",
       "checked": "2026-11-08"
     },
+    "hermes-home": {
+      "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/hermes_constants.py",
+      "final_url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/hermes_constants.py",
+      "sha256": "75d74563efa9a51ed4885a19d985f88d802f4e27cbb5d1abf5525fc6a1e03e26",
+      "checked": "2026-11-09"
+    },
+    "hermes-session-tables": {
+      "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/hermes_state_common.py",
+      "final_url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/hermes_state_common.py",
+      "sha256": "716285004f0716ec8c3df6271f1366ac92afaaa792729a99e110d323782bab0d",
+      "checked": "2026-11-09"
+    },
+    "hermes-tool-error": {
+      "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/tools/registry.py",
+      "final_url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/tools/registry.py",
+      "sha256": "4bf1cd54c64805cad5e03c3a54ddba082396e7d767ad4b91a0035e3771cdf636",
+      "checked": "2026-11-09"
+    },
+    "hermes-usage-normalization": {
+      "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/agent/usage_pricing.py",
+      "final_url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/agent/usage_pricing.py",
+      "sha256": "8581662ad8b25afd28a0b9734a25ed2fc85b7fafb4ae4b281eb39acf7c56822f",
+      "checked": "2026-11-09"
+    },
     "moonshot-pricing": {
       "url": "https://platform.kimi.ai/docs/pricing/chat.md",
       "final_url": "https://platform.kimi.ai/docs/pricing/chat.md",

@@ -1,7 +1,7 @@
 # Connecting an agent
 
 Agent Observer ships with built-in connectors for Claude Code, Codex, Antigravity, GitHub Copilot, OpenCode,
-Qwen Code, Reasonix, Cursor and Continue (Gemini CLI is no longer observed: Antigravity replaces it, and nothing
+Qwen Code, Reasonix, Cursor, Continue and Hermes (Gemini CLI is no longer observed: Antigravity replaces it, and nothing
 of Gemini CLI is read any more). A new agent is added as a built-in connector, in Rust.
 
 > The open local API (`POST /v1/events` and custom connectors) was removed in 0.13 with the move to a

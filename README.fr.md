@@ -5,7 +5,7 @@
 **Vois ce que font tes agents de code — et lequel a besoin de toi — sur un seul écran, sans rien envoyer nulle part.**
 
 Une application de bureau locale pour macOS, Windows et Linux qui regarde travailler, en direct, Claude Code,
-Codex, GitHub Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Cursor et Continue sur ta machine.
+Codex, GitHub Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Cursor, Continue et Hermes sur ta machine.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Dernière version](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
@@ -69,7 +69,7 @@ recherche de mise à jour que tu lances toi-même (voir [Mettre à jour](#mettre
    curl -fsSL https://raw.githubusercontent.com/jcalhinho/agent-observer/main/install.sh | bash
    ```
    Sous Windows, lance le `-setup.exe` de la [page des versions](https://github.com/jcalhinho/agent-observer/releases).
-2. **Ouvre l'app.** Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix et Continue sont repérés tout seuls.
+2. **Ouvre l'app.** Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Continue et Hermes sont repérés tout seuls.
    Pour **Claude Code** (et Cursor), ouvre **Réglages › Agents › Configurer** et colle le bloc affiché dans
    le fichier de réglages de l'agent — voir [Brancher tes agents](#brancher-tes-agents).
 3. **Travaille comme d'habitude.** Chaque agent a sa barre dès sa première action. Les plus urgents passent devant.
@@ -199,6 +199,7 @@ du logo indique **Collecte active** quand le collecteur local écoute. Ensuite, 
 | **Qwen Code** | Les nouvelles lignes de ses discussions dans `~/.qwen/projects/<projet>/chats`. | Rien. |
 | **Reasonix** | Ses fichiers de session dans `~/.reasonix/projects/<projet>/sessions/*.wire.jsonl`, en lecture seule. | Rien. |
 | **Continue** (VS Code) | Les journaux locaux que l'extension écrit à chaque réponse, chaque appel de modèle et chaque outil (`~/.continue/dev_data/0.2.0/*.jsonl` ; `CONTINUE_GLOBAL_DIR` respecté), et le dossier de projet de chaque conversation dans `~/.continue/sessions/<id>.json`. Voir [Continue](#continue). | Rien. |
+| **Hermes** | Ses bases SQLite de sessions (`~/.hermes/state.db` et `profiles/*/state.db` ; `HERMES_HOME` respecté), en lecture seule. Voir [Hermes](#hermes). | Rien. |
 
 Sous Windows, `~` est `%USERPROFILE%`. **Réglages › Agents › Configurer** montre, pour chaque agent, le dossier
 lu et s'il a été trouvé.
@@ -252,6 +253,22 @@ Continue écrit trois journaux locaux, lus au fur et à mesure :
 Continue ne rapporte pas son cache, et rien ne marque le début d'un tour (ton message n'est pas dans ces
 journaux) : son nombre de tours reste à 0 et aucun temps de travail n'est affiché.
 
+### Hermes
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) range ses sessions dans SQLite : `state.db`
+dans son dossier (`HERMES_HOME`, sinon `~/.hermes`) et un par profil dans `profiles/<nom>/state.db`.
+L'app les lit en lecture seule :
+
+- `messages` — tes messages, chaque appel d'outil (nom, fichier, et la commande si la capture des commandes
+  est activée) et son résultat : un outil qui renvoie `{"error": …}` compte comme un échec. Le texte des
+  réponses et le résultat des outils ne sont jamais enregistrés. Hermes écrit ces lignes à la fin de chaque
+  tour d'outils : ses actions arrivent par paquets, avec quelques secondes de retard, pas une par une.
+- `session_model_usage` — les totaux de tokens qu'Hermes tient par session et par modèle ; chaque hausse
+  devient un événement d'usage (entrée hors cache, cache lu et écrit à part, comme Hermes les compte). Ce
+  qui a été dépensé avant le lancement de l'app n'est pas compté.
+- `sessions` — le dossier de travail de chaque session. Les sessions lancées depuis une messagerie
+  (Telegram, Discord…) n'en ont souvent pas.
+
 ### Non branchés
 
 - **Gemini CLI** — remplacé par Antigravity dans cette app ; rien n'en est lu.
@@ -259,6 +276,8 @@ journaux) : son nombre de tours reste à 0 et aucun temps de travail n'est affic
   contient un lecteur de l'ancien format, « pre-SDK », à côté du nouveau) ; un connecteur suivra quand le
   format sera stabilisé.
 - **Aider** — il garde un fichier d'historique dans chaque dépôt, sans endroit commun à surveiller.
+- **OpenClaw** — pas encore : il garde la transcription de chaque agent dans sa propre base SQLite
+  (`~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`), avec des événements parfois compressés en zstd.
 
 Les sessions lancées dans un agent cloud ou une application de bureau qui ne laisse rien sur ton ordinateur
 ne peuvent pas être observées. Pour ajouter un agent, voir [Ajouter un connecteur](#ajouter-un-connecteur).
@@ -632,7 +651,7 @@ refusées) et le serveur MCP. Il faut `xvfb`, `curl` et Node.
 **Pages des fournisseurs ([DriftGuard](https://github.com/jcalhinho/driftguard)).** À chaque push, DriftGuard fait
 échouer la vérification si le code appelle une API retirée. Chaque lundi, il relit aussi les pages que cette
 app recopie à la main — les grilles de prix derrière `pricing.ts`, les entrées des hooks de Claude Code et de
-Cursor, les fichiers source qui définissent les journaux de Codex, Qwen Code, OpenCode et Continue — listées dans
+Cursor, les fichiers source qui définissent les journaux de Codex, Qwen Code, OpenCode, Continue et Hermes — listées dans
 [`.driftguard.yml`](.driftguard.yml), et échoue si l'une a changé depuis `.driftguard.lock.json`. Mets alors à
 jour le code nommé dans le `why` de l'entrée, puis enregistre les nouvelles empreintes :
 

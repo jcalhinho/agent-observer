@@ -15,7 +15,7 @@ usual address reach the app.
 | Claude Code | State, tools, files, waits — **not tokens** | Hooks travel through the tunnel. Tokens come from the session log, which stays on the server. |
 | Claude Code limits | Yes, with the optional status line | The status line posts to the same address. |
 | Cursor | Yes (hooks) | Same as Claude Code. Its hook reads the token file path of your computer: copy the token file to the same path on the server, or edit the command. |
-| Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Continue | No | They are observed by reading files on the computer where they run. |
+| Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Continue, Hermes | No | They are observed by reading files on the computer where they run. |
 
 The project folder shown is the path **on the server**: git state and "open folder" are not
 available for it (the app only reads folders of your own computer).

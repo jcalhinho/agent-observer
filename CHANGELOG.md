@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-09
+
+### Added
+- **Hermes** connector. The app reads Hermes Agent's SQLite session databases (`~/.hermes/state.db` and each
+  profile's, `HERMES_HOME` respected) read-only: your messages, each tool call and its result (a result with
+  an `error` key counts as failed), the token totals Hermes keeps per session and model (each increase is one
+  usage event; spending from before the app started is not counted) and the working folder. Hermes writes its
+  messages at the end of each tool round, so its actions arrive in batches. Built from its source
+  (`hermes_state_common.py`, schema 33), with its tables, usage counting, tool errors and home folder watched
+  by DriftGuard.
+- Release: the macOS build is retried when `hdiutil` fails with "Resource busy" while making the dmg.
+
 ## [0.15.2] - 2026-11-09
 
 ### Fixed
@@ -666,7 +678,8 @@ First public version.
 - Workspaces, Git repositories and agent databases are only ever read, never written.
 - Agent responses, reasoning, tool outputs and file contents are never persisted.
 
-[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.15.2...HEAD
+[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/jcalhinho/agent-observer/compare/v0.15.2...v0.16.0
 [0.15.2]: https://github.com/jcalhinho/agent-observer/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/jcalhinho/agent-observer/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/jcalhinho/agent-observer/compare/v0.14.0...v0.15.0
