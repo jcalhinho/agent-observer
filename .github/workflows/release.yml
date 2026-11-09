@@ -210,7 +210,22 @@ jobs:
           [[ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]] || unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
           updater=()
           [[ -n "$UPDATER_CONFIG" ]] && updater=(--config "$UPDATER_CONFIG")
-          npm run tauri --workspace "$DESKTOP_WORKSPACE" -- build --target "$TARGET" ${updater[@]+"${updater[@]}"}
+          # hdiutil on GitHub's macOS runners sometimes fails with "Resource busy" while making the
+          # dmg. Only that failure is retried: the second build reuses the compiled app.
+          log="$RUNNER_TEMP/tauri-build.log"
+          for attempt in 1 2 3; do
+            if npm run tauri --workspace "$DESKTOP_WORKSPACE" -- build --target "$TARGET" ${updater[@]+"${updater[@]}"} 2>&1 | tee "$log"; then
+              exit 0
+            fi
+            if ! grep -q "hdiutil" "$log" || [[ $attempt == 3 ]]; then
+              exit 1
+            fi
+            echo "::warning::hdiutil failed (attempt $attempt), retrying."
+            for volume in /Volumes/Agent\ Observer*; do
+              [[ -e "$volume" ]] && hdiutil detach "$volume" -force || true
+            done
+            sleep 20
+          done
 
       - name: Collect the macOS installer
         if: runner.os == 'macOS'
