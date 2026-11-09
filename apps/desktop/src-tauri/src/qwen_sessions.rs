@@ -28,6 +28,9 @@ struct SessionContext {
     id: String,
     project_path: Option<String>,
     model: Option<String>,
+    /// Qwen Code's `sourceType` from its `session_source` record (standalone, channel,
+    /// web-shell, daemon…).
+    source: Option<String>,
     active_tools: HashMap<String, (String, Option<String>, Option<String>)>,
 }
 
@@ -238,6 +241,11 @@ fn project_record(
         (Some("system"), Some("session_source"))
             if record.get("parentUuid").is_none_or(Value::is_null) =>
         {
+            context.source = payload
+                .and_then(|value| value.get("sourceType"))
+                .and_then(Value::as_str)
+                .filter(|value| !value.is_empty() && value.len() <= 64)
+                .map(str::to_owned);
             vec![at(event(context, EventKind::SessionStarted))]
         }
         (Some("system"), Some("session_model")) => {
@@ -422,6 +430,7 @@ fn event(context: &SessionContext, kind: EventKind) -> SessionEvent {
     let mut event = SessionEvent::new(&context.id, Provider::QwenCode, kind);
     event.project_path = context.project_path.clone();
     event.model = context.model.as_deref().map(provider_string);
+    event.launch_mode = context.source.clone();
     event
 }
 
@@ -482,6 +491,18 @@ mod tests {
             .unwrap()
             .extend(extra.as_object().unwrap().clone());
         base
+    }
+
+    #[test]
+    fn the_session_source_says_where_it_was_opened() {
+        let mut context = SessionContext::default();
+        let source = record(
+            "system",
+            json!({ "parentUuid": null, "subtype": "session_source", "systemPayload": { "sourceType": "web-shell" } }),
+        );
+        let started = project_record(&source, &mut context, false, false);
+        assert_eq!(started[0].kind, EventKind::SessionStarted);
+        assert_eq!(started[0].launch_mode.as_deref(), Some("web-shell"));
     }
 
     #[test]

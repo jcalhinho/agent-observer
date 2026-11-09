@@ -57,6 +57,14 @@ struct Call {
     command: Option<String>,
 }
 
+/// Where a session runs: its folder, and Hermes's own `source` (cli, tui, desktop, webui,
+/// telegram, oneshot…).
+#[derive(Clone, Default)]
+struct Place {
+    folder: Option<String>,
+    source: Option<String>,
+}
+
 pub struct HermesMonitor {
     /// Unix seconds: only what was written after the app started is read.
     started_at: f64,
@@ -64,7 +72,8 @@ pub struct HermesMonitor {
     last_usage_poll: HashMap<PathBuf, f64>,
     usage: HashMap<(PathBuf, String), Totals>,
     calls: HashMap<(PathBuf, String), Call>,
-    folders: HashMap<(PathBuf, String), Option<String>>,
+    /// (database, session) -> (folder, where the session was opened).
+    folders: HashMap<(PathBuf, String), Place>,
 }
 
 impl HermesMonitor {
@@ -122,23 +131,31 @@ impl HermesMonitor {
         // A folder can be set after the first message (the session row is updated): look again
         // next time.
         self.folders
-            .retain(|(db, _), folder| db != path || folder.is_some());
+            .retain(|(db, _), place| db != path || place.folder.is_some());
         events
     }
 
-    fn folder(&mut self, connection: &Connection, path: &Path, session: &str) -> Option<String> {
+    fn folder(&mut self, connection: &Connection, path: &Path, session: &str) -> Place {
         self.folders
             .entry((path.to_owned(), session.to_owned()))
             .or_insert_with(|| {
-                connection
+                let row = connection
                     .query_row(
-                        "SELECT cwd FROM sessions WHERE id = ?1",
+                        "SELECT cwd, source FROM sessions WHERE id = ?1",
                         params![session],
-                        |row| row.get::<_, Option<String>>(0),
+                        |row| {
+                            Ok((
+                                row.get::<_, Option<String>>(0)?,
+                                row.get::<_, Option<String>>(1)?,
+                            ))
+                        },
                     )
-                    .ok()
-                    .flatten()
-                    .filter(|cwd| !cwd.trim().is_empty())
+                    .ok();
+                let (cwd, source) = row.unwrap_or((None, None));
+                Place {
+                    folder: cwd.filter(|cwd| !cwd.trim().is_empty()),
+                    source: source.filter(|s| !s.is_empty() && s.len() <= 64),
+                }
             })
             .clone()
     }
@@ -186,11 +203,12 @@ impl HermesMonitor {
         let mut highest = last;
         for (id, session, role, content, tool_call_id, tool_calls, tool_name, timestamp) in rows {
             highest = Some(highest.map_or(id, |h| h.max(id)));
-            let folder = self.folder(connection, path, &session);
+            let place = self.folder(connection, path, &session);
             let at = seconds_to_time(timestamp);
             let event = |kind: EventKind, key: &str| {
                 let mut event = SessionEvent::new(&session, Provider::Hermes, kind);
-                event.project_path = folder.clone();
+                event.project_path = place.folder.clone();
+                event.launch_mode = place.source.clone();
                 event.occurred_at = at;
                 event.event_id = Uuid::new_v5(
                     &Uuid::NAMESPACE_URL,
@@ -394,9 +412,10 @@ impl HermesMonitor {
             {
                 continue;
             }
-            let folder = self.folder(connection, path, &session);
+            let place = self.folder(connection, path, &session);
             let mut usage = SessionEvent::new(&session, Provider::Hermes, EventKind::ModelUsage);
-            usage.project_path = folder;
+            usage.project_path = place.folder;
+            usage.launch_mode = place.source;
             usage.occurred_at = seconds_to_time(last_seen.unwrap_or(now));
             usage.event_id = Uuid::new_v5(
                 &Uuid::NAMESPACE_URL,
@@ -705,7 +724,8 @@ mod tests {
         assert!(
             events
                 .iter()
-                .all(|e| e.project_path.as_deref() == Some("/Users/demo/api"))
+                .all(|e| e.project_path.as_deref() == Some("/Users/demo/api")
+                    && e.launch_mode.as_deref() == Some("cli"))
         );
         assert_eq!(events[0].content.as_deref(), Some("fix the login test"));
         assert_eq!(events[1].tool_name.as_deref(), Some("terminal"));

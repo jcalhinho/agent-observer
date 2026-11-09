@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Where each session was opened.** Agent cards and the detail panel now say whether a session runs in the
+  terminal, a desktop app, an editor extension, the web, a messaging app, a scheduled task, the cloud, or was
+  run by a program. Read from what each agent writes itself: Claude Code's `entrypoint`, Codex's
+  `originator` (its `source` says `vscode` for the desktop app too), Hermes's and Qwen Code's session
+  `source`, Copilot's host. The raw value stays in the tooltip, and a value not known yet is shown as written.
+  The Codex app and the ChatGPT app write the same origin, so both show as "desktop app".
+
 ## [0.16.0] - 2026-11-09
 
 ### Added

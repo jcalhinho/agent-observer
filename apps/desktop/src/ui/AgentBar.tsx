@@ -11,6 +11,7 @@ import { useConfiguredModels } from "./useConfiguredModels";
 import { revealFolder, type GitState } from "./useGit";
 import { resetText, windowsOf } from "./limitsView";
 import type { LimitSnapshot } from "./useLimits";
+import { launchOf } from "./launch";
 
 /** Le vocabulaire unique des états d'agent. */
 export function statusInfo(status: PulseStatus): { label: string; explanation: string } {
@@ -101,6 +102,7 @@ export function AgentBar({ pulse, now, onOpen, git, collisions, limits }: { puls
   const doing = pulse.current?.text ?? status.explanation;
   const detail = trouble ? null : pulse.current?.detail ?? null;
   const place = placeOf(pulse.project);
+  const launch = launchOf(pulse.key, pulse.launchMode);
 
   const tokens = summary?.tokens ?? null;
   const total = tokens ? (tokens.input ?? 0) + (tokens.cacheRead ?? 0) + (tokens.cacheWrite ?? 0) + (tokens.output ?? 0) : null;
@@ -133,7 +135,7 @@ export function AgentBar({ pulse, now, onOpen, git, collisions, limits }: { puls
         <ProviderMark provider={provider} />
         <div className="card-id">
           <b>{provider.name}</b>
-          <span className="card-sub" title={place.full ?? undefined}><Folder size={11} />{place.label}{pulse.launchMode ? ` · ${pulse.launchMode}` : ""}</span>
+          <span className="card-sub" title={[place.full, launch && `${t("Lancé depuis", "Opened from")} : ${launch.label} (${launch.raw})`].filter(Boolean).join("\n") || undefined}><Folder size={11} />{place.label}{launch ? ` · ${launch.label}` : ""}</span>
         </div>
         {place.full && <button className="icon-button ghost" title={t("Ouvrir le dossier du projet", "Open the project folder")} aria-label={t("Ouvrir le dossier du projet", "Open the project folder")} onClick={(event) => { event.stopPropagation(); void revealFolder(place.full!); }} onKeyDown={(event) => event.stopPropagation()}><FolderOpen size={13} /></button>}
       </div>

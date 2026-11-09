@@ -12,6 +12,7 @@ import { resetText, windowsOf } from "./limitsView";
 import type { LimitSnapshot } from "./useLimits";
 import { Area, Stack } from "./Spark";
 import { usePastSessions } from "./usePastSessions";
+import { launchOf } from "./launch";
 
 const fallback = providers.find((provider) => provider.eventKey === "custom")!;
 
@@ -31,6 +32,7 @@ export function AgentDetail({ pulse, now, onClose, git, collisions, limits }: { 
   const provider = providerFor(pulse.key) ?? fallback;
   const status = statusInfo(pulse.status);
   const summary = pulse.summary;
+  const launch = launchOf(pulse.key, pulse.launchMode);
   const tokens = summary?.tokens ?? null;
   const hit = cacheHitRate(tokens);
   const counts = cacheCounts(tokens);
@@ -135,6 +137,7 @@ export function AgentDetail({ pulse, now, onClose, git, collisions, limits }: { 
           <h3>{t("Session", "Session")}</h3>
           <dl className="kv">
             <div><dt>{t("Dernière activité", "Last activity")}</dt><dd>{since(pulse.lastEventAt, now)}</dd></div>
+            {launch && <div><dt>{t("Lancé depuis", "Opened from")}</dt><dd title={launch.raw}>{launch.label}</dd></div>}
             <div><dt>{t("Durée", "Duration")}</dt><dd>{duration(summary.duration.value)} <small>({originLabel(summary.duration.origin)})</small></dd></div>
             <div><dt>{t("Tours", "Turns")}</dt><dd>{summary.turns.count}</dd></div>
             <div><dt>{t("Événements", "Events")}</dt><dd>{summary.eventCount}</dd></div>

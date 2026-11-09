@@ -29,6 +29,9 @@ const EVENT_NAMESPACE: Uuid = Uuid::from_u128(0x6f1d_2a7c_9b3e_4e55_8a10_c1a2_b3
 struct SessionContext {
     id: String,
     project_path: Option<String>,
+    /// Claude Code's `entrypoint`: where the session was opened (cli, claude-vscode,
+    /// claude-desktop, sdk-cli…). Not documented, so kept as written.
+    entrypoint: Option<String>,
     started: bool,
     seen_messages: HashSet<String>,
 }
@@ -196,6 +199,13 @@ fn project_record(record: &Value, context: &mut SessionContext) -> Vec<SessionEv
     if let Some(cwd) = record.get("cwd").and_then(Value::as_str) {
         context.project_path = Some(cwd.to_owned());
     }
+    if let Some(entrypoint) = record
+        .get("entrypoint")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty() && value.len() <= 64)
+    {
+        context.entrypoint = Some(entrypoint.to_owned());
+    }
     let occurred_at = record
         .get("timestamp")
         .and_then(Value::as_str)
@@ -211,6 +221,7 @@ fn project_record(record: &Value, context: &mut SessionContext) -> Vec<SessionEv
         started.event_id = stable_id(&context.id, "session-started");
         started.occurred_at = occurred_at.unwrap_or_else(Utc::now);
         started.project_path = context.project_path.clone();
+        started.launch_mode = context.entrypoint.clone();
         events.push(started);
     }
 
@@ -258,6 +269,7 @@ fn project_record(record: &Value, context: &mut SessionContext) -> Vec<SessionEv
     usage_event.event_id = stable_id(&context.id, message_id);
     usage_event.occurred_at = occurred_at.unwrap_or_else(Utc::now);
     usage_event.project_path = context.project_path.clone();
+    usage_event.launch_mode = context.entrypoint.clone();
     usage_event.model = model.map(|value| Sourced {
         value: value.to_owned(),
         origin: DataOrigin::Provider,
@@ -367,7 +379,7 @@ mod tests {
         let mut monitor = TranscriptMonitor::new(root.clone());
         monitor.started_at = SystemTime::now() - StdDuration::from_secs(60);
         let path = project.join("claude-session.jsonl");
-        let user = json!({ "type": "user", "sessionId": "claude-session", "cwd": "/work/demo", "timestamp": "2026-10-21T07:59:00Z", "message": { "content": "private prompt" } });
+        let user = json!({ "type": "user", "sessionId": "claude-session", "cwd": "/work/demo", "entrypoint": "claude-desktop", "timestamp": "2026-10-21T07:59:00Z", "message": { "content": "private prompt" } });
         fs::write(
             &path,
             format!("{user}\n{}\n", assistant("msg_4", json!({}))),
@@ -381,6 +393,11 @@ mod tests {
             vec![EventKind::SessionStarted, EventKind::ModelUsage]
         );
         assert_eq!(events[0].project_path.as_deref(), Some("/work/demo"));
+        assert!(
+            events
+                .iter()
+                .all(|event| event.launch_mode.as_deref() == Some("claude-desktop"))
+        );
         assert!(events.iter().all(|event| event.content.is_none()));
         assert!(again.is_empty());
     }

@@ -28,6 +28,10 @@ struct SessionContext {
     id: String,
     project_path: Option<String>,
     model: Option<String>,
+    /// Codex's `originator`: the client that opened the session (Codex Desktop,
+    /// codex_vscode, codex_exec…). `source` says `vscode` for the desktop app too, so
+    /// this is the field that tells them apart.
+    originator: Option<String>,
     has_started: bool,
     active_tools: HashMap<String, (String, Option<String>, Option<String>)>,
     /// Les dernieres limites d'usage lues dans ce fichier (lignes `token_count`).
@@ -262,6 +266,7 @@ fn update_context(line: &[u8], context: &mut SessionContext) {
             if let Some(cwd) = payload.get("cwd").and_then(Value::as_str) {
                 context.project_path = Some(cwd.to_owned());
             }
+            context.originator = originator(payload);
         }
         Some("turn_context") => {
             if let Some(cwd) = payload.get("cwd").and_then(Value::as_str) {
@@ -356,6 +361,7 @@ fn project_record(
             .get("cwd")
             .and_then(Value::as_str)
             .map(str::to_owned);
+        context.originator = originator(payload);
         let mut event = event(context, EventKind::SessionStarted);
         event.occurred_at = timestamp.unwrap_or_else(Utc::now);
         context.has_started = true;
@@ -583,9 +589,18 @@ fn project_completed_item(
     Some(event)
 }
 
+fn originator(payload: &Value) -> Option<String> {
+    payload
+        .get("originator")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty() && value.len() <= 64)
+        .map(str::to_owned)
+}
+
 fn event(context: &SessionContext, kind: EventKind) -> SessionEvent {
     let mut event = SessionEvent::new(&context.id, Provider::Codex, kind);
     event.project_path = context.project_path.clone();
+    event.launch_mode = context.originator.clone();
     event.model = context.model.as_deref().map(provider_string);
     event
 }
@@ -652,6 +667,20 @@ fn find_text(value: Option<&Value>, keys: &[&str]) -> Option<String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn the_client_that_opened_the_session_is_kept() {
+        let mut context = SessionContext::default();
+        let meta = json!({ "type": "session_meta", "timestamp": "2026-11-09T10:00:00Z",
+            "payload": { "id": "t-1", "cwd": "/work/demo", "originator": "Codex Desktop", "source": "vscode" } });
+        let started = project_record(&meta, &mut context, false, false).unwrap();
+        assert_eq!(started.kind, EventKind::SessionStarted);
+        assert_eq!(started.launch_mode.as_deref(), Some("Codex Desktop"));
+        let usage = json!({ "type": "event_msg", "timestamp": "2026-11-09T10:01:00Z",
+            "payload": { "type": "token_count", "info": { "last_token_usage": { "input_tokens": 3, "output_tokens": 1 } } } });
+        let later = project_record(&usage, &mut context, false, false).unwrap();
+        assert_eq!(later.launch_mode.as_deref(), Some("Codex Desktop"));
+    }
 
     #[test]
     fn provider_token_usage_is_projected_without_estimating_missing_fields() {

@@ -30,7 +30,7 @@ export function demoEvents(now = Date.now(), idPrefix = "demo"): SessionEvent[] 
     const endGap = spec.end === "idle" ? spec.idleSeconds ?? 3 * 3600 : spec.end === "waiting" ? 190 : spec.end === "working" ? 6 : 14;
     const span = total - endGap;
     let step = 0;
-    push(provider, session, project, "session_started", total, { launch_mode: provider === "github_copilot" ? "vscode" : "cli" });
+    push(provider, session, project, "session_started", total, { launch_mode: ({ github_copilot: "vscode", claude_code: "claude-desktop", codex: "Codex Desktop", hermes: "telegram" } as Record<string, string>)[provider] ?? "cli" });
     for (let turn = 0; turn < spec.turns; turn += 1) {
       const turnStart = total - 20 - (span * turn) / spec.turns;
       const last = turn === spec.turns - 1;
