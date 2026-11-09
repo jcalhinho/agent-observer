@@ -29,22 +29,19 @@ cask "agent-observer" do
   desc "Local dashboard of what your AI coding agents are doing"
   homepage "https://github.com/${repo}"
 
-  depends_on macos: :big_sur
+  # A bare symbol means "this version or later" only in Homebrew versions that also have
+  # postflight_steps; older ones may read it as "exactly", so they get the former spelling.
+  depends_on macos: respond_to?(:postflight_steps) ? :big_sur : ">= :big_sur"
 
   app "Agent Observer.app"
 
   # The app is not signed with an Apple Developer ID yet: without this, Gatekeeper refuses to
-  # open it after a Homebrew install. postflight_steps replaces the postflight block in recent
-  # Homebrew versions; older ones only have postflight.
-  installed_app = "#{appdir}/Agent Observer.app"
-  if respond_to?(:postflight_steps)
-    postflight_steps do
-      run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", installed_app]
-    end
-  else
-    postflight do
-      system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", installed_app]
-    end
+  # open it after a Homebrew install. The classic postflight block is kept on purpose: recent
+  # Homebrew versions warn that it is deprecated but still run it, while postflight_steps runs
+  # its commands in a sandbox that needs every written path declared.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Agent Observer.app"]
   end
 
   zap trash: [

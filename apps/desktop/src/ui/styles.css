@@ -368,11 +368,11 @@ html, body { background: radial-gradient(1200px 600px at 12% -10%, var(--glow-a)
 /* ---------- Le détail d'un agent ---------- */
 .sheet.detail { width: min(560px, 100%); }
 .detail .sheet-head { gap: 12px; }
-.detail-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.detail-title > span { display: grid; min-width: 0; }
-.detail .detail-title b { font-size: 15px; font-weight: 700; letter-spacing: -.01em; text-transform: none; }
+.detail-title { display: flex; flex: 1 1 auto; align-items: center; gap: 10px; min-width: 0; }
+.detail .detail-title > span { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.detail .detail-title b { overflow: clip; font-size: 15px; font-weight: 700; letter-spacing: -.01em; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
 .detail .detail-title small { overflow: clip; color: var(--muted); font-size: 11.5px; letter-spacing: 0; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
-.detail-actions { display: inline-flex; align-items: center; gap: 8px; }
+.detail-actions { display: inline-flex; flex: none; align-items: center; gap: 8px; }
 .detail .sheet-head { border-top: 2px solid var(--agent-color); }
 .detail section h3 small { margin-left: 6px; color: var(--faint); font: 600 11px var(--mono); letter-spacing: 0; }
 .kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 0; overflow: clip; border: 1px solid rgb(var(--ov) / .063); border-radius: 10px; background: rgb(var(--ov) / .063); }
@@ -408,7 +408,7 @@ html, body { background: radial-gradient(1200px 600px at 12% -10%, var(--glow-a)
 .timeline li.tone-failure::before { background: var(--bad); }
 .timeline li.tone-work::before { background: var(--accent); }
 .timeline time { color: var(--faint); font: 11px var(--mono); white-space: nowrap; }
-.timeline li > span { display: grid; min-width: 0; }
+.timeline li > span { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; overflow-wrap: anywhere; }
 .timeline li small { overflow: clip; color: var(--muted); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
 .timeline li.tone-failure > span { color: var(--bad); }
 
@@ -428,10 +428,15 @@ html, body { background: radial-gradient(1200px 600px at 12% -10%, var(--glow-a)
 
 /* ---------- Le panneau des réglages ---------- */
 .sheet-backdrop { position: fixed; z-index: 20; inset: 0; display: flex; justify-content: flex-end; background: var(--scrim); backdrop-filter: blur(2px); animation: fade-in 120ms ease-out; }
-.sheet { display: grid; gap: var(--space-5); align-content: start; width: min(460px, 100%); height: 100%; padding: 0 var(--space-5) var(--space-6); border-left: 1px solid var(--border-strong); background: var(--bg); overflow-y: auto; animation: from-right 160ms ease-out; }
+.sheet { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); align-content: start; width: min(460px, 100%); height: 100%; padding: 0 var(--space-5) var(--space-6); border-left: 1px solid var(--border-strong); background: var(--bg); overflow-y: auto; animation: from-right 160ms ease-out; }
 .sheet-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; margin: 0 calc(-1 * var(--space-5)); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); background: var(--bg); }
 .sheet-head b { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
-.sheet section { display: grid; gap: var(--space-2); }
+.sheet section { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+/* Long unbroken text (paths, model names, a pasted request) wraps instead of widening the sheet;
+   numbers stay on one line, and a table too wide for the sheet scrolls on its own. */
+.sheet .goal, .sheet .collisions code, .sheet .kv dd, .sheet td:not(.num) { overflow-wrap: anywhere; }
+.sheet td.num { white-space: nowrap; }
+.table-scroll { overflow-x: auto; }
 .sheet h3 { margin: 0; color: var(--text); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .sheet .hint { margin: 0 0 var(--space-2); color: var(--muted); font-size: 12px; }
 
@@ -692,11 +697,3 @@ html, body { background: radial-gradient(1200px 600px at 12% -10%, var(--glow-a)
 .statusbar .limit-chip.over b { color: var(--bad); }
 .dialog-sub { margin: 18px 0 4px; font-size: 13px; }
 
-/* Side sheets scroll vertically only: one column that never grows past the sheet, and long
-   unbroken text (paths, model names, commit subjects) wraps instead of widening it. */
-.sheet { grid-template-columns: minmax(0, 1fr); overflow-x: hidden; overflow-wrap: anywhere; }
-.sheet > *, .sheet section > * { min-width: 0; }
-.detail-title { flex: 1 1 auto; }
-.detail-actions { flex: none; }
-.detail-title > span { grid-template-columns: minmax(0, 1fr); }
-.detail .detail-title b, .detail .detail-title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }

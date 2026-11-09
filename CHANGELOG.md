@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-11-09
+
+### Fixed
+- Homebrew: the quarantine is removed with the classic `postflight` block again. 0.15.1 used
+  `postflight_steps`, whose commands run in a sandbox that needs the written paths declared, so
+  the quarantine may have been left in place. Recent Homebrew versions print a deprecation warning
+  for `postflight`; it is expected. `depends_on macos` uses the bare symbol only on Homebrew
+  versions that read it as "this version or later".
+- Side panels: long text now wraps only where it can be long (the request, paths, model names,
+  table text), numbers stay on one line, and a table too wide for the panel scrolls on its own
+  instead of being cut off. The fix of 0.15.1 was folded into the original rules.
+
 ## [0.15.1] - 2026-11-08
 
 ### Fixed
@@ -654,7 +666,8 @@ First public version.
 - Workspaces, Git repositories and agent databases are only ever read, never written.
 - Agent responses, reasoning, tool outputs and file contents are never persisted.
 
-[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.15.1...HEAD
+[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.15.2...HEAD
+[0.15.2]: https://github.com/jcalhinho/agent-observer/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/jcalhinho/agent-observer/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/jcalhinho/agent-observer/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/jcalhinho/agent-observer/compare/v0.13.4...v0.14.0

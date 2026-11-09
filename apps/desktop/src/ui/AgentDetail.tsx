@@ -145,7 +145,7 @@ export function AgentDetail({ pulse, now, onClose, git, collisions, limits }: { 
 
         {past && past.length > 0 && <section>
           <h3>{t("Sessions précédentes", "Earlier sessions")} <small>{past.length}</small></h3>
-          <table className="past-sessions"><thead><tr>
+          <div className="table-scroll"><table className="past-sessions"><thead><tr>
             <th>{t("Début", "Started")}</th>
             <th className="num" title={t("Du premier au dernier événement observé", "From the first to the last observed event")}>{t("Durée", "Span")}</th>
             <th>{t("Projet", "Project")}</th>
@@ -160,7 +160,7 @@ export function AgentDetail({ pulse, now, onClose, git, collisions, limits }: { 
               <td className={`num ${session.failures ? "bad" : ""}`} title={session.failures ? t(`${session.failures} échec(s)`, `${session.failures} failed`) : undefined}>{session.toolCalls}{session.failures ? <small> · {session.failures}✕</small> : null}</td>
               <td className="num">{session.tokens === null ? "—" : compact(session.tokens)}</td>
               <td className="num">{session.cost ? `${session.cost.partial ? "≥ " : "≈ "}${usd(session.cost.value)}` : "—"}</td>
-            </tr>)}</tbody></table>
+            </tr>)}</tbody></table></div>
           <p className="hint">{t("Lues dans la base locale : les 20 plus récentes, dans la limite de la durée de conservation choisie.", "Read from the local database: the 20 most recent, within the retention period you chose.")}</p>
         </section>}
 

@@ -117,7 +117,7 @@ export function History({ events, presence, now, period, onPeriod, loading, trun
 
         <section>
           <h3>{t("Jour par jour", "Day by day")}</h3>
-          <table>
+          <div className="table-scroll"><table>
             <thead><tr><th>{t("Jour", "Day")}</th><th className="num">Tokens</th><th className="num">{t("Cache", "Cache")}</th><th className="num">{t("Requêtes", "Requests")}</th><th className="num">{t("Coût", "Cost")}</th><th className="num">{t("Gagné", "Saved")}</th><th className="num">{t("Sessions", "Sessions")}</th></tr></thead>
             <tbody>{days.map((day) => <tr key={day.day} className={day.day === today ? "today" : ""}>
               <td>{dayLabel(day.day)}</td>
@@ -128,7 +128,7 @@ export function History({ events, presence, now, period, onPeriod, loading, trun
               <td className="num good">{day.saved === null ? "—" : usd(day.saved)}</td>
               <td className="num">{day.sessions}{day.failures ? <em title={t("échecs d’outils", "tool failures")}> · {day.failures}✗</em> : null}</td>
             </tr>)}</tbody>
-          </table>
+          </table></div>
         </section>
 
         <section>
