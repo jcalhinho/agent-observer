@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-09
+
 ### Added
 - **Where each session was opened.** Agent cards and the detail panel now say whether a session runs in the
   terminal, a desktop app, an editor extension, the web, a messaging app, a scheduled task, the cloud, or was
@@ -686,7 +688,8 @@ First public version.
 - Workspaces, Git repositories and agent databases are only ever read, never written.
 - Agent responses, reasoning, tool outputs and file contents are never persisted.
 
-[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/jcalhinho/agent-observer/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/jcalhinho/agent-observer/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/jcalhinho/agent-observer/compare/v0.15.2...v0.16.0
 [0.15.2]: https://github.com/jcalhinho/agent-observer/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/jcalhinho/agent-observer/compare/v0.15.0...v0.15.1
