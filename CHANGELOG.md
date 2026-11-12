@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-12
+
+### Added
+- **Fifteen more agents.** Each connector was built from the agent's own source code, read-only, and only
+  what happens after the app starts is counted:
+  - **Gemini CLI**: its chat logs (`~/.gemini/tmp/<project>/chats/session-*.jsonl`); a message rewritten with
+    the same id is counted once; thinking is added to output tokens, cache taken out of input (computed).
+  - **pi** and **omp**: their session logs (`~/.pi/agent/sessions`, `~/.omp/agent/sessions`), side calls
+    (cache warming, titles) included.
+  - **Kimi Code** (the successor of the archived Python Kimi CLI): each session's `wire.jsonl`, subagents
+    included, project folder from `~/.kimi-code/projects.json`.
+  - **Goose**: its `sessions.db`, one usage line per model call (Goose counts the cache in the input: the app
+    takes it out); its session type (terminal, scheduled, subagent…) shows where a session was opened.
+  - **Crush**: each project's `.crush/crush.db`, from its project list. Crush only keeps its latest step's
+    tokens, cache not broken out.
+  - **Zed** (built-in agent): its threads database; each exchange's tokens are the difference between two
+    saves of the running totals (computed).
+  - **Aider**: spotted while it runs, then read from its `.aider.chat.history.md`; its rounded token counts
+    are marked estimated.
+  - **Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh, iFlow CLI**: they write nothing
+    readable, so the app only shows that they run, since when and in which folder. Executable names checked
+    against billion-context's launcher.
+- The "Not seen yet" line names five agents and counts the rest.
+
 ## [0.17.0] - 2026-11-09
 
 ### Added

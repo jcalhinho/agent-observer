@@ -23,4 +23,12 @@ describe("launchOf", () => {
     expect(launchOf("codex", "  ")).toBeNull();
     expect(launchOf("codex", null)).toBeNull();
   });
+
+  it("reads Goose's session types, and hides the ordinary one that says nothing", () => {
+    setLang("fr");
+    expect(launchOf("goose", "user")).toBeNull();
+    expect(launchOf("goose", "terminal")?.kind).toBe("terminal");
+    expect(launchOf("goose", "sub_agent")?.kind).toBe("program");
+    expect(launchOf("goose", "acp")?.label).toBe("acp");
+  });
 });

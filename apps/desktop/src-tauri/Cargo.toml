@@ -1,6 +1,6 @@
 [package]
 name = "repowatcher-agent-observer"
-version = "0.17.0"
+version = "0.18.0"
 description = "Local observability for coding-agent sessions"
 edition.workspace = true
 license.workspace = true
@@ -26,6 +26,7 @@ serde_json = "1"
 uuid.workspace = true
 rusqlite = { version = "0.41", features = ["bundled"] }
 sha2.workspace = true
+ruzstd = "0.9"
 
 [features]
 default = ["custom-protocol"]

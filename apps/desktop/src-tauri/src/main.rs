@@ -8,18 +8,26 @@ mod codex_rollout;
 mod continue_sessions;
 mod copilot_chat;
 mod copilot_sessions;
+mod crush_sessions;
 mod diagnostics;
+mod gemini_sessions;
 mod git_info;
+mod goose_sessions;
 mod hermes_sessions;
+mod kimi_sessions;
 mod limits;
 mod models;
 mod no_window;
 mod opencode_sessions;
+mod pi_sessions;
+mod process_watch;
 mod procs;
 mod qwen_sessions;
 mod reasonix_sessions;
 mod redact;
+mod tail;
 mod tray;
+mod zed_threads;
 
 use axum::{
     Router,
@@ -105,6 +113,38 @@ struct ReasonixSetup {
     available: bool,
     capture_prompts: bool,
     capture_commands: bool,
+}
+
+/// Les connecteurs ajoutés en 0.18 : où l'app regarde, et si ça existe ici.
+#[derive(Serialize)]
+struct SourceSetup {
+    paths: Vec<String>,
+    available: bool,
+}
+
+fn source_paths(kind: &str) -> Vec<std::path::PathBuf> {
+    match kind {
+        "gemini" => gemini_sessions::roots(),
+        "pi" => pi_sessions::pi_roots(),
+        "omp" => pi_sessions::omp_roots(),
+        "kimi" => vec![kimi_sessions::home().join("sessions")],
+        "goose" => goose_sessions::database_paths(),
+        "crush" => vec![crush_sessions::projects_file()],
+        "zed" => vec![zed_threads::database_path()],
+        _ => Vec::new(),
+    }
+}
+
+#[tauri::command]
+fn source_setup(kind: String) -> SourceSetup {
+    let paths = source_paths(&kind);
+    SourceSetup {
+        available: paths.iter().any(|path| path.exists()),
+        paths: paths
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect(),
+    }
 }
 
 #[derive(Serialize)]
@@ -1340,6 +1380,64 @@ fn main() {
                     persist_event(&qwen_state, event);
                 },
             );
+            {
+                use std::time::Duration;
+                let every = Duration::from_millis(900);
+                let start = |monitor: Box<dyn tail::Poll>, every: Duration| {
+                    let reader_state = state.clone();
+                    tail::spawn(
+                        monitor,
+                        every,
+                        state.capture_prompts.clone(),
+                        state.capture_commands.clone(),
+                        move |event| {
+                            persist_event(&reader_state, event);
+                        },
+                    );
+                };
+                start(
+                    Box::new(gemini_sessions::GeminiMonitor::new(gemini_sessions::roots())),
+                    every,
+                );
+                start(
+                    Box::new(pi_sessions::PiMonitor::new(
+                        session_events::Provider::Pi,
+                        pi_sessions::pi_roots(),
+                    )),
+                    every,
+                );
+                start(
+                    Box::new(pi_sessions::PiMonitor::new(
+                        session_events::Provider::Omp,
+                        pi_sessions::omp_roots(),
+                    )),
+                    every,
+                );
+                start(
+                    Box::new(kimi_sessions::KimiMonitor::new(kimi_sessions::home())),
+                    every,
+                );
+                start(
+                    Box::new(goose_sessions::GooseMonitor::new(
+                        goose_sessions::database_paths(),
+                    )),
+                    Duration::from_secs(2),
+                );
+                start(
+                    Box::new(crush_sessions::CrushMonitor::new(
+                        crush_sessions::projects_file(),
+                    )),
+                    Duration::from_secs(2),
+                );
+                start(
+                    Box::new(zed_threads::ZedMonitor::new(zed_threads::database_path())),
+                    Duration::from_secs(2),
+                );
+                start(
+                    Box::<process_watch::ProcessWatch>::default(),
+                    Duration::from_secs(4),
+                );
+            }
             let reasonix_state = state.clone();
             reasonix_sessions::spawn(
                 reasonix_sessions::projects_root(),
@@ -1402,6 +1500,7 @@ fn main() {
             configured_models,
             opencode_setup,
             qwen_setup,
+            source_setup,
             continue_setup,
             hermes_setup,
             reasonix_setup,

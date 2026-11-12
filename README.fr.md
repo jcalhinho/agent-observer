@@ -5,7 +5,8 @@
 **Vois ce que font tes agents de code — et lequel a besoin de toi — sur un seul écran, sans rien envoyer nulle part.**
 
 Une application de bureau locale pour macOS, Windows et Linux qui regarde travailler, en direct, Claude Code,
-Codex, GitHub Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Cursor, Continue et Hermes sur ta machine.
+Codex, GitHub Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Cursor, Continue, Hermes, Gemini CLI, pi, omp,
+Kimi Code, Goose, Crush, Zed, Aider et une dizaine d'autres sur ta machine.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Dernière version](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
@@ -69,7 +70,7 @@ recherche de mise à jour que tu lances toi-même (voir [Mettre à jour](#mettre
    curl -fsSL https://raw.githubusercontent.com/jcalhinho/agent-observer/main/install.sh | bash
    ```
    Sous Windows, lance le `-setup.exe` de la [page des versions](https://github.com/jcalhinho/agent-observer/releases).
-2. **Ouvre l'app.** Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Continue et Hermes sont repérés tout seuls.
+2. **Ouvre l'app.** Tous les agents sont repérés tout seuls, sauf deux.
    Pour **Claude Code** (et Cursor), ouvre **Réglages › Agents › Configurer** et colle le bloc affiché dans
    le fichier de réglages de l'agent — voir [Brancher tes agents](#brancher-tes-agents).
 3. **Travaille comme d'habitude.** Chaque agent a sa barre dès sa première action. Les plus urgents passent devant.
@@ -200,6 +201,14 @@ du logo indique **Collecte active** quand le collecteur local écoute. Ensuite, 
 | **Reasonix** | Ses fichiers de session dans `~/.reasonix/projects/<projet>/sessions/*.wire.jsonl`, en lecture seule. | Rien. |
 | **Continue** (VS Code) | Les journaux locaux que l'extension écrit à chaque réponse, chaque appel de modèle et chaque outil (`~/.continue/dev_data/0.2.0/*.jsonl` ; `CONTINUE_GLOBAL_DIR` respecté), et le dossier de projet de chaque conversation dans `~/.continue/sessions/<id>.json`. Voir [Continue](#continue). | Rien. |
 | **Hermes** | Ses bases SQLite de sessions (`~/.hermes/state.db` et `profiles/*/state.db` ; `HERMES_HOME` respecté), en lecture seule. Voir [Hermes](#hermes). | Rien. |
+| **Gemini CLI** | Les nouvelles lignes de ses discussions dans `~/.gemini/tmp/<projet>/chats/session-*.jsonl` (et `~/.cache/.gemini/tmp` dans le bac à sable macOS) ; le dossier du projet vient de son fichier `.project_root`. | Rien. |
+| **pi** et **omp** | Les nouvelles lignes de leurs sessions dans `~/.pi/agent/sessions` et `~/.omp/agent/sessions`. | Rien. |
+| **Kimi Code** | Le journal de chaque session dans `~/.kimi-code/sessions/<espace>/<session>/wire.jsonl` (sous-agents compris) ; le dossier du projet vient de `~/.kimi-code/projects.json`. | Rien. |
+| **Goose** | Sa base `~/.local/share/goose/sessions/sessions.db` (`GOOSE_PATH_ROOT`, `XDG_DATA_HOME` respectés), en lecture seule. | Rien. |
+| **Crush** | La base de chaque projet (`.crush/crush.db`), trouvée grâce à `~/.local/share/crush/projects.json`, en lecture seule. Crush ne garde que les tokens de sa dernière étape, cache non détaillé. | Rien. |
+| **Zed** (agent intégré) | Ses conversations dans `~/Library/Application Support/Zed/threads/threads.db`, en lecture seule ; les tokens de chaque échange sont déduits de ses cumuls. | Rien. |
+| **Aider** | Repéré quand il tourne, puis l'historique qu'il écrit à la racine du dépôt (`.aider.chat.history.md`) : messages, modèle, fichiers modifiés, tokens arrondis (marqués estimés). | Rien. |
+| **Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh, iFlow CLI** | Seulement le fait qu'ils tournent, depuis quand et dans quel dossier : ils n'écrivent rien de lisible. Ni tokens ni outils. | Rien. |
 
 Sous Windows, `~` est `%USERPROFILE%`. **Réglages › Agents › Configurer** montre, pour chaque agent, le dossier
 lu et s'il a été trouvé.

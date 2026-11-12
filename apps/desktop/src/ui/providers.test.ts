@@ -19,7 +19,12 @@ describe("provider table", () => {
 });
 
 describe("active providers", () => {
-  it("shows only the agents with a connector: Claude Code, Codex, OpenCode, Qwen Code, Antigravity, GitHub Copilot, Hermes, Reasonix, Cursor and Continue", () => {
-    expect(activeProviders.map((provider) => provider.name).sort()).toEqual(["Antigravity", "Claude Code", "Codex", "Continue", "Cursor", "GitHub Copilot", "Hermes", "OpenCode", "Qwen Code", "Reasonix"]);
+  it("shows every agent with a connector, and only those (Cline and Roo Code have none yet)", () => {
+    expect(activeProviders.map((provider) => provider.name).sort()).toEqual([
+      "Aider", "Amp", "Antigravity", "Claude Code", "CodeBuddy", "Codex", "Continue", "Crush", "Cursor", "Gemini CLI",
+      "GitHub Copilot", "Goose", "Hermes", "Kimi Code", "Kiro CLI", "MiniMax Code", "OpenCode", "Qoder CLI", "Qwen Code",
+      "Reasonix", "Trae CLI", "Zed", "dsh", "iFlow CLI", "jcode", "omp", "pi"
+    ]);
+    expect(providers.filter((provider) => provider.connector).length).toBe(activeProviders.length);
   });
 });

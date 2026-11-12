@@ -5,7 +5,8 @@
 **See what your coding agents are doing — and which one needs you — on one screen, without sending anything anywhere.**
 
 A local desktop app for macOS, Windows and Linux that watches Claude Code, Codex, GitHub Copilot,
-Antigravity, OpenCode, Qwen Code, Reasonix, Cursor, Continue and Hermes work on your machine, live.
+Antigravity, OpenCode, Qwen Code, Reasonix, Cursor, Continue, Hermes, Gemini CLI, pi, omp, Kimi Code, Goose, Crush,
+Zed, Aider and about ten more work on your machine, live.
 
 [![CI](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml/badge.svg)](https://github.com/jcalhinho/agent-observer/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/jcalhinho/agent-observer?include_prereleases&sort=semver)](https://github.com/jcalhinho/agent-observer/releases)
@@ -69,8 +70,7 @@ check you start yourself (see [Updates](#update-and-uninstall)).
    curl -fsSL https://raw.githubusercontent.com/jcalhinho/agent-observer/main/install.sh | bash
    ```
    On Windows, run the `-setup.exe` from the [Releases page](https://github.com/jcalhinho/agent-observer/releases).
-2. **Open the app.** Codex, Copilot, Antigravity, OpenCode, Qwen Code, Reasonix, Continue and Hermes are picked up
-   automatically. For **Claude Code** (and Cursor), open **Settings › Agents › Configure** and paste the
+2. **Open the app.** Every agent is picked up automatically except two. For **Claude Code** (and Cursor), open **Settings › Agents › Configure** and paste the
    block it shows into the agent's settings file — see [Connect your agents](#connect-your-agents).
 3. **Work as usual.** Each agent gets a bar as soon as it does something. The most urgent come first.
 
@@ -199,6 +199,14 @@ the logo says **Collecting** when the local collector is listening. Then [connec
 | **Reasonix** | Its session files in `~/.reasonix/projects/<project>/sessions/*.wire.jsonl`, read-only. | Nothing. |
 | **Continue** (VS Code) | The local logs the extension writes for each answer, model call and tool call (`~/.continue/dev_data/0.2.0/*.jsonl`; `CONTINUE_GLOBAL_DIR` respected), and the project folder of each chat from `~/.continue/sessions/<id>.json`. See [Continue](#continue). | Nothing. |
 | **Hermes** | Its SQLite session databases (`~/.hermes/state.db` and `profiles/*/state.db`; `HERMES_HOME` respected), read-only. See [Hermes](#hermes). | Nothing. |
+| **Gemini CLI** | New lines of its chats in `~/.gemini/tmp/<project>/chats/session-*.jsonl` (and `~/.cache/.gemini/tmp` in the macOS sandbox); the project folder comes from its `.project_root` file. | Nothing. |
+| **pi** and **omp** | New lines of their sessions in `~/.pi/agent/sessions` and `~/.omp/agent/sessions`. | Nothing. |
+| **Kimi Code** | Each session's log in `~/.kimi-code/sessions/<workspace>/<session>/wire.jsonl` (subagents included); the project folder comes from `~/.kimi-code/projects.json`. | Nothing. |
+| **Goose** | Its `~/.local/share/goose/sessions/sessions.db` (`GOOSE_PATH_ROOT`, `XDG_DATA_HOME` respected), read-only. | Nothing. |
+| **Crush** | Each project's database (`.crush/crush.db`), found through `~/.local/share/crush/projects.json`, read-only. Crush only keeps its latest step's tokens, cache not broken out. | Nothing. |
+| **Zed** (built-in agent) | Its threads in `~/Library/Application Support/Zed/threads/threads.db`, read-only; each exchange's tokens are worked out from its running totals. | Nothing. |
+| **Aider** | Spotted while it runs, then the history it writes at the repository root (`.aider.chat.history.md`): messages, model, edited files, rounded tokens (marked estimated). | Nothing. |
+| **Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh, iFlow CLI** | Only that they run, since when and in which folder: they write nothing readable. No tokens or tools. | Nothing. |
 
 On Windows, `~` is `%USERPROFILE%`. **Settings › Agents › Configure** shows, for each agent, the folder it
 reads and whether it was found.

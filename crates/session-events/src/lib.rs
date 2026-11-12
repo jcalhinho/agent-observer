@@ -32,12 +32,29 @@ pub enum Provider {
     Antigravity,
     Reasonix,
     Hermes,
+    Pi,
+    Omp,
+    KimiCode,
+    Goose,
+    Crush,
+    Zed,
+    Amp,
+    Kiro,
+    Trae,
+    Qoder,
+    #[serde(rename = "codebuddy")]
+    CodeBuddy,
+    #[serde(rename = "minimax_code")]
+    MiniMaxCode,
+    Jcode,
+    Dsh,
+    Iflow,
     /// An agent sending its events through the open HTTP API; `SessionEvent.agent` names it.
     Custom,
 }
 
 impl Provider {
-    pub const ALL: [Self; 15] = [
+    pub const ALL: [Self; 30] = [
         Self::ClaudeCode,
         Self::Codex,
         Self::Cursor,
@@ -52,6 +69,21 @@ impl Provider {
         Self::Antigravity,
         Self::Reasonix,
         Self::Hermes,
+        Self::Pi,
+        Self::Omp,
+        Self::KimiCode,
+        Self::Goose,
+        Self::Crush,
+        Self::Zed,
+        Self::Amp,
+        Self::Kiro,
+        Self::Trae,
+        Self::Qoder,
+        Self::CodeBuddy,
+        Self::MiniMaxCode,
+        Self::Jcode,
+        Self::Dsh,
+        Self::Iflow,
         Self::Custom,
     ];
 
@@ -71,6 +103,21 @@ impl Provider {
             Self::Antigravity => "antigravity",
             Self::Reasonix => "reasonix",
             Self::Hermes => "hermes",
+            Self::Pi => "pi",
+            Self::Omp => "omp",
+            Self::KimiCode => "kimi_code",
+            Self::Goose => "goose",
+            Self::Crush => "crush",
+            Self::Zed => "zed",
+            Self::Amp => "amp",
+            Self::Kiro => "kiro",
+            Self::Trae => "trae",
+            Self::Qoder => "qoder",
+            Self::CodeBuddy => "codebuddy",
+            Self::MiniMaxCode => "minimax_code",
+            Self::Jcode => "jcode",
+            Self::Dsh => "dsh",
+            Self::Iflow => "iflow",
             Self::Custom => "custom",
         }
     }

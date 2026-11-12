@@ -60,10 +60,16 @@ function appName(provider: string, raw: string): string {
   return t("app de bureau", "desktop app");
 }
 
+/** Goose's `session_type` (crates/goose/src/session/session_manager.rs). `user` is any ordinary
+ * session, from the terminal or the app alike: it says nothing about where it was opened. */
+const GOOSE: Record<string, LaunchKind | null> = { user: null, hidden: null, terminal: "terminal", scheduled: "scheduled", sub_agent: "program" };
+
 export function launchOf(provider: string, raw: string | null | undefined): Launch | null {
   const value = (raw ?? "").trim();
   if (!value) return null;
-  const kind = KINDS[value.toLowerCase()] ?? "other";
+  const goose = provider === "goose" ? GOOSE[value.toLowerCase()] : undefined;
+  if (goose === null) return null;
+  const kind = goose ?? KINDS[value.toLowerCase()] ?? "other";
   const label = (() => {
     switch (kind) {
       case "terminal": return t("terminal", "terminal");

@@ -181,7 +181,8 @@ export function App() {
       <span title={t("Coût estimé d’aujourd’hui, toutes sessions, au tarif API", "Estimated cost today, all sessions, at API price")}>{t("Aujourd’hui", "Today")} <b>{history.loading ? "…" : spentToday === null ? "—" : `≈ ${usd(spentToday)}`}</b></span>
     </footer>}
     {Boolean(unseen.length) && seen.length > 0 && <footer className="unseen">
-      {t("Pas encore vus", "Not seen yet")} : {unseen.map((pulse) => agentName(pulse.key)).join(", ")}
+      {t("Pas encore vus", "Not seen yet")} : {unseen.slice(0, 5).map((pulse) => agentName(pulse.key)).join(", ")}
+      {unseen.length > 5 ? t(` et ${unseen.length - 5} autres`, ` and ${unseen.length - 5} more`) : null}
       <button className="link" onClick={() => setSettings(true)}>{t("Brancher", "Connect")}</button>
     </footer>}
 
