@@ -1,6 +1,12 @@
 {
   "version": 1,
   "sources": {
+    "aider-tokens-report": {
+      "url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/coders/base_coder.py",
+      "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/coders/base_coder.py",
+      "sha256": "f9e09af04e1bb73c9af237717d3a0bd7b8129458b128a304586983e246d3438a",
+      "checked": "2026-11-12"
+    },
     "alibaba-pricing": {
       "url": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
       "final_url": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
@@ -12,6 +18,12 @@
       "final_url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
       "sha256": "0aed66e62ce028d75305e2012275f6d5a3576b49af3a104f08b0761b68cd7c9e",
       "checked": "2026-11-08"
+    },
+    "billion-context-client-commands": {
+      "url": "https://raw.githubusercontent.com/ranxianglei/billion-context/master/src/launcher.ts",
+      "final_url": "https://raw.githubusercontent.com/ranxianglei/billion-context/master/src/launcher.ts",
+      "sha256": "72e5cce8b83801a73b2a154fddda14477763e56a7ef4adb4c1fb371204c4aaa5",
+      "checked": "2026-11-12"
     },
     "claude-code-hook-input": {
       "url": "https://code.claude.com/docs/en/hooks.md",
@@ -61,6 +73,12 @@
       "sha256": "b7fb44dc0c42fc919de0976a020898771372fee3d8335a39a677f296934abbe2",
       "checked": "2026-11-08"
     },
+    "crush-db-models": {
+      "url": "https://raw.githubusercontent.com/charmbracelet/crush/main/internal/db/models.go",
+      "final_url": "https://raw.githubusercontent.com/charmbracelet/crush/main/internal/db/models.go",
+      "sha256": "d156fb70456d084bd29c11acaf9996a7bac46556af0be53af998797f5ac7565b",
+      "checked": "2026-11-12"
+    },
     "cursor-hook-schema": {
       "url": "https://cursor.com/docs/hooks.md",
       "final_url": "https://cursor.com/docs/hooks.md",
@@ -73,11 +91,23 @@
       "sha256": "6859edc56598167bb90d5e1b45624a2c82ea280db212bd6fe7bf7d7de7afe338",
       "checked": "2026-11-08"
     },
+    "gemini-cli-chat-records": {
+      "url": "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/packages/core/src/services/chatRecordingTypes.ts",
+      "final_url": "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/packages/core/src/services/chatRecordingTypes.ts",
+      "sha256": "575357038c9f7638cdd7ad43cb7323ea2466f4bcda51519f33c4dd51c0c66cb8",
+      "checked": "2026-11-12"
+    },
     "google-pricing": {
       "url": "https://aistudio.google.com/docs/pricing.md",
       "final_url": "https://aistudio.google.com/docs/pricing.md",
       "sha256": "d3b5522104e1969b02ca87e00bfcb27f3b8518bdd347a2ff76380e64bca556ac",
       "checked": "2026-11-08"
+    },
+    "goose-session-tables": {
+      "url": "https://raw.githubusercontent.com/block/goose/main/crates/goose/src/session/session_manager.rs",
+      "final_url": "https://raw.githubusercontent.com/block/goose/main/crates/goose/src/session/session_manager.rs",
+      "sha256": "889559b789701a172a384953478e00a80b3df33f068d14b121f77bcc5e724456",
+      "checked": "2026-11-12"
     },
     "hermes-home": {
       "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/hermes_constants.py",
@@ -103,11 +133,23 @@
       "sha256": "8581662ad8b25afd28a0b9734a25ed2fc85b7fafb4ae4b281eb39acf7c56822f",
       "checked": "2026-11-09"
     },
+    "kimi-code-wire-manifest": {
+      "url": "https://raw.githubusercontent.com/MoonshotAI/kimi-code/main/packages/agent-core-v2/docs/wire-manifest.d.ts",
+      "final_url": "https://raw.githubusercontent.com/MoonshotAI/kimi-code/main/packages/agent-core-v2/docs/wire-manifest.d.ts",
+      "sha256": "0e5028e1565d09842b5ac62855fe3a6d0218ced0c2dfea58a706ac66184c4e90",
+      "checked": "2026-11-12"
+    },
     "moonshot-pricing": {
       "url": "https://platform.kimi.ai/docs/pricing/chat.md",
       "final_url": "https://platform.kimi.ai/docs/pricing/chat.md",
       "sha256": "1e53626b674d7ae829b47ee20c761d039abf2d3dec5ac19d8d7fcdcb18484183",
       "checked": "2026-11-08"
+    },
+    "omp-session-entries": {
+      "url": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/session/session-entries.ts",
+      "final_url": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/session/session-entries.ts",
+      "sha256": "ef9a2c89377fc704d2082ea991f361dc5927d43245d6824278748cafc7f79ea1",
+      "checked": "2026-11-12"
     },
     "openai-pricing": {
       "url": "https://developers.openai.com/api/docs/pricing.md",
@@ -121,11 +163,35 @@
       "sha256": "c3181de9650108854a6b609e637dc067e41253ab25eee503415edbdc7e18e850",
       "checked": "2026-11-08"
     },
+    "pi-session-entries": {
+      "url": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/core/session-manager.ts",
+      "final_url": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/core/session-manager.ts",
+      "sha256": "c4baa63c3fc01f1daf704a28e69549981ae23e58a9bd911a8f8807445bdf9bef",
+      "checked": "2026-11-12"
+    },
+    "pi-usage": {
+      "url": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/ai/src/types.ts",
+      "final_url": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/ai/src/types.ts",
+      "sha256": "8e3c1b4f644dca5e67baff78e61ff91aa6dd902e5d5b8b4df6cb228d81734a31",
+      "checked": "2026-11-12"
+    },
     "qwen-code-chat-record": {
       "url": "https://raw.githubusercontent.com/QwenLM/qwen-code/main/packages/core/src/services/chatRecordingService.ts",
       "final_url": "https://raw.githubusercontent.com/QwenLM/qwen-code/main/packages/core/src/services/chatRecordingService.ts",
       "sha256": "59da037c7d3b4c8f1e51b1a2a54f95447b7ef29f67e5d145429439c4a6194d02",
       "checked": "2026-11-08"
+    },
+    "zed-thread-format": {
+      "url": "https://raw.githubusercontent.com/zed-industries/zed/main/crates/agent/src/db.rs",
+      "final_url": "https://raw.githubusercontent.com/zed-industries/zed/main/crates/agent/src/db.rs",
+      "sha256": "fad9aeb077fe99d640941a7c4cc5a092a83ba5c206603a9cd8c9dc8918bfe075",
+      "checked": "2026-11-12"
+    },
+    "zed-threads-table": {
+      "url": "https://raw.githubusercontent.com/zed-industries/zed/main/crates/agent/src/db.rs",
+      "final_url": "https://raw.githubusercontent.com/zed-industries/zed/main/crates/agent/src/db.rs",
+      "sha256": "98fd15bfeb2bca271df307ebc4e3e10c85610b90071ea546d238cf02fc61c109",
+      "checked": "2026-11-12"
     }
   }
 }

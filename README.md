@@ -203,10 +203,10 @@ the logo says **Collecting** when the local collector is listening. Then [connec
 | **pi** and **omp** | New lines of their sessions in `~/.pi/agent/sessions` and `~/.omp/agent/sessions`. | Nothing. |
 | **Kimi Code** | Each session's log in `~/.kimi-code/sessions/<workspace>/<session>/wire.jsonl` (subagents included); the project folder comes from `~/.kimi-code/projects.json`. | Nothing. |
 | **Goose** | Its `~/.local/share/goose/sessions/sessions.db` (`GOOSE_PATH_ROOT`, `XDG_DATA_HOME` respected), read-only. | Nothing. |
-| **Crush** | Each project's database (`.crush/crush.db`), found through `~/.local/share/crush/projects.json`, read-only. Crush only keeps its latest step's tokens, cache not broken out. | Nothing. |
-| **Zed** (built-in agent) | Its threads in `~/Library/Application Support/Zed/threads/threads.db`, read-only; each exchange's tokens are worked out from its running totals. | Nothing. |
-| **Aider** | Spotted while it runs, then the history it writes at the repository root (`.aider.chat.history.md`): messages, model, edited files, rounded tokens (marked estimated). | Nothing. |
-| **Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh, iFlow CLI** | Only that they run, since when and in which folder: they write nothing readable. No tokens or tools. | Nothing. |
+| **Crush** | Each project's database (`.crush/crush.db`), found through `~/.local/share/crush/projects.json`, read-only. Crush only keeps its latest step's tokens, cache not broken out. See [Crush and Zed](#crush-and-zed). | Nothing. |
+| **Zed** (built-in agent) | Its threads in `~/Library/Application Support/Zed/threads/threads.db`, read-only; each exchange's tokens are worked out from its running totals. See [Crush and Zed](#crush-and-zed). | Nothing. |
+| **Aider** | Spotted while it runs, then the history it writes at the repository root (`.aider.chat.history.md`): messages, model, edited files, rounded tokens (marked estimated). See [Aider](#aider). | Nothing. |
+| **Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh, iFlow CLI** | Only that they run, since when and in which folder: they write nothing readable. No tokens or tools. See [Agents seen by their process](#agents-seen-by-their-process). | Nothing. |
 
 On Windows, `~` is `%USERPROFILE%`. **Settings › Agents › Configure** shows, for each agent, the folder it
 reads and whether it was found.
@@ -275,12 +275,40 @@ read-only:
 - `sessions` — the working folder of each session. Sessions started from a messaging app (Telegram,
   Discord…) often have none.
 
+### Aider
+
+Aider has no common folder to watch: it writes its history (`.aider.chat.history.md`) at the root of each
+repository. So the app first spots it by its process, then reads that history in its working folder (or a
+parent, up to the git root): your messages (the `####` lines), the model announced at startup, each
+`Applied edit to …` as a changed file, and the `Tokens: … sent, … received` line. Aider writes rounded numbers
+there ("2.3k"): they are marked estimated, the cost shows **≈**, and new input is what was sent minus the
+cache. An Aider session started before the app is read from the end of its history.
+
+### Crush and Zed
+
+- **Crush** only keeps, per session, the tokens of its **latest step**, replaced at each step and with the
+  cache included but not broken out. The app counts each change as one step: the cache is not separated
+  (no cache hit rate, no cache discount in the cost), and a very short step between two reads can escape it.
+- **Zed** keeps each thread's **running token total** and rewrites the whole thread at each save. The app
+  compares each save with the previous one: each exchange's tokens are the difference between the totals
+  (computed values), the tools those that appeared. Only Zed's built-in agent is read; an external agent run
+  inside Zed (Claude Code, Gemini CLI…) is followed by its own connector.
+
+### Agents seen by their process
+
+**Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh and iFlow CLI** write nothing the app
+can read (closed source or unpublished format). The app reads the list of running programs every 4 seconds
+and recognises these agents by their executable name (`amp`, `kiro-cli`, `traecli`/`trae-cli`,
+`qoder`/`qodercli`, `codebuddy`, `mcode`, `jcode`, `dsh`, `iflow`), also when started through node, bun or
+python. A session opens when one starts and closes when it stops, with its working folder: no tokens, tools
+or messages. `cbc` (another name of CodeBuddy) and `trae` are left out: the first is also a common solver's,
+the second the Trae editor's.
+
 ### Not connected
 
-- **Gemini CLI** — replaced by Antigravity in this app; nothing of it is read.
+- **ZCode** — a desktop app whose process name is documented nowhere; rather than guess one, it is not observed.
 - **Cline, Roo Code** — Cline is moving its task storage to a new format (its source has a reader for
   the "pre-SDK" format next to the new one); a connector will follow once the format is settled.
-- **Aider** — it keeps a chat history file in each repository, with no common place to watch.
 - **OpenClaw** — not yet: it keeps each agent's transcript in its own SQLite database
   (`~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`), with events that can be zstd-compressed.
 
@@ -413,7 +441,7 @@ shows **≥**.
 | **Tokens** | Everything the agent reported for the session: new input + cache read + cache write + output. |
 | **Written** | Output tokens (what the model generated). |
 | **Cache read / cache write / new input** | Prompt tokens served from the provider's cache, written to it, and sent fresh. |
-| **Cache hit rate** | Cache read ÷ (cache read + cache write + new input), i.e. **hit ÷ (hit + miss)**. Only for agents that report cache reads (Claude Code, Reasonix, Codex…). Higher is cheaper: keep the start of the prompt stable. |
+| **Cache hit rate** | Cache read ÷ (cache read + cache write + new input), i.e. **hit ÷ (hit + miss)**. Only for agents that report cache reads (Claude Code, Reasonix, Codex…), not Crush or Continue. Higher is cheaper: keep the start of the prompt stable. |
 | **Cache falling** | The latest requests hit the cache far less than before (the prompt prefix changed, or the cache expired): everything is read at full price. |
 | **Estimated cost** | What the same tokens cost at each model's **public API list price** (`apps/desktop/src/ui/pricing.ts`). A subscription is not billed that way. A model missing from the price table is left out, and the cost then shows **≥**. |
 | **Saved by cache** | Cost of the same requests with every cached token counted as normal input, minus the estimated cost. |
@@ -421,7 +449,7 @@ shows **≥**.
 | **This turn** | Estimated cost since the start of the open turn. |
 | **Context** | What the next request would carry (the latest prompt size) ÷ the model's context window. Amber from 80 %, red from 95 %. The window comes from the agent when it reports it, otherwise from a table of documented models; for an unknown model no percentage is shown. |
 | **Compactions** | How many times the agent shrank its context. |
-| **Turns** | Messages you sent (Codex: its turn markers; Cursor: its `stop` events; Continue: not reported, 0). |
+| **Turns** | Messages you sent (Codex: its turn markers; Cursor: its `stop` events; Continue and the agents seen by their process: not reported, 0). |
 | **Requests** | Model responses that reported their usage. |
 | **Work time** | The sum of the turns, from each message to the last activity before the next one: tool and approval waits included, pauses between turns not. Not shown for Cursor and Continue (no turn marker). |
 | **Duration** | Wall-clock time between the first and the last event of the session. |
@@ -535,8 +563,10 @@ Everything stays on your computer. The app makes **no network request of its own
 built with an update signing key, the update check and download you start from **Settings › Updates**
 (GitHub only). On `127.0.0.1`
 only, with a per-installation key, it receives hooks (Claude Code, Cursor) and the optional Claude Code
-status line, and answers the read-only activity summary used by the MCP server. It runs read-only
-`git status` and `git log` in the project folders of your agents (with `core.fsmonitor` off, no optional
+status line, and answers the read-only activity summary used by the MCP server. Every 4 seconds it reads the
+list of running programs (name, command line, working folder) to recognise the agents seen by their process
+and Aider; only the recognised agent, its start time and its folder are recorded, never the command line. It
+runs read-only `git status` and `git log` in the project folders of your agents (with `core.fsmonitor` off, no optional
 locks and a 4-second timeout).
 
 **One local request to Antigravity.** Its files hold only an internal code for the selected model, so, to
@@ -575,7 +605,7 @@ in the right file and that the app was open. **Copy diagnostic** gives a text to
 (or `CLAUDE_CONFIG_DIR`). If the agent runs on another machine, its tokens are not visible.
 
 **A bar shows "not reported" for tokens or cache.** That agent does not report them in what the app can
-read (Cursor reports no tokens; some agents report no cache reads). The app does not estimate them.
+read (Cursor and the agents seen by their process report no tokens; some agents, like Crush, report no cache reads). The app does not estimate them.
 
 **I don't see my Claude Code limits.** Claude Code only gives them to its status line, and only to Pro and
 Max subscribers: add the optional status line from **Settings › Agents › Claude Code**; they appear after
@@ -648,7 +678,8 @@ the MCP server. It needs `xvfb`, `curl` and Node.
 **Provider pages ([DriftGuard](https://github.com/jcalhinho/driftguard)).** On every push, DriftGuard fails the
 check if the code calls a retired API. Every Monday, it also fetches the pages this app copies by hand — the
 price lists behind `pricing.ts`, the Claude Code and Cursor hook inputs, the source files that define the
-Codex, Qwen Code, OpenCode, Continue and Hermes log formats — listed in [`.driftguard.yml`](.driftguard.yml), and fails
+Codex, Qwen Code, OpenCode, Continue, Hermes, Gemini CLI, pi, omp, Kimi Code, Goose, Crush, Zed and Aider log
+formats, and the executable names of the agents seen by their process — listed in [`.driftguard.yml`](.driftguard.yml), and fails
 if one changed since `.driftguard.lock.json`. Then update the code named in the entry's `why`, and record the
 new fingerprints:
 
@@ -672,7 +703,10 @@ apps/desktop/
   src-tauri/src/          Rust: main.rs (collector, SQLite store, commands), one reader per agent
                           (claude_transcripts.rs, codex_rollout.rs, copilot_sessions.rs, copilot_chat.rs,
                           antigravity_sessions.rs, opencode_sessions.rs, qwen_sessions.rs, reasonix_sessions.rs,
-                          continue_sessions.rs), limits.rs, activity.rs, git_info.rs, redact.rs,
+                          continue_sessions.rs, hermes_sessions.rs, gemini_sessions.rs, pi_sessions.rs (pi and omp),
+                          kimi_sessions.rs, goose_sessions.rs, crush_sessions.rs, zed_threads.rs,
+                          process_watch.rs (agents seen by their process, and Aider)), tail.rs (shared helpers of
+                          the readers added in 0.18), limits.rs, activity.rs, git_info.rs, redact.rs,
                           diagnostics.rs (counts for the diagnostic), tray.rs (menu bar icon)
 crates/session-events/    the provider-neutral event model shared by every reader
 tools/mcp/                the read-only MCP server and its tests
@@ -689,6 +723,7 @@ docs/                     CONNECTORS (add an agent), DESIGN (UI rules), REMOTE, 
 ```
 agent CLIs ──hooks, status line (HTTP, 127.0.0.1 + key)──┐
            ──local logs / SQLite (read-only)──────────────┤
+           ──process list (name, folder)──────────────────┤
                                                           ▼
               Rust readers (apps/desktop/src-tauri/src/*)  →  SessionEvent (crates/session-events)
                                                           ▼

@@ -23,6 +23,13 @@ what to do and what you should see. Report anything that differs with the
 | OpenCode | `%USERPROFILE%\.local\share\opencode` (or `OPENCODE_DB`) | A bar, tokens; the model matches the one picked in OpenCode |
 | Antigravity | `%USERPROFILE%\.gemini\antigravity` | A bar per conversation; the model name (for example *Gemini … (Medium)*) |
 | GitHub Copilot | `%USERPROFILE%\.copilot\session-state` (or `COPILOT_HOME`), CLI and VS Code agent | A bar, tools and failures, the model |
+| Gemini CLI | `%USERPROFILE%\.gemini\tmp\<project>\chats` | A bar, tokens and model, the project folder |
+| pi / omp | `%USERPROFILE%\.pi\agent\sessions`, `%USERPROFILE%\.omp\agent\sessions` | A bar, tools, tokens with cache |
+| Kimi Code | `%USERPROFILE%\.kimi-code\sessions` | A bar, tools, tokens, the project folder |
+| Goose | `%APPDATA%\Block\goose\data\sessions\sessions.db` | A bar, tools, tokens and model |
+| Crush | `%LOCALAPPDATA%\crush\projects.json`, then each project's `.crush\crush.db` | A bar, tools, step tokens |
+| Zed | `%LOCALAPPDATA%\Zed\threads\threads.db` | A bar per agent thread, computed tokens |
+| Aider and the agents seen by their process | the process list (and Aider's `.aider.chat.history.md`) | A bar while it runs, with its folder; Aider also tokens (estimated) |
 
 For each, **Settings** shows the folder it looks at and whether it was found. If a bar
 does not appear, that line tells you which folder to check.

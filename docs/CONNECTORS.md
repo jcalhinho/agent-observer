@@ -1,8 +1,9 @@
 # Connecting an agent
 
 Agent Observer ships with built-in connectors for Claude Code, Codex, Antigravity, GitHub Copilot, OpenCode,
-Qwen Code, Reasonix, Cursor, Continue and Hermes (Gemini CLI is no longer observed: Antigravity replaces it, and nothing
-of Gemini CLI is read any more). A new agent is added as a built-in connector, in Rust.
+Qwen Code, Reasonix, Cursor, Continue, Hermes, Gemini CLI, pi, omp, Kimi Code, Goose, Crush, Zed and Aider, and
+recognises Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh and iFlow CLI by their
+process. A new agent is added as a built-in connector, in Rust.
 
 > The open local API (`POST /v1/events` and custom connectors) was removed in 0.13 with the move to a
 > single screen. The collector now only accepts the hooks of Claude Code and Cursor, the optional Claude
@@ -13,7 +14,10 @@ of Gemini CLI is read any more). A new agent is added as a built-in connector, i
 
 Built-in connectors live in `apps/desktop/src-tauri/src/`, one module per agent
 (`codex_rollout.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`, `continue_sessions.rs`,
-`claude_transcripts.rs`…). They follow the same pattern:
+`claude_transcripts.rs`…). The readers added in 0.18 share `tail.rs`: `Tail` reads the lines appended to a
+file (a file that existed before the app started is read from its end), `Poll` is one reader and
+`tail::spawn` runs it on its own thread; `provider`, `derived` and `estimated` tag each value with its
+origin. They follow the same pattern:
 
 1. **Find the data the agent already writes** (logs, local database) or receives (hooks). Never
    change the agent's settings; read-only access.
@@ -29,12 +33,18 @@ Built-in connectors live in `apps/desktop/src-tauri/src/`, one module per agent
    check the projection on real local data without printing its content. Write the fixtures from the
    agent's **official source code** (its log writer, its schema), and say in the module comment which
    files of that source the format comes from — as `continue_sessions.rs` does.
-7. **Show it**: add the setup command (`<agent>_setup`, returning the folder read and whether it exists)
-   so **Settings › Agents › Configure** and **Settings › Diagnostic** can say where the connector reads.
-   A new colour in `activeProviders` must pass the palette validator (see the comment there).
+7. **Show it**: add the folders the connector reads to `source_paths` in `main.rs` (the `source_setup`
+   command returns them and whether one exists) and the agent's kind to `SOURCE_KINDS` in
+   `ConnectorDialog.tsx`, so **Settings › Agents › Configure** and **Settings › Diagnostic** can say where the
+   connector reads. Its colour in `activeProviders` only marks its own bar and badge, next to its name: keep
+   it in the contrast range given in the comment there.
 8. **Watch its format**: add the source file (or documentation page) that defines the format to the
    `watch` list of [`.driftguard.yml`](../.driftguard.yml), narrowed with `start`/`end` to the part the
    connector reads, then `driftguard watch . --update`. The weekly DriftGuard job then says when it changes.
+
+**An agent that writes nothing readable** (closed source, unpublished format) can still be shown as running:
+add its executable name to `agent_named` in `process_watch.rs`, taken from a source that launches it (not
+guessed), and leave out names other programs commonly use.
 
 Pull requests adding a connector should state which agent versions were tested and what the
 connector cannot observe.

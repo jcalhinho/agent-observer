@@ -38,9 +38,15 @@ fichiers, en lecture seule.
 
 - **Claude Code** pousse ses événements par des hooks, vers un petit serveur
   local protégé par un jeton.
-- **Les huit autres** (Codex, Copilot, Antigravity, Qwen Code, OpenCode,
-  Reasonix, Continue, Hermes) sont lus depuis leurs fichiers de session ou journaux,
-  surveillés en continu.
+- **La plupart des autres** (Codex, Copilot, Antigravity, Qwen Code, OpenCode,
+  Reasonix, Continue, Hermes, Gemini CLI, pi, omp, Kimi Code, Goose, Crush, Zed)
+  sont lus depuis leurs fichiers de session, journaux ou bases SQLite, surveillés
+  en continu.
+- **Aider** est repéré à son processus, puis lu dans l'historique qu'il écrit
+  dans le dépôt.
+- **Ceux qui n'écrivent rien de lisible** (Amp, Kiro CLI, Trae CLI, Qoder CLI,
+  CodeBuddy, MiniMax Code, jcode, dsh, iFlow CLI) sont seulement vus à leur
+  processus : depuis quand ils tournent, et dans quel dossier.
 - **Cursor** passe aussi par un hook.
 
 ## Où est quoi
@@ -49,7 +55,9 @@ fichiers, en lecture seule.
 
 | Fichier | Rôle |
 |---|---|
-| `claude_transcripts.rs`, `codex_rollout.rs`, `copilot_sessions.rs`, `copilot_chat.rs`, `antigravity_sessions.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`, `reasonix_sessions.rs`, `continue_sessions.rs` | un lecteur par agent, c'est le cœur du projet |
+| `claude_transcripts.rs`, `codex_rollout.rs`, `copilot_sessions.rs`, `copilot_chat.rs`, `antigravity_sessions.rs`, `qwen_sessions.rs`, `opencode_sessions.rs`, `reasonix_sessions.rs`, `continue_sessions.rs`, `hermes_sessions.rs`, `gemini_sessions.rs`, `pi_sessions.rs`, `kimi_sessions.rs`, `goose_sessions.rs`, `crush_sessions.rs`, `zed_threads.rs` | un lecteur par agent, c'est le cœur du projet |
+| `process_watch.rs` | les agents vus à leur processus, et Aider |
+| `tail.rs` | ce que partagent les lecteurs ajoutés en 0.18 : lire les lignes ajoutées à un fichier, marquer chaque valeur fournie, calculée ou estimée |
 | `main.rs` | le serveur local, la base SQLite, les commandes de l'interface |
 | `limits.rs` | les limites d'abonnement rapportées par Codex et Claude Code |
 | `activity.rs` | le résumé d'activité en lecture seule (pour le serveur MCP) |

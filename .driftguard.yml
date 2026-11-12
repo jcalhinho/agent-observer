@@ -95,3 +95,54 @@ watch:
     start: "def _platform_default_hermes_home("
     end: "def _get_platform_default_hermes_home("
     why: Hermes home folder (data_root in hermes_sessions.rs)
+
+  # ---- Agents added in 0.18 (each connector names these files in its module comment)
+  - id: gemini-cli-chat-records
+    url: https://raw.githubusercontent.com/google-gemini/gemini-cli/main/packages/core/src/services/chatRecordingTypes.ts
+    why: chat record and token fields in gemini_sessions.rs
+  - id: pi-session-entries
+    url: https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/core/session-manager.ts
+    start: "export interface SessionHeader {"
+    end: "export type SessionEntry ="
+    why: session, message, model_change and usage entries in pi_sessions.rs
+  - id: pi-usage
+    url: https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/ai/src/types.ts
+    start: "export interface ToolCall {"
+    end: "export type StopReason"
+    why: toolCall and usage fields (input without cache) in pi_sessions.rs
+  - id: omp-session-entries
+    url: https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/session/session-entries.ts
+    start: "export interface SessionHeader {"
+    end: "export type SessionEntry ="
+    why: omp entries (model as provider/model, model_usage) in pi_sessions.rs
+  - id: kimi-code-wire-manifest
+    url: https://raw.githubusercontent.com/MoonshotAI/kimi-code/main/packages/agent-core-v2/docs/wire-manifest.d.ts
+    why: wire.jsonl records (metadata, llm.request, turn.prompt, loop events, step.end usage) in kimi_sessions.rs
+  - id: goose-session-tables
+    url: https://raw.githubusercontent.com/block/goose/main/crates/goose/src/session/session_manager.rs
+    start: "CREATE TABLE IF NOT EXISTS sessions ("
+    end: "CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)"
+    why: sessions, messages and usage_ledger queries in goose_sessions.rs
+  - id: crush-db-models
+    url: https://raw.githubusercontent.com/charmbracelet/crush/main/internal/db/models.go
+    why: messages and sessions columns in crush_sessions.rs
+  - id: zed-thread-format
+    url: https://raw.githubusercontent.com/zed-industries/zed/main/crates/agent/src/db.rs
+    start: "pub struct DbThread {"
+    end: "impl DbThread {"
+    why: thread JSON (messages, model, cumulative_token_usage) decoded in zed_threads.rs
+  - id: zed-threads-table
+    url: https://raw.githubusercontent.com/zed-industries/zed/main/crates/agent/src/db.rs
+    start: "CREATE TABLE IF NOT EXISTS threads ("
+    end: "Failed to create threads table"
+    why: threads table columns in zed_threads.rs
+  - id: aider-tokens-report
+    url: https://raw.githubusercontent.com/Aider-AI/aider/main/aider/coders/base_coder.py
+    start: "def calculate_and_show_tokens_and_cost"
+    end: "def show_usage_report"
+    why: the "Tokens … sent, … received" line parsed in process_watch.rs
+  - id: billion-context-client-commands
+    url: https://raw.githubusercontent.com/ranxianglei/billion-context/master/src/launcher.ts
+    start: "export function resolveClientCommand("
+    end: "interface RunLaunchParams {"
+    why: executable names of the agents seen by their process in process_watch.rs

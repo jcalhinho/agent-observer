@@ -74,4 +74,7 @@ Out of scope:
   was started with (read from the process list, kept in memory for the request, never logged, stored or
   sent anywhere). Only model names are kept from the answer; account and plan fields are dropped unread.
   Nothing happens if Antigravity is not running.
+- The process list is read every 4 seconds (name, command line, working folder) to recognise agents that
+  write nothing readable, and Aider. Only the recognised agent, its start time and its working folder are
+  recorded; command lines are never stored or logged.
 - No telemetry and no network request of its own.

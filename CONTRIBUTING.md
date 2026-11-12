@@ -95,21 +95,25 @@ whose activity can be read from local files or a database:
 1. **Provider** — if the agent is new, add it to `Provider` in
    `crates/session-events/src/lib.rs` (with its stable `key()`), and to `providers` in
    `apps/desktop/src/ui/providers.ts` with the same `eventKey`.
-2. **Module** — add `apps/desktop/src-tauri/src/<agent>_sessions.rs`, modelled on
-   `qwen_sessions.rs` (JSONL logs) or `opencode_sessions.rs` (SQLite, read-only). It must:
+2. **Module** — add `apps/desktop/src-tauri/src/<agent>_sessions.rs`. For JSONL logs, build on
+   `tail.rs` (`Tail` reads appended lines, `Poll` + `tail::spawn` run the reader) as
+   `gemini_sessions.rs` or `kimi_sessions.rs` do; for SQLite, open read-only as
+   `goose_sessions.rs` or `opencode_sessions.rs` do. An agent that writes nothing readable can only
+   be recognised by its executable name in `process_watch.rs`. It must:
    - locate the agent's data directory on macOS, Windows and Linux, honouring the agent's
      own environment variables;
    - start at the end of existing files and read appended records only;
    - produce `SessionEvent`s with stable `event_id`s where the source allows it
      (`Uuid::new_v5` from the record's identity), so re-reading a record never duplicates it;
    - apply the capture policy for prompts and commands, and drop everything else private.
-3. **Wiring** — spawn the monitor in `main.rs` next to the others, and add a
-   `<agent>_setup` command (like `qwen_setup`) so the Connectors tab can show whether the
-   agent was detected.
+3. **Wiring** — spawn the monitor in `main.rs` next to the others, and add the folders it reads to
+   `source_paths` in `main.rs` (the `source_setup` command) so **Settings › Agents** and
+   **Settings › Diagnostic** can show whether the agent was detected.
 4. **Tests** — unit tests with small, anonymised fixture records covering: a normal turn,
    a tool failure, token usage, a truncated last line, and a record with private content
    that must **not** be persisted.
-5. **Docs** — add the agent to the *Supported agents* table in both READMEs.
+5. **Docs** — add the agent to the *Connect your agents* table in both READMEs, to
+   `docs/WINDOWS.md`, and its format source to `.driftguard.yml` (see `docs/CONNECTORS.md`).
 
 ## Adding or fixing a model price
 

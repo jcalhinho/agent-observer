@@ -205,10 +205,10 @@ du logo indique **Collecte active** quand le collecteur local écoute. Ensuite, 
 | **pi** et **omp** | Les nouvelles lignes de leurs sessions dans `~/.pi/agent/sessions` et `~/.omp/agent/sessions`. | Rien. |
 | **Kimi Code** | Le journal de chaque session dans `~/.kimi-code/sessions/<espace>/<session>/wire.jsonl` (sous-agents compris) ; le dossier du projet vient de `~/.kimi-code/projects.json`. | Rien. |
 | **Goose** | Sa base `~/.local/share/goose/sessions/sessions.db` (`GOOSE_PATH_ROOT`, `XDG_DATA_HOME` respectés), en lecture seule. | Rien. |
-| **Crush** | La base de chaque projet (`.crush/crush.db`), trouvée grâce à `~/.local/share/crush/projects.json`, en lecture seule. Crush ne garde que les tokens de sa dernière étape, cache non détaillé. | Rien. |
-| **Zed** (agent intégré) | Ses conversations dans `~/Library/Application Support/Zed/threads/threads.db`, en lecture seule ; les tokens de chaque échange sont déduits de ses cumuls. | Rien. |
-| **Aider** | Repéré quand il tourne, puis l'historique qu'il écrit à la racine du dépôt (`.aider.chat.history.md`) : messages, modèle, fichiers modifiés, tokens arrondis (marqués estimés). | Rien. |
-| **Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh, iFlow CLI** | Seulement le fait qu'ils tournent, depuis quand et dans quel dossier : ils n'écrivent rien de lisible. Ni tokens ni outils. | Rien. |
+| **Crush** | La base de chaque projet (`.crush/crush.db`), trouvée grâce à `~/.local/share/crush/projects.json`, en lecture seule. Crush ne garde que les tokens de sa dernière étape, cache non détaillé. Voir [Crush et Zed](#crush-et-zed). | Rien. |
+| **Zed** (agent intégré) | Ses conversations dans `~/Library/Application Support/Zed/threads/threads.db`, en lecture seule ; les tokens de chaque échange sont déduits de ses cumuls. Voir [Crush et Zed](#crush-et-zed). | Rien. |
+| **Aider** | Repéré quand il tourne, puis l'historique qu'il écrit à la racine du dépôt (`.aider.chat.history.md`) : messages, modèle, fichiers modifiés, tokens arrondis (marqués estimés). Voir [Aider](#aider). | Rien. |
+| **Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh, iFlow CLI** | Seulement le fait qu'ils tournent, depuis quand et dans quel dossier : ils n'écrivent rien de lisible. Ni tokens ni outils. Voir [Agents vus à leur processus](#agents-vus-à-leur-processus). | Rien. |
 
 Sous Windows, `~` est `%USERPROFILE%`. **Réglages › Agents › Configurer** montre, pour chaque agent, le dossier
 lu et s'il a été trouvé.
@@ -278,13 +278,44 @@ L'app les lit en lecture seule :
 - `sessions` — le dossier de travail de chaque session. Les sessions lancées depuis une messagerie
   (Telegram, Discord…) n'en ont souvent pas.
 
+### Aider
+
+Aider n'a pas de dossier commun à surveiller : il écrit son historique (`.aider.chat.history.md`) à la racine
+de chaque dépôt. L'app le repère donc d'abord à son processus, puis lit cet historique dans son dossier de
+travail (ou un parent, jusqu'à la racine git) : tes messages (les lignes `####`), le modèle annoncé au
+démarrage, chaque `Applied edit to …` comme fichier modifié, et la ligne `Tokens: … sent, … received`.
+Aider y écrit des nombres arrondis (« 2.3k ») : ils sont marqués estimés, le coût s'affiche avec **≈**, et
+l'entrée nouvelle est ce qui a été envoyé moins le cache. Une session d'Aider commencée avant l'app est lue à
+partir de la fin de son historique.
+
+### Crush et Zed
+
+- **Crush** ne garde, pour chaque session, que les tokens de sa **dernière étape**, remplacés à chaque étape
+  et cache compris sans le détailler. L'app compte chaque changement comme une étape : le cache n'est pas
+  séparé (pas de taux de cache, coût sans remise de cache), et une étape très brève entre deux lectures
+  peut lui échapper.
+- **Zed** garde le **cumul** des tokens de chaque conversation et réécrit la conversation entière à chaque
+  sauvegarde. L'app compare chaque sauvegarde à la précédente : les tokens de chaque échange sont la
+  différence des cumuls (valeurs calculées), les outils ceux qui sont apparus. Seul l'agent intégré de Zed
+  est lu ; un agent externe lancé dans Zed (Claude Code, Gemini CLI…) est suivi par son propre connecteur.
+
+### Agents vus à leur processus
+
+**Amp, Kiro CLI, Trae CLI, Qoder CLI, CodeBuddy, MiniMax Code, jcode, dsh et iFlow CLI** n'écrivent rien que
+l'app sache lire (code fermé ou format non publié). L'app relit la liste des programmes qui tournent toutes les
+4 secondes et reconnaît ces agents à leur nom d'exécutable (`amp`, `kiro-cli`, `traecli`/`trae-cli`,
+`qoder`/`qodercli`, `codebuddy`, `mcode`, `jcode`, `dsh`, `iflow`), y compris lancés par node, bun ou
+python. Une session s'ouvre à leur lancement et se ferme à leur arrêt, avec leur dossier de travail : ni
+tokens, ni outils, ni messages. `cbc` (autre nom de CodeBuddy) et `trae` ne sont pas retenus : le premier est
+aussi celui d'un solveur courant, le second celui de l'éditeur Trae.
+
 ### Non branchés
 
-- **Gemini CLI** — remplacé par Antigravity dans cette app ; rien n'en est lu.
+- **ZCode** — application de bureau dont le nom de processus n'est documenté nulle part ; plutôt que d'en
+  deviner un, elle n'est pas observée.
 - **Cline, Roo Code** — Cline est en train de passer le stockage de ses tâches à un nouveau format (son code
   contient un lecteur de l'ancien format, « pre-SDK », à côté du nouveau) ; un connecteur suivra quand le
   format sera stabilisé.
-- **Aider** — il garde un fichier d'historique dans chaque dépôt, sans endroit commun à surveiller.
 - **OpenClaw** — pas encore : il garde la transcription de chaque agent dans sa propre base SQLite
   (`~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`), avec des événements parfois compressés en zstd.
 
@@ -419,7 +450,7 @@ partielle affiche **≥**.
 | **Tokens** | Tout ce que l'agent a rapporté pour la session : entrée nouvelle + cache lu + cache écrit + sortie. |
 | **Écrits** | Les tokens de sortie (ce que le modèle a généré). |
 | **Cache lu / cache écrit / entrée nouvelle** | Les tokens du prompt servis par le cache du fournisseur, écrits dans ce cache, et envoyés à neuf. |
-| **Taux de cache** | Cache lu ÷ (cache lu + cache écrit + entrée nouvelle), soit **lus ÷ (lus + manqués)**. Seulement pour les agents qui rapportent leurs lectures de cache (Claude Code, Reasonix, Codex…). Plus c'est haut, moins ça coûte : garde le début du prompt stable. |
+| **Taux de cache** | Cache lu ÷ (cache lu + cache écrit + entrée nouvelle), soit **lus ÷ (lus + manqués)**. Seulement pour les agents qui rapportent leurs lectures de cache (Claude Code, Reasonix, Codex…), pas pour Crush ni Continue. Plus c'est haut, moins ça coûte : garde le début du prompt stable. |
 | **Cache en chute** | Les dernières requêtes touchent beaucoup moins le cache qu'avant (le début du prompt a changé, ou le cache a expiré) : tout est relu au plein tarif. |
 | **Coût estimé** | Ce que coûteraient les mêmes tokens au **tarif API public** de chaque modèle (`apps/desktop/src/ui/pricing.ts`). Un abonnement ne facture pas ainsi. Un modèle absent de la table des prix est laissé de côté, et le coût affiche alors **≥**. |
 | **Économisé par le cache** | Le coût des mêmes requêtes en comptant chaque token mis en cache comme une entrée normale, moins le coût estimé. |
@@ -427,7 +458,7 @@ partielle affiche **≥**.
 | **Ce tour** | Le coût estimé depuis le début du tour en cours. |
 | **Contexte** | Ce que la prochaine requête emporterait (la taille du dernier prompt) ÷ la fenêtre de contexte du modèle. Orange dès 80 %, rouge dès 95 %. La fenêtre vient de l'agent quand il la rapporte, sinon d'une table de modèles documentés ; pour un modèle inconnu, aucun pourcentage n'est affiché. |
 | **Compactions** | Le nombre de fois où l'agent a réduit son contexte. |
-| **Tours** | Les messages que tu as envoyés (Codex : ses marqueurs de tour ; Cursor : ses événements `stop` ; Continue : non rapporté, 0). |
+| **Tours** | Les messages que tu as envoyés (Codex : ses marqueurs de tour ; Cursor : ses événements `stop` ; Continue et les agents vus à leur processus : non rapporté, 0). |
 | **Requêtes** | Les réponses du modèle qui ont rapporté leur usage. |
 | **Temps de travail** | La somme des tours, de chaque message à la dernière activité avant le suivant : attentes d'outil et de validation comprises, pas les pauses entre deux tours. Pas affiché pour Cursor et Continue (pas de marqueur de tour). |
 | **Durée** | Le temps écoulé entre le premier et le dernier événement de la session. |
@@ -545,7 +576,9 @@ version construite avec une clé de signature des mises à jour, la recherche et
 que tu lances depuis **Réglages › Mises à jour** (GitHub uniquement). Sur `127.0.0.1`
 uniquement, avec une clé propre à l'installation, elle reçoit les hooks (Claude Code, Cursor) et la barre
 d'état facultative de Claude Code, et répond au résumé d'activité en lecture seule utilisé par le serveur MCP.
-Elle lance `git status` et `git log` en lecture seule dans les dossiers de projet de tes agents (avec
+Elle relit toutes les 4 secondes la liste des programmes qui tournent (nom, ligne de commande, dossier de
+travail) pour reconnaître les agents vus à leur processus et Aider ; seuls l'agent reconnu, son heure de
+lancement et son dossier sont enregistrés, jamais la ligne de commande. Elle lance `git status` et `git log` en lecture seule dans les dossiers de projet de tes agents (avec
 `core.fsmonitor` désactivé, sans verrou optionnel et avec un délai de 4 secondes).
 
 **Une requête locale vers Antigravity.** Ses fichiers ne contiennent qu'un code interne pour le modèle choisi ;
@@ -585,7 +618,8 @@ donne un texte à coller dans un signalement.
 (ou `CLAUDE_CONFIG_DIR`). Si l'agent tourne sur une autre machine, ses tokens ne sont pas visibles.
 
 **Une barre affiche « non rapporté » pour les tokens ou le cache.** Cet agent ne les rapporte pas dans ce que
-l'app peut lire (Cursor ne rapporte aucun token ; certains agents ne rapportent pas leurs lectures de cache).
+l'app peut lire (Cursor et les agents vus à leur processus ne rapportent aucun token ; certains agents, comme Crush, ne
+rapportent pas leurs lectures de cache).
 L'app ne les estime pas.
 
 **Je ne vois pas mes limites Claude Code.** Claude Code ne les donne qu'à sa barre d'état, et seulement aux
@@ -660,7 +694,8 @@ refusées) et le serveur MCP. Il faut `xvfb`, `curl` et Node.
 **Pages des fournisseurs ([DriftGuard](https://github.com/jcalhinho/driftguard)).** À chaque push, DriftGuard fait
 échouer la vérification si le code appelle une API retirée. Chaque lundi, il relit aussi les pages que cette
 app recopie à la main — les grilles de prix derrière `pricing.ts`, les entrées des hooks de Claude Code et de
-Cursor, les fichiers source qui définissent les journaux de Codex, Qwen Code, OpenCode, Continue et Hermes — listées dans
+Cursor, les fichiers source qui définissent les journaux de Codex, Qwen Code, OpenCode, Continue, Hermes, Gemini CLI,
+pi, omp, Kimi Code, Goose, Crush, Zed et Aider, et les noms d'exécutables des agents vus à leur processus — listées dans
 [`.driftguard.yml`](.driftguard.yml), et échoue si l'une a changé depuis `.driftguard.lock.json`. Mets alors à
 jour le code nommé dans le `why` de l'entrée, puis enregistre les nouvelles empreintes :
 
@@ -684,7 +719,10 @@ apps/desktop/
   src-tauri/src/          Rust : main.rs (collecteur, base SQLite, commandes), un lecteur par agent
                           (claude_transcripts.rs, codex_rollout.rs, copilot_sessions.rs, copilot_chat.rs,
                           antigravity_sessions.rs, opencode_sessions.rs, qwen_sessions.rs, reasonix_sessions.rs,
-                          continue_sessions.rs), limits.rs, activity.rs, git_info.rs, redact.rs,
+                          continue_sessions.rs, hermes_sessions.rs, gemini_sessions.rs, pi_sessions.rs (pi et omp),
+                          kimi_sessions.rs, goose_sessions.rs, crush_sessions.rs, zed_threads.rs,
+                          process_watch.rs (agents vus à leur processus, et Aider)), tail.rs (outils communs des
+                          lecteurs ajoutés en 0.18), limits.rs, activity.rs, git_info.rs, redact.rs,
                           diagnostics.rs (compteurs du diagnostic), tray.rs (icône de la barre des menus)
 crates/session-events/    le modèle d'événement commun à tous les lecteurs
 tools/mcp/                le serveur MCP en lecture seule et ses tests
@@ -701,6 +739,7 @@ docs/                     CONNECTORS (ajouter un agent), DESIGN (règles d'inter
 ```
 CLI des agents ──hooks, barre d'état (HTTP, 127.0.0.1 + clé)──┐
                ──journaux locaux / SQLite (lecture seule)─────┤
+               ──liste des processus (nom, dossier)───────────┤
                                                               ▼
               Lecteurs Rust (apps/desktop/src-tauri/src/*)  →  SessionEvent (crates/session-events)
                                                               ▼

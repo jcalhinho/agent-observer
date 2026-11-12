@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     readable, so the app only shows that they run, since when and in which folder. Executable names checked
     against billion-context's launcher.
 - The "Not seen yet" line names five agents and counts the rest.
+- DriftGuard watches the source files each new connector reads (Gemini CLI, pi, omp, Kimi Code, Goose, Crush,
+  Zed, Aider) and billion-context's launcher, where the executable names of the agents seen by their process
+  come from.
+
+### Changed
+- Docs: both READMEs gain sections on Aider, Crush and Zed, and the agents seen by their process; ZCode is listed
+  as not observed (its process name is undocumented). Privacy and SECURITY.md say the process list is read
+  (command lines are never stored). CONNECTORS.md, CONTRIBUTING.md, COMPRENDRE.md, REMOTE.md and the Windows
+  checklist describe the new readers, `tail.rs`, `source_setup` and `process_watch.rs`.
 
 ## [0.17.0] - 2026-11-09
 
